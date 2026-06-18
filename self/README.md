@@ -56,9 +56,16 @@ the supported public surface.
   dispatch, candidate scoring, trace writing, and outcome application.
 - `self/core/attempt_prompt_runtime.py`: attempt-level proposal prompt
   construction shared by the driver loop and controller-worker round phase.
-- `self/core/attempt_outcome_runtime.py`: selected/no-selection adaptive
-  attempt outcome handling, including outcome traces, selected proposal traces,
-  source-pool updates, proposal-GRPO follow-up updates, and attempt summaries.
+- `self/core/attempt_outcome_models.py`: shared adaptive attempt-outcome
+  dependency and result containers.
+- `self/core/attempt_no_selection_runtime.py`: no-selection adaptive attempt
+  continuation, proposal-GRPO retry updates, failure summaries, and patience
+  stopping decisions.
+- `self/core/attempt_outcome_runtime.py`: adaptive attempt-outcome
+  orchestration plus selected-candidate outcome handling, including outcome
+  traces, selected proposal traces, source-pool updates, selected pseudo-example
+  artifacts, and selected-round summaries. It reexports the attempt-outcome
+  containers and no-selection helper for old imports.
 - `self/core/candidate_scoring.py`: candidate scoring orchestration across
   train-mix setup, checkpoint training, optional proposal rehearsal,
   evaluation, reward construction, metric artifact writing, and cleanup.

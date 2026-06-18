@@ -3665,3 +3665,12 @@ Acceptance criteria for first pilot:
 - Added a compatibility test pinning the top-level notebook utility heatmap helper to both the old plotting path and the new heatmap owner.
 - Updated `self/README.md` to document `self/analysis/training_curve_heatmaps.py`.
 - Verification: `python -m py_compile self/analysis/training_curve_heatmaps.py self/analysis/training_curve_plots.py self/analysis/training_curve_notebook_utils.py self/training_curve_notebook_utils.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_training_curve_heatmaps tests/test_training_curve_notebook_utils.py tests/test_analysis_artifacts.py -q` (`11 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:13:42 UTC
+
+- Split shared attempt-outcome containers from `self/core/attempt_outcome_runtime.py` into `self/core/attempt_outcome_models.py`.
+- Split the no-selection attempt branch into `self/core/attempt_no_selection_runtime.py`; it owns no-selection patience handling, proposal-GRPO retry updates, checkpoint replacement cleanup, failure summaries, and no-selection stop decisions.
+- Kept `self/core/attempt_outcome_runtime.py` as the public outcome orchestrator and selected-candidate branch owner while reexporting `AttemptOutcomeDeps`, `AttemptOutcomeResult`, and `_handle_no_selection_attempt` for old imports/tests.
+- Added `tests/test_attempt_outcome_runtime.py` to pin compatibility aliases and exercise the no-selection public handler path, including summary artifacts and proposal-GRPO retry metrics.
+- Updated `self/README.md` with the narrower ownership boundary for attempt-outcome modules.
+- Verification: `python -m py_compile self/core/attempt_outcome_models.py self/core/attempt_no_selection_runtime.py self/core/attempt_outcome_runtime.py tests/test_attempt_outcome_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_outcome tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`43 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
