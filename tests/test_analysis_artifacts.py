@@ -6,9 +6,12 @@ from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_per_size_records,
     adaptive_candidate_records,
+    adaptive_candidate_train_mix_records,
+    adaptive_prompt_records,
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
     adaptive_selected_per_size_timeline_records,
+    adaptive_trace_records,
     adaptive_trace_rows,
     discover_adaptive_runs,
     load_adaptive_run,
@@ -37,6 +40,7 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
 
     run_dir = tmp_path / "root" / "addition-config"
     attempt_dir = run_dir / "attempt_0001"
+    candidate_dir = attempt_dir / "candidates" / "candidate_00"
     _write_json(
         run_dir / "summary.json",
         {
@@ -49,6 +53,10 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     )
     _write_json(run_dir / "adaptive_candidate_training_results.json", [{"round": 0, "eval_accuracy": 0.4}])
     _write_json(run_dir / "round_00" / "metrics.json", {"eval_accuracy": 0.4})
+    _write_json(
+        attempt_dir / "proposal_prompt.json",
+        {"system": "choose a config", "user": "state: addition"},
+    )
     _write_json(
         attempt_dir / "attempt_summary.json",
         {
@@ -93,7 +101,32 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
             }
         ],
     )
+    _write_json(
+        candidate_dir / "candidate_metrics.json",
+        {
+            "id": "model_candidate_0",
+            "index": 0,
+            "valid": True,
+            "reward": 0.12,
+            "final_accuracy": 0.52,
+            "frontier_delta": 0.08,
+            "parsed_proposal": {"left": 3, "right": 7, "target": 10, "guard": "none"},
+        },
+    )
+    _write_json(
+        candidate_dir / "train_mix_summary.json",
+        {
+            "source_examples": 5,
+            "pseudo_examples": 7,
+            "task_train_examples": 12,
+            "outcome_trace_replay_examples": 1,
+            "candidate_proposal_trace_examples": 1,
+            "total_train_examples": 14,
+        },
+    )
     _write_jsonl(attempt_dir / "trace_examples.jsonl", [{"prompt": "p", "target": "t"}])
+    _write_jsonl(attempt_dir / "selected_proposal_trace.jsonl", [{"prompt": "sp", "target": "st"}])
+    _write_jsonl(attempt_dir / "outcome_trace_examples.jsonl", [{"prompt": "op", "target": "ot"}])
     _write_json(
         attempt_dir / "proposal_grpo" / "proposal_grpo_metrics.json",
         {
@@ -101,6 +134,10 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
             "loss": 0.13,
             "reward_mean": 0.2,
         },
+    )
+    _write_jsonl(
+        attempt_dir / "proposal_grpo" / "proposal_grpo_traces.jsonl",
+        [{"completion": "{}", "reward": 1.0}],
     )
 
     assert discover_adaptive_runs(tmp_path / "root") == [run_dir]
@@ -141,6 +178,27 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert proposal_rows[0]["proposal_target"] == 10
     assert proposal_rows[1]["validation_category"] == "parse_error"
 
+    prompt_rows = adaptive_prompt_records(run)
+    assert prompt_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "proposal_prompt_path": str(attempt_dir / "proposal_prompt.json"),
+            "system": "choose a config",
+            "user": "state: addition",
+            "system_chars": 15,
+            "user_chars": 15,
+        }
+    ]
+
     candidate_rows = adaptive_candidate_records(run)
     assert candidate_rows[0]["selected_candidate"] is True
     assert candidate_rows[0]["proposal_guard"] == "none"
@@ -172,6 +230,40 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
             "accuracy": 0.8,
         }
     ]
+    train_mix_rows = adaptive_candidate_train_mix_records(run)
+    assert train_mix_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "candidate_dir": str(candidate_dir),
+            "candidate_index": 0,
+            "candidate_id": "model_candidate_0",
+            "selected_candidate": True,
+            "valid": True,
+            "reward": 0.12,
+            "final_accuracy": 0.52,
+            "frontier_delta": 0.08,
+            "train_mix_summary_path": str(candidate_dir / "train_mix_summary.json"),
+            "proposal_left": 3,
+            "proposal_right": 7,
+            "proposal_target": 10,
+            "proposal_guard": "none",
+            "source_examples": 5,
+            "pseudo_examples": 7,
+            "task_train_examples": 12,
+            "outcome_trace_replay_examples": 1,
+            "candidate_proposal_trace_examples": 1,
+            "total_train_examples": 14,
+        }
+    ]
     grpo_rows = adaptive_proposal_grpo_records(run)
     assert grpo_rows == [
         {
@@ -194,6 +286,16 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
         }
     ]
     assert adaptive_trace_rows(run.attempts[0]) == [{"prompt": "p", "target": "t"}]
+    trace_rows = adaptive_trace_records(run)
+    assert [
+        (row["trace_name"], row["trace_index"], row["trace"])
+        for row in trace_rows
+    ] == [
+        ("trace_examples.jsonl", 0, {"prompt": "p", "target": "t"}),
+        ("selected_proposal_trace.jsonl", 0, {"prompt": "sp", "target": "st"}),
+        ("outcome_trace_examples.jsonl", 0, {"prompt": "op", "target": "ot"}),
+        ("proposal_grpo/proposal_grpo_traces.jsonl", 0, {"completion": "{}", "reward": 1.0}),
+    ]
 
 
 def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):

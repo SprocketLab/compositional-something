@@ -307,7 +307,7 @@ tests, notebooks, and older artifacts.
 - `self/analysis/artifact_io.py`: shared JSON/JSONL readers and artifact
   filename constants for analysis loaders.
 - `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
-  loading, attempt/proposal/candidate record flattening, trace loading,
+  loading, prompt/proposal/candidate/train-mix/trace record flattening,
   adaptive candidate per-size records, selected-checkpoint per-size timelines,
   and proposal-GRPO metric records.
 - `self/analysis/nonadaptive_artifacts.py`: non-adaptive result-path

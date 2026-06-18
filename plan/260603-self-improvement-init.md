@@ -3224,3 +3224,10 @@ Acceptance criteria for first pilot:
 - Moved `AdaptiveRunDeps` construction and the full adaptive run wrapper out of `self/core/driver_wiring.py`; `driver_wiring.py` now reexports the run bridge while staying focused on compatibility aggregation and CLI entrypoint wiring.
 - Updated `self/README.md` to document `self/core/driver_run_wiring.py` as the focused owner for adaptive run orchestration bridges.
 - Verification: `python -m py_compile self/core/driver.py self/core/driver_wiring.py self/core/driver_run_wiring.py self/core/run_orchestration.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_run_wiring tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`40 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:23:35 UTC
+
+- Extended the stable adaptive artifact loader in `self/analysis/adaptive_artifacts.py` so notebooks no longer need to hard-code raw paths for proposal prompts, per-candidate `train_mix_summary.json`, or common attempt trace JSONL files.
+- Added `adaptive_prompt_records(...)`, `adaptive_candidate_train_mix_records(...)`, and `adaptive_trace_records(...)`, and reexported them through `self/analysis/artifacts.py` for the existing notebook compatibility import surface.
+- Updated `self/README.md` to document prompt/train-mix/trace flattening as part of the adaptive analysis utilities.
+- Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_artifacts tests/test_analysis_artifacts.py -q` (`4 passed`); `git diff --check`.

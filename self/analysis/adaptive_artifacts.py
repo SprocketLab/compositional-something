@@ -16,10 +16,27 @@ from self.analysis.artifact_io import (
 )
 
 
+DEFAULT_ADAPTIVE_TRACE_FILES = (
+    "trace_examples.jsonl",
+    "selected_proposal_trace.jsonl",
+    "outcome_trace_examples.jsonl",
+    "proposal_grpo/proposal_grpo_traces.jsonl",
+)
+
+
 def _attempt_index(path: Path, summary: Mapping[str, Any] | None = None) -> int | None:
     if summary and summary.get("attempt") is not None:
         return int(summary["attempt"])
     match = re.search(r"attempt_(\d+)$", path.name)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _candidate_index(path: Path, payload: Mapping[str, Any] | None = None) -> int | None:
+    if payload and payload.get("index") is not None:
+        return int(payload["index"])
+    match = re.search(r"candidate_(\d+)$", path.name)
     if match:
         return int(match.group(1))
     return None
@@ -65,6 +82,24 @@ def _attempt_selected_payload(attempt: "AdaptiveAttemptArtifacts") -> JsonDict |
         if isinstance(selected, Mapping):
             return dict(selected)
     return None
+
+
+def _candidate_metric_for_dir(
+    attempt: "AdaptiveAttemptArtifacts",
+    candidate_dir: Path,
+) -> JsonDict:
+    metric = read_json(candidate_dir / "candidate_metrics.json", None)
+    if isinstance(metric, Mapping):
+        return dict(metric)
+    candidate_index = _candidate_index(candidate_dir)
+    for item in attempt.candidate_metrics:
+        if not isinstance(item, Mapping):
+            continue
+        if candidate_index is not None and item.get("index") == candidate_index:
+            return dict(item)
+        if item.get("id") == candidate_dir.name:
+            return dict(item)
+    return {}
 
 
 @dataclass(frozen=True)
@@ -216,6 +251,33 @@ def adaptive_proposal_records(run: AdaptiveRunArtifacts | Path | str) -> list[Js
     return rows
 
 
+def adaptive_prompt_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        prompt_path = attempt.path / "proposal_prompt.json"
+        prompt = read_json(prompt_path, None)
+        if not isinstance(prompt, Mapping):
+            continue
+        system = prompt.get("system")
+        user = prompt.get("user")
+        rows.append(
+            {
+                **context,
+                "attempt_dir": str(attempt.path),
+                "attempt": attempt.attempt,
+                "selected_round": attempt.attempt_summary.get("selected_round"),
+                "proposal_prompt_path": str(prompt_path),
+                "system": system,
+                "user": user,
+                "system_chars": len(system) if isinstance(system, str) else None,
+                "user_chars": len(user) if isinstance(user, str) else None,
+            }
+        )
+    return rows
+
+
 def adaptive_candidate_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
     artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
     context = _run_context(artifacts)
@@ -247,6 +309,46 @@ def adaptive_candidate_records(run: AdaptiveRunArtifacts | Path | str) -> list[J
                 "per_size_accuracy": candidate.get("per_size_accuracy"),
             }
             row.update(_proposal_fields(candidate))
+            rows.append(row)
+    return rows
+
+
+def adaptive_candidate_train_mix_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        selected_id = _selected_id(attempt.attempt_summary.get("selected"))
+        for candidate_dir in sorted(
+            [path for path in (attempt.path / "candidates").glob("candidate_*") if path.is_dir()],
+            key=natural_sort_key,
+        ):
+            train_mix_path = candidate_dir / "train_mix_summary.json"
+            train_mix = read_json(train_mix_path, None)
+            if not isinstance(train_mix, Mapping):
+                continue
+            metric = _candidate_metric_for_dir(attempt, candidate_dir)
+            candidate_id = metric.get("id", candidate_dir.name)
+            candidate_index = _candidate_index(candidate_dir, metric)
+            row: JsonDict = {
+                **context,
+                "attempt_dir": str(attempt.path),
+                "attempt": attempt.attempt,
+                "selected_round": attempt.attempt_summary.get("selected_round"),
+                "candidate_dir": str(candidate_dir),
+                "candidate_index": candidate_index,
+                "candidate_id": candidate_id,
+                "selected_candidate": (
+                    candidate_id == selected_id if selected_id is not None else None
+                ),
+                "valid": metric.get("valid"),
+                "reward": metric.get("reward"),
+                "final_accuracy": metric.get("final_accuracy"),
+                "frontier_delta": metric.get("frontier_delta"),
+                "train_mix_summary_path": str(train_mix_path),
+            }
+            row.update(_proposal_fields(metric))
+            row.update(dict(train_mix))
             rows.append(row)
     return rows
 
@@ -398,3 +500,30 @@ def adaptive_trace_rows(
 ) -> list[JsonDict]:
     attempt_dir = attempt.path if isinstance(attempt, AdaptiveAttemptArtifacts) else Path(attempt)
     return read_jsonl(attempt_dir / name)
+
+
+def adaptive_trace_records(
+    run: AdaptiveRunArtifacts | Path | str,
+    *,
+    names: tuple[str, ...] = DEFAULT_ADAPTIVE_TRACE_FILES,
+) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        for name in names:
+            trace_path = attempt.path / name
+            for trace_index, trace in enumerate(read_jsonl(trace_path)):
+                rows.append(
+                    {
+                        **context,
+                        "attempt_dir": str(attempt.path),
+                        "attempt": attempt.attempt,
+                        "selected_round": attempt.attempt_summary.get("selected_round"),
+                        "trace_name": name,
+                        "trace_path": str(trace_path),
+                        "trace_index": trace_index,
+                        "trace": trace,
+                    }
+                )
+    return rows
