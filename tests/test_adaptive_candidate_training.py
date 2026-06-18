@@ -5,16 +5,105 @@ import json
 import math
 import random
 from pathlib import Path
+from types import SimpleNamespace
 
-from core.addition_pipeline import AdditionExample, example_key, has_component_boundary_carry
-from self.adaptive.run import driver as loop
+from core.addition_pipeline import AdditionExample, compose_examples, example_key, has_component_boundary_carry
+from self.adaptive.candidates import dispatch as candidate_dispatch
+from self.adaptive.candidates import training as candidate_training
+from self.adaptive.proposals.proposal_config_validation import validate_config_rows
+from self.adaptive.proposals.proposal_grpo_traces import (
+    build_proposal_grpo_traces,
+    proposal_grpo_advantages,
+    proposal_grpo_reward,
+)
+from self.adaptive.proposals.proposal_prompts import choose_default_program_pair
+from self.adaptive.proposals.proposal_runtime import validate_proposal_rows
+from self.adaptive.run import driver_default_bindings, driver_wiring
+from self.adaptive.traces import traces as adaptive_traces
+from self.core import composition
+from self.core.data_io import save_examples
+from self.core.models import (
+    CandidateMetrics,
+    CandidateWorkItem,
+    ExactPairDataset,
+    ExecutableProposal,
+    candidate_metrics_from_json,
+)
+from self.core.task_protocols import task_for_name
 from self.adaptive.proposals import ConfigProposal, PromptBundle
-from self.self_improvement_tasks import (
+from self.tasks import (
     RUN_LENGTH_TARGET_RUN_STATE,
     RunLengthExample,
     format_run_length_run_state,
     run_length_key,
 )
+
+
+def _make_loop_facade() -> SimpleNamespace:
+    """Small test binding object for adaptive driver wiring.
+
+    These tests used to import the adaptive driver as a giant module-level facade.
+    The production code now keeps the driver slim, so the tests bind only the
+    names they exercise while still routing worker/dispatch calls through the
+    same dependency wiring used by the CLI.
+    """
+
+    loop = SimpleNamespace()
+    for name in driver_default_bindings.__all__:
+        setattr(loop, name, getattr(driver_default_bindings, name))
+
+    loop.build_exact_pair_addition_dataset = composition.build_exact_pair_addition_dataset
+    loop.build_exact_pair_run_length_dataset = composition.build_exact_pair_run_length_dataset
+    loop.merge_run_length_examples = composition.merge_run_length_examples
+    loop.compose_run_length_pseudo_examples = composition.compose_run_length_pseudo_examples
+    loop.compose_program_pseudo_examples = composition.compose_program_pseudo_examples
+    loop.compose_examples = compose_examples
+    loop.validate_config_rows = validate_config_rows
+    loop.proposal_grpo_reward = proposal_grpo_reward
+    loop.proposal_grpo_advantages = proposal_grpo_advantages
+    loop.build_proposal_grpo_traces = build_proposal_grpo_traces
+    loop.static_frontier_sizes = candidate_training.static_frontier_sizes
+    loop.mean_accuracy_for_sizes = candidate_training.mean_accuracy_for_sizes
+    loop.cleanup_replaced_model_checkpoint = candidate_training.cleanup_replaced_model_checkpoint
+    loop.select_candidate = candidate_training.select_candidate
+    loop.task_for_name = task_for_name
+    loop.ExecutableProposal = ExecutableProposal
+    loop.CandidateWorkItem = CandidateWorkItem
+    loop.ExactPairDataset = ExactPairDataset
+    loop.CandidateMetrics = CandidateMetrics
+    loop.candidate_metrics_from_json = candidate_metrics_from_json
+    loop.ProposalTraceExample = adaptive_traces.ProposalTraceExample
+    loop.OutcomeTraceExample = adaptive_traces.OutcomeTraceExample
+    loop.sample_proposal_trace_replay = adaptive_traces.sample_proposal_trace_replay
+    loop.sample_outcome_trace_replay = adaptive_traces.sample_outcome_trace_replay
+    loop.build_post_task_proposal_rehearsal_examples = adaptive_traces.build_post_task_proposal_rehearsal_examples
+    loop.build_selected_proposal_trace_example = adaptive_traces.build_selected_proposal_trace_example
+    loop.build_candidate_proposal_trace_example = adaptive_traces.build_candidate_proposal_trace_example
+    loop.build_outcome_trace_example = adaptive_traces.build_outcome_trace_example
+    loop.choose_default_program_pair = choose_default_program_pair
+    loop.validate_proposal_rows = validate_proposal_rows
+    loop.save_examples = save_examples
+
+    loop._candidate_failure_metrics = candidate_dispatch.candidate_failure_metrics
+    loop._collect_candidate_array_metrics = candidate_dispatch.collect_candidate_array_metrics
+    loop.run = lambda args: driver_wiring.run(loop, args)
+    loop.apply_or_dispatch_proposal_grpo_update = (
+        lambda **kwargs: driver_wiring.apply_or_dispatch_proposal_grpo_update(loop, **kwargs)
+    )
+    loop.train_candidates_serial = lambda **kwargs: driver_wiring.train_candidates_serial(loop, **kwargs)
+    loop.train_candidates_slurm_array = lambda **kwargs: driver_wiring.train_candidates_slurm_array(loop, **kwargs)
+    loop.train_candidates_local_parallel = lambda **kwargs: driver_wiring.train_candidates_local_parallel(loop, **kwargs)
+    loop.train_candidate_metrics = lambda **kwargs: driver_wiring.train_candidate_metrics(loop, **kwargs)
+    loop.run_candidate_worker_from_spec = lambda spec_path, **kwargs: driver_wiring.run_candidate_worker_from_spec(
+        loop, spec_path, **kwargs
+    )
+    loop.run_candidate_worker_pack_from_spec = lambda pack_spec_path: driver_wiring.run_candidate_worker_pack_from_spec(
+        loop, pack_spec_path
+    )
+    return loop
+
+
+loop = _make_loop_facade()
 
 
 def test_exact_pair_addition_guard_rejects_boundary_carry():

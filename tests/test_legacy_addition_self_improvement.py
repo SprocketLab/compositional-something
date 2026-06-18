@@ -17,7 +17,7 @@ from core.addition_pipeline import (
 )
 from core.addition_pipeline import VariantTrainingConfig
 from core.addition_pipeline import evaluate_accuracy_with_breakdown
-from self import self_improvement as legacy
+from self.legacy import addition_self_improvement as legacy
 
 
 class _DummyTokenizer:

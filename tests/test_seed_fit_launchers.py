@@ -43,7 +43,7 @@ def test_seed_fit_runner_dry_run_prints_command_and_skips_preflight(tmp_path: Pa
 
     stdout = result.stdout
     assert "[INFO] DRY_RUN=1; skipping CUDA and model/tokenizer preflight." in stdout
-    assert "self.seed_fit_experiment" in stdout
+    assert "self.experiments.seed_fit_experiment" in stdout
     assert "--task run_length" in stdout
     assert "--model-name stub-model" in stdout
     assert "--max-steps 12" in stdout

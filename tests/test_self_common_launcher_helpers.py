@@ -60,7 +60,7 @@ def test_self_common_wraps_repo_command_with_pythonpath_and_quotes(tmp_path: Pat
         "set -euo pipefail\n"
         f"source {SELF_COMMON}\n"
         f"ROOT_DIR={shlex.quote(str(root_with_space))}\n"
-        "self_wrap_repo_command python -m self.run_length_self_improvement --output-dir 'path with spaces'\n"
+        "self_wrap_repo_command python -m self.legacy.run_length_self_improvement --output-dir 'path with spaces'\n"
     )
 
     result = subprocess.run(
@@ -72,7 +72,7 @@ def test_self_common_wraps_repo_command_with_pythonpath_and_quotes(tmp_path: Pat
     )
 
     assert result.stdout.startswith("cd ")
-    assert "&& PYTHONPATH=. python -m self.run_length_self_improvement" in result.stdout
+    assert "&& PYTHONPATH=. python -m self.legacy.run_length_self_improvement" in result.stdout
     assert "path\\ with\\ spaces" in result.stdout
 
 

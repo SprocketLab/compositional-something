@@ -1,14 +1,12 @@
 import subprocess
 import sys
 
-from self.adaptive.run import run_models
 from self.adaptive.run.driver_wiring import AdaptiveRunDeps
 from self.adaptive.run.run_orchestration import AdaptiveRunDeps as OrchestrationAdaptiveRunDeps
 
 
-def test_adaptive_run_deps_old_paths_reexport_model() -> None:
-    assert AdaptiveRunDeps is run_models.AdaptiveRunDeps
-    assert OrchestrationAdaptiveRunDeps is run_models.AdaptiveRunDeps
+def test_adaptive_run_deps_shared_between_driver_and_orchestration() -> None:
+    assert OrchestrationAdaptiveRunDeps is AdaptiveRunDeps
 
 
 def test_driver_wiring_import_does_not_load_orchestration_stack() -> None:

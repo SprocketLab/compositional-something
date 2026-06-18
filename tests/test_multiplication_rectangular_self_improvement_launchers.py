@@ -23,7 +23,7 @@ def test_multiplication_self_improvement_launcher_uses_recipe_seed_defaults():
     assert 'RECIPE_NAME="multiplication_self_improve_v1"' in text
     assert 'FORMAT_VERSION="symbolic_v1"' in text
     assert 'SEED_MODEL="${SEED_MODEL:-${ROOT_DIR}/artifacts/models/multiplication_rectangular_seed_best}"' in text
-    assert "-m self.rectangular_multiplication_self_improvement" in text
+    assert "-m self.experiments.rectangular_multiplication_self_improvement" in text
     assert 'BASELINE="${BASELINE:-compose}"' in text
     assert 'INITIAL_MAX_B_DIGITS="${INITIAL_MAX_B_DIGITS:-8}"' in text
     assert 'EXPAND_B_DIGITS="${EXPAND_B_DIGITS:-2}"' in text

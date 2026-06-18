@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.candidates import candidate_workers
-from self.adaptive.candidates.candidate_slurm_workers import train_candidates_slurm_array_from_specs, wait_for_candidate_array
+from self.adaptive.candidates import workers
+from self.adaptive.candidates.workers import train_candidates_slurm_array_from_specs, wait_for_candidate_array
 
 
 def _args(**overrides):
@@ -32,10 +32,10 @@ def test_candidate_workers_submit_wrapper_uses_module_level_submit_binding(tmp_p
             stderr="",
         )
 
-    monkeypatch.setattr(candidate_workers, "submit_sbatch", fake_submit_sbatch)
-    monkeypatch.setattr(candidate_workers.sys, "executable", "/tmp/python")
+    monkeypatch.setattr(workers, "submit_sbatch", fake_submit_sbatch)
+    monkeypatch.setattr(workers.sys, "executable", "/tmp/python")
 
-    job_id = candidate_workers.submit_candidate_array(
+    job_id = workers.submit_candidate_array(
         args=_args(),
         round_dir=tmp_path / "attempt_0001",
         spec_paths=[tmp_path / "spec0.json", tmp_path / "spec1.json"],

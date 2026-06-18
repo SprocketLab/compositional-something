@@ -88,12 +88,12 @@ else
   self_preflight_model_snapshot "${MODEL_NAME}"
 fi
 
-echo "[INFO] Launch command: ${PYTHON_BIN} -m self.seed_fit_experiment ${COMMON_ARGS[*]}"
+echo "[INFO] Launch command: ${PYTHON_BIN} -m self.experiments.seed_fit_experiment ${COMMON_ARGS[*]}"
 if self_parse_bool "${DRY_RUN}"; then
   echo "[INFO] DRY_RUN=1; command not executed."
   exit 0
 fi
 
-"${PYTHON_BIN}" -m self.seed_fit_experiment "${COMMON_ARGS[@]}"
+"${PYTHON_BIN}" -m self.experiments.seed_fit_experiment "${COMMON_ARGS[@]}"
 
 echo "[INFO] Finished seed-fit task run."

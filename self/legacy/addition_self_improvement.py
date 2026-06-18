@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, set_seed
 
-from self.addition_recipe import (
+from self.core.recipes import (
     BatchSamplerWarmupStableDecayTrainer,
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     PaddingAwareCausalLMDataCollator,
@@ -51,7 +51,7 @@ from self.addition_recipe import (
     resolve_recipe_phase,
     tokenizer_padding_side,
 )
-from self.task_tokenizer import build_fixed_char_tokenizer
+from self.core.tokenizers import build_fixed_char_tokenizer
 
 from core.addition_pipeline import (
     ADDITION_SAMPLING_MODES,

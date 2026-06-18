@@ -532,7 +532,7 @@ def command_submit(args: argparse.Namespace) -> None:
     stage2_cmd = [
         args.python_bin,
         "-m",
-        "self.figure2_condition_sweep",
+        "self.experiments.figure2_condition_sweep",
         "stage2",
         "--out-root",
         str(out_root),
@@ -608,7 +608,7 @@ def command_stage2(args: argparse.Namespace) -> None:
     finalize_cmd = [
         args.python_bin,
         "-m",
-        "self.figure2_condition_sweep",
+        "self.experiments.figure2_condition_sweep",
         "finalize",
         "--out-root",
         str(args.out_root),

@@ -32,7 +32,7 @@ TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-64}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-128}"
 
 CMD=(
-  "${PYTHON_BIN}" -m self.self_improvement
+  "${PYTHON_BIN}" -m self.legacy.addition_self_improvement
   --model-name "${MODEL_NAME}"
   --output-dir "${OUT_ROOT}"
   --bf16

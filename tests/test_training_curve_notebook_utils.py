@@ -6,15 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import (
-    training_curve_bundle,
-    training_curve_heatmaps,
-    training_curve_logs,
-    training_curve_plots,
-    training_curve_results,
-    training_curve_style,
-)
-from self.training_curve_notebook_utils import (
+from self.analysis.training_curves import (
     build_run_summary,
     configure_plot_style,
     load_curve_bundle,
@@ -28,19 +20,8 @@ from self.training_curve_notebook_utils import (
 
 
 def test_per_size_accuracy_frame_supports_addition_schema(tmp_path: Path):
-    assert (
-        per_size_accuracy_frame_from_results
-        is training_curve_results.per_size_accuracy_frame_from_results
-    )
-    assert configure_plot_style is training_curve_style.configure_plot_style
-    assert (
-        plot_per_size_accuracy_heatmap_from_results
-        is training_curve_plots.plot_per_size_accuracy_heatmap_from_results
-    )
-    assert (
-        plot_per_size_accuracy_heatmap_from_results
-        is training_curve_heatmaps.plot_per_size_accuracy_heatmap_from_results
-    )
+    assert callable(configure_plot_style)
+    assert callable(plot_per_size_accuracy_heatmap_from_results)
 
     results_path = tmp_path / "self_improvement_results.json"
     results_path.write_text(
@@ -78,11 +59,6 @@ def test_per_size_accuracy_frame_supports_addition_schema(tmp_path: Path):
 
 
 def test_curve_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: Path):
-    assert load_curve_bundle is training_curve_bundle.load_curve_bundle
-    assert load_submission_jobs is training_curve_bundle.load_submission_jobs
-    assert build_run_summary is training_curve_bundle.build_run_summary
-    assert per_size_accuracy_frame is training_curve_bundle.per_size_accuracy_frame
-
     run_root = tmp_path / "runs" / "grid" / "addition"
     out_dir = tmp_path / "out" / "addition_compose_small"
     logs_dir = tmp_path / "logs"
@@ -153,9 +129,6 @@ def test_curve_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: Path
 
 
 def test_training_log_and_round_metric_helpers_keep_compatibility(tmp_path: Path):
-    assert parse_training_log is training_curve_logs.parse_training_log
-    assert load_round_metrics is training_curve_logs.load_round_metrics
-
     log_path = tmp_path / "slurm.out"
     log_path.write_text(
         "\n".join(

@@ -28,22 +28,22 @@ from core.addition_pipeline import (
 )
 from self.core.data_io import sanitize_json_value
 from self.core.evaluation import extract_numeric_answer, evaluate_accuracy_with_breakdown, resolve_max_new_tokens
-from self.core.recipe_models import (
+from self.core.recipes import (
     build_recipe_tokenizer,
     load_recipe_model,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     resolve_self_improvement_recipe,
 )
-from self.tasks.bit_parsing import (
+from self.tasks.bit import (
     RUN_LENGTH_ALPHABET_SYMBOLS,
     parse_run_length_prediction,
 )
-from self.tasks.run_length_data import (
+from self.tasks.run_length import (
     RunLengthExample,
     run_length_key,
 )
-from self.tasks.run_length_logic import compute_run_stats
+from self.tasks.run_length import compute_run_stats
 
 
 JsonDict = Dict[str, Any]

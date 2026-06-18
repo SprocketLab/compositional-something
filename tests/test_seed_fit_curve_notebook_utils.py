@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import seed_fit_artifacts, seed_fit_bundle, seed_fit_plots, summarize_seed_fit_grid
+from self.analysis import summarize_seed_fit_grid
 from self.analysis.artifacts import (
     SEED_FIT_RESULTS_FILE,
     discover_seed_fit_results,
@@ -17,7 +17,7 @@ from self.analysis.artifacts import (
     load_seed_fit_results,
     resolve_seed_fit_results_path,
 )
-from self.seed_fit_curve_notebook_utils import (
+from self.analysis.seed_fit import (
     configure_plot_style,
     discover_seed_fit_results as notebook_discover_seed_fit_results,
     find_threshold_budget,
@@ -73,12 +73,7 @@ def _write_seed_fit_result(
 
 
 def test_seed_fit_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: Path):
-    assert load_seed_fit_bundle is seed_fit_bundle.load_seed_fit_bundle
-    assert summarize_task is seed_fit_bundle.summarize_task
-    assert find_threshold_budget is seed_fit_bundle.find_threshold_budget
-    assert SEED_FIT_RESULTS_FILE == seed_fit_artifacts.SEED_FIT_RESULTS_FILE
-    assert discover_seed_fit_results is seed_fit_artifacts.discover_seed_fit_results
-    assert notebook_discover_seed_fit_results is seed_fit_artifacts.discover_seed_fit_results
+    assert notebook_discover_seed_fit_results is discover_seed_fit_results
 
     root = tmp_path / "seed_grid"
     _write_seed_fit_result(root / "low_budget", train_per_size=10, train_examples=30, test_min_accuracy=0.91)
@@ -124,10 +119,6 @@ def test_seed_fit_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: P
 
 
 def test_seed_fit_plot_helpers_keep_compatibility_and_render_fixture(tmp_path: Path):
-    assert configure_plot_style is seed_fit_plots.configure_plot_style
-    assert plot_task_loss_curves is seed_fit_plots.plot_task_loss_curves
-    assert plot_task_budget_curve is seed_fit_plots.plot_task_budget_curve
-
     root = tmp_path / "seed_grid"
     _write_seed_fit_result(root / "small_budget", train_per_size=10, train_examples=30, test_min_accuracy=0.91)
     bundle = load_seed_fit_bundle([root])

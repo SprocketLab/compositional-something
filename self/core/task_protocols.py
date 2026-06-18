@@ -146,3 +146,14 @@ class SelfImprovementTask(Protocol):
 
     def summary_payload_aliases(self, summary: RoundSummary) -> JsonDict:
         ...
+
+
+def task_for_name(task_name: str) -> Any:
+    from self.tasks.addition import AdditionTask
+    from self.tasks.run_length import RunLengthTask
+
+    if task_name == "addition":
+        return AdditionTask()
+    if task_name == "run_length":
+        return RunLengthTask()
+    raise ValueError(f"Unsupported task={task_name!r}.")

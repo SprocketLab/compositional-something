@@ -19,7 +19,7 @@ def test_task_self_improvement_launchers_have_valid_bash_syntax():
 def test_task_self_improvement_runner_dry_run_prints_command_and_skips_preflight(tmp_path: Path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"
-    env["TASK_MODULE"] = "self.run_length_self_improvement"
+    env["TASK_MODULE"] = "self.legacy.run_length_self_improvement"
     env["OUT_ROOT"] = str(tmp_path / "task")
     env["MODEL_NAME"] = "stub-model"
     env["MAX_STEPS"] = "12"
@@ -43,7 +43,7 @@ def test_task_self_improvement_runner_dry_run_prints_command_and_skips_preflight
 
     stdout = result.stdout
     assert "[INFO] DRY_RUN=1; skipping CUDA and model/tokenizer preflight." in stdout
-    assert "self.run_length_self_improvement" in stdout
+    assert "self.legacy.run_length_self_improvement" in stdout
     assert "--model-name stub-model" in stdout
     assert "--max-steps 12" in stdout
     assert "--initial-train-per-bit 5" in stdout

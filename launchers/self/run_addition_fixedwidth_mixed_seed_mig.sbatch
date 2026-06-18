@@ -44,7 +44,7 @@ SEED_MODEL_LINK="${ROOT_DIR}/artifacts/models/addition_fixedwidth_mixed_seed_bes
 mkdir -p "${OUT_ROOT}" "${ROOT_DIR}/artifacts/models"
 
 cmd=(
-  "${PYTHON_BIN}" -m self.seed_fit_experiment
+  "${PYTHON_BIN}" -m self.experiments.seed_fit_experiment
   --task addition
   --model-name recipe_scratch
   --output-dir "${OUT_ROOT}"

@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from self.adaptive.traces import experience_outcome_rendering, experience_outcome_traces, experience_traces
-from self.adaptive.traces.experience_outcome_traces import build_outcome_trace_example, build_round_outcome_trace_examples
+from self.adaptive.traces import traces
+from self.adaptive.traces.traces import build_outcome_trace_example, build_round_outcome_trace_examples
 
 
 def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity():
@@ -42,8 +42,8 @@ def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity
         current_per_size_accuracy={2: 1.0, 3: 0.5, 5: 0.0},
     )
 
-    assert experience_traces.build_outcome_trace_example is build_outcome_trace_example
-    assert experience_traces.build_round_outcome_trace_examples is build_round_outcome_trace_examples
+    assert traces.build_outcome_trace_example is build_outcome_trace_example
+    assert traces.build_round_outcome_trace_examples is build_round_outcome_trace_examples
     assert "TASK: predict_config_outcome" in trace.prompt()
     assert '"source":[2,3]' in trace.prompt()
     assert '"target":5' in trace.prompt()
@@ -57,14 +57,14 @@ def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity
 
 
 def test_outcome_rendering_owner_is_reexported_for_compatibility():
-    assert experience_outcome_traces._outcome_completion is experience_outcome_rendering._outcome_completion
+    assert traces._outcome_completion is traces._outcome_completion
     assert (
-        experience_outcome_traces._render_outcome_trace_prompt
-        is experience_outcome_rendering._render_outcome_trace_prompt
+        traces._render_outcome_trace_prompt
+        is traces._render_outcome_trace_prompt
     )
     assert (
-        experience_outcome_traces._candidate_payload_from_result
-        is experience_outcome_rendering._candidate_payload_from_result
+        traces._candidate_payload_from_result
+        is traces._candidate_payload_from_result
     )
 
 

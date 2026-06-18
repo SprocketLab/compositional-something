@@ -70,7 +70,7 @@ def test_figure2_recipe_aggressive_runner_can_source_task_config(tmp_path):
     Path(env["FIGURE2_TASK_CONFIG"]).write_text(
         "\n".join(
             [
-                "FIGURE2_RUN_LENGTH_MODULE=self.run_length_self_improvement",
+                "FIGURE2_RUN_LENGTH_MODULE=self.legacy.run_length_self_improvement",
                 "FIGURE2_RUN_LENGTH_SEED_MODEL_DEFAULT=/tmp/custom_run_length_seed",
                 "FIGURE2_RUN_LENGTH_ARCHIVED_RESULTS_PATH=/tmp/custom_archived_results.json",
                 "FIGURE2_RUN_LENGTH_DEFAULT_EXPAND_NUM_BITS=7",
@@ -268,7 +268,7 @@ def test_figure2_paper_retune_launcher_dry_run_prints_candidate_grid(tmp_path):
     )
 
     stdout = result.stdout
-    assert "self.figure2_paper_retune" in stdout
+    assert "self.experiments.figure2_paper_retune" in stdout
     assert "addition/pilots/expand4_train8000" in stdout
     assert "addition/pilots/expand2_train5000" in stdout
     assert "selection files not written" in stdout

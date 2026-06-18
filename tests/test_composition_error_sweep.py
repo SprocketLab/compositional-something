@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from self.experiments import composition_error_sweep as experiment
-from self import self_improvement_composition_error_experiment as wrapper
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,15 +58,15 @@ def test_composition_error_sweep_rejects_out_of_range_percent():
         experiment.build_forward_args(args)
 
 
-def test_old_composition_error_module_forwards_attribute_patches(monkeypatch):
+def test_composition_error_module_forwards_attribute_patches(monkeypatch):
     captured = {}
 
     def fake_self_improvement_main(argv):
         captured["argv"] = argv
 
-    monkeypatch.setattr(wrapper, "self_improvement_main", fake_self_improvement_main)
+    monkeypatch.setattr(experiment, "self_improvement_main", fake_self_improvement_main)
 
-    wrapper.main(["--composition-error-percent", "10", "--", "--output-dir", "out"])
+    experiment.main(["--composition-error-percent", "10", "--", "--output-dir", "out"])
 
     assert captured["argv"] == [
         "--output-dir",
@@ -75,7 +74,6 @@ def test_old_composition_error_module_forwards_attribute_patches(monkeypatch):
         "--composition-error-percent=10.0",
         "--composed-strategy=with_carry_filtered",
     ]
-    assert experiment.self_improvement_main is fake_self_improvement_main
 
 
 def test_composition_error_launchers_use_canonical_module_and_valid_bash_syntax(tmp_path: Path):

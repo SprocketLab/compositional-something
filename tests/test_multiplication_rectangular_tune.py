@@ -6,8 +6,8 @@ import random
 import subprocess
 from pathlib import Path
 
-from self.multiplication_rectangular import RectangularMultiplicationExample, iter_partition_grid
-from self.multiplication_rectangular_tune import (
+from self.tasks.rectangular import RectangularMultiplicationExample, iter_partition_grid
+from self.experiments.multiplication_rectangular_tune import (
     build_stage1_manifest,
     build_stage2_followups,
     build_stage3_followups,
@@ -16,7 +16,7 @@ from self.multiplication_rectangular_tune import (
     score_stage1_compose_candidate,
     score_stage2_candidate,
 )
-from self.rectangular_multiplication_self_improvement import (
+from self.experiments.rectangular_multiplication_self_improvement import (
     build_composed_pseudo_examples,
     build_frontier_partition_train_counts,
     summarize_accuracy_by_a_digits,
@@ -331,7 +331,7 @@ def test_submit_multiplication_rectangular_tune_wrapper_dry_run_prints_expected_
     )
 
     stdout = result.stdout
-    assert "self.multiplication_rectangular_tune submit" in stdout
+    assert "self.experiments.multiplication_rectangular_tune submit" in stdout
     assert "Wrote stage-1 manifest" in stdout
     assert "Stage-1 counts: compose=6" in stdout
     assert "mult-rect-tune-stage2" in stdout

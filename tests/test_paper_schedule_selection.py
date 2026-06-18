@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from self.paper_schedule_selection import (
+from self.experiments.paper_schedule_selection import (
     choose_addition_fullpack_candidate,
     choose_addition_stage1_topk,
     choose_addition_candidate,

@@ -13,20 +13,20 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import torch
 from transformers import set_seed
 
-from self.core.recipe_models import (
+from self.core.recipes import (
     apply_recipe_runtime_settings,
     build_recipe_tokenizer,
     instantiate_recipe_model,
     load_recipe_model,
     tokenizer_padding_side,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     RecipeTrainingPhaseConfig,
     resolve_addition_recipe,
     resolve_recipe_phase,
 )
-from self.core.recipe_training import (
+from self.core.recipes import (
     PaddingAwareCausalLMDataCollator,
     WarmupStableDecayTrainer,
     make_recipe_training_args,

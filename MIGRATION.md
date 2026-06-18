@@ -292,8 +292,8 @@ This repository had two major layout changes:
 
 ### Module Invocation Mapping
 
-- `python -m w2s.self.self_improvement` -> `python -m self.self_improvement`
-- `python -m w2s.self.self_improvement_composition_error_experiment` -> `python -m self.self_improvement_composition_error_experiment`
+- `python -m w2s.self.legacy.addition_self_improvement` -> `python -m self.legacy.addition_self_improvement`
+- `python -m w2s.self.experiments.composition_error_sweep` -> `python -m self.experiments.composition_error_sweep`
 - `python -m w2s.meta.train_meta_self_improvement_rope` -> `python -m meta.train_meta_self_improvement_rope`
 
 ### Artifact Roots

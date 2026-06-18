@@ -47,14 +47,14 @@ def test_guarded_plain_output_bit_runner_dry_run_prints_expected_commands(tmp_pa
     )
 
     stdout = result.stdout.replace("\\ ", " ")
-    assert "-m self.seed_fit_experiment" in stdout
+    assert "-m self.experiments.seed_fit_experiment" in stdout
     assert "--task run_length" in stdout
     assert "--target-mode symbol_run_pair" in stdout
     assert "--symbol-alphabet-size 3" in stdout
     assert "--initial-min-size 8" in stdout
     assert "--initial-max-size 12" in stdout
     assert "--bucket-train-batches-by-size" in stdout
-    assert "-m self.run_length_self_improvement" in stdout
+    assert "-m self.legacy.run_length_self_improvement" in stdout
     assert "--compose-arity exact2" in stdout
     assert "--bit-composition-path-mode fixed_binary" in stdout
     assert "--frontier-min-bits 18" in stdout

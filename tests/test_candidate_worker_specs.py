@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.adaptive.candidates import candidate_worker_specs, candidate_workers
+from self.adaptive.candidates import workers
 from self.adaptive.proposals import PromptBundle
 
 
@@ -64,7 +64,7 @@ def test_prepare_candidate_worker_specs_writes_inputs_specs_and_manifest(tmp_pat
     work_items = [_item(0), _item(2)]
     prompt = PromptBundle(system="system", user="user")
 
-    spec_paths = candidate_worker_specs.prepare_candidate_worker_specs(
+    spec_paths = workers.prepare_candidate_worker_specs(
         args=_args(tmp_path),
         task=_Task(),
         current_checkpoint="checkpoint",
@@ -143,7 +143,7 @@ def test_prepare_candidate_worker_pack_specs_chunks_specs_and_writes_manifest(tm
     work_items = [_item(index) for index in range(5)]
     spec_paths = [tmp_path / f"spec-{index}.json" for index in range(5)]
 
-    packs = candidate_worker_specs.prepare_candidate_worker_pack_specs(
+    packs = workers.prepare_candidate_worker_pack_specs(
         round_dir=round_dir,
         work_items=work_items,
         spec_paths=spec_paths,
@@ -197,7 +197,7 @@ def test_prepare_candidate_worker_pack_specs_chunks_specs_and_writes_manifest(tm
 
 def test_prepare_candidate_worker_pack_specs_rejects_nonpositive_pack_size(tmp_path: Path):
     with pytest.raises(ValueError, match="pack_size must be positive"):
-        candidate_worker_specs.prepare_candidate_worker_pack_specs(
+        workers.prepare_candidate_worker_pack_specs(
             round_dir=tmp_path,
             work_items=[],
             spec_paths=[],
@@ -206,7 +206,7 @@ def test_prepare_candidate_worker_pack_specs_rejects_nonpositive_pack_size(tmp_p
 
 
 def test_candidate_workers_reexports_canonical_spec_helpers():
-    assert candidate_workers.prepare_candidate_worker_specs is candidate_worker_specs.prepare_candidate_worker_specs
-    assert candidate_workers.prepare_candidate_worker_pack_specs is candidate_worker_specs.prepare_candidate_worker_pack_specs
-    assert candidate_workers.candidate_metric_path is candidate_worker_specs.candidate_metric_path
-    assert candidate_workers.candidate_worker_failure_path is candidate_worker_specs.candidate_worker_failure_path
+    assert workers.prepare_candidate_worker_specs is workers.prepare_candidate_worker_specs
+    assert workers.prepare_candidate_worker_pack_specs is workers.prepare_candidate_worker_pack_specs
+    assert workers.candidate_metric_path is workers.candidate_metric_path
+    assert workers.candidate_worker_failure_path is workers.candidate_worker_failure_path

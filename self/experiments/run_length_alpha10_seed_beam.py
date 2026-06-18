@@ -227,7 +227,7 @@ def submit_candidate(
         "PYTHONPATH=.",
         str(python_bin),
         "-m",
-        "self.run_length_self_improvement",
+        "self.legacy.run_length_self_improvement",
         "--output-dir",
         str(candidate_dir),
         "--model-name",

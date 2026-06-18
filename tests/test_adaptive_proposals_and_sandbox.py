@@ -5,8 +5,7 @@ from pathlib import Path
 
 from self.adaptive import proposals
 from self.adaptive.sandbox import program_sandbox
-from self.adaptive.run import driver_compat_exports
-from self.adaptive.proposals import proposal_config_schema, proposal_prompt_metadata, proposal_prompts
+from self.adaptive.proposals import proposal_config_schema, proposal_prompts
 from self.adaptive.proposals import proposal_io
 
 
@@ -108,20 +107,13 @@ def test_config_schema_owner_reexports() -> None:
     assert proposals.DEFAULT_CONFIG_SEARCH_SPACES is proposal_config_schema.DEFAULT_CONFIG_SEARCH_SPACES
     assert proposals.parse_config_proposal is proposal_config_schema.parse_config_proposal
     assert proposals.normalized_config_completion is proposal_config_schema.normalized_config_completion
-    assert driver_compat_exports.ConfigProposal is proposal_config_schema.ConfigProposal
-    assert driver_compat_exports.validate_config_prediction is proposal_config_schema.validate_config_prediction
 
 
 def test_prompt_owner_reexports() -> None:
-    assert proposal_prompts.target_format_for_task is proposal_prompt_metadata.target_format_for_task
-    assert proposal_prompts.program_validation_cases is proposal_prompt_metadata.program_validation_cases
     assert proposals.PromptBundle is proposal_prompts.PromptBundle
     assert proposals.render_config_prompt is proposal_prompts.render_config_prompt
     assert proposals.render_program_prompt is proposal_prompts.render_program_prompt
     assert proposals.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
-    assert driver_compat_exports.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
-    assert driver_compat_exports.target_format_for_task is proposal_prompt_metadata.target_format_for_task
-    assert driver_compat_exports.program_validation_cases is proposal_prompt_metadata.program_validation_cases
 
 
 def test_config_proposal_schema_rejects_ranges_and_enums():

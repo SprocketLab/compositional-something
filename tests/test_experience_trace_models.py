@@ -4,8 +4,8 @@ import math
 import random
 from types import SimpleNamespace
 
-from self.adaptive.traces import experience_traces
-from self.adaptive.traces.experience_trace_models import (
+from self.adaptive.traces import traces
+from self.adaptive.traces.traces import (
     OutcomeTraceExample,
     ProposalTraceExample,
     build_post_task_proposal_rehearsal_examples,
@@ -37,10 +37,10 @@ def test_trace_example_json_roundtrip_and_legacy_identity():
         metadata={"target": "7"},
     )
 
-    assert experience_traces.ProposalTraceExample is ProposalTraceExample
-    assert experience_traces.OutcomeTraceExample is OutcomeTraceExample
-    assert experience_traces.proposal_trace_from_json is proposal_trace_from_json
-    assert experience_traces.outcome_trace_from_json is outcome_trace_from_json
+    assert traces.ProposalTraceExample is ProposalTraceExample
+    assert traces.OutcomeTraceExample is OutcomeTraceExample
+    assert traces.proposal_trace_from_json is proposal_trace_from_json
+    assert traces.outcome_trace_from_json is outcome_trace_from_json
 
     proposal_roundtrip = proposal_trace_from_json(proposal.to_json_dict())
     outcome_roundtrip = outcome_trace_from_json(outcome.to_json_dict())

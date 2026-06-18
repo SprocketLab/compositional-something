@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from self.figure3_real_seed_data_ablation import (
+from self.experiments.figure3_real_seed_data_ablation import (
     ADDITION_MAX_STEPS,
     ADDITION_TRAIN_COUNTS,
     RUN_LENGTH_MEDIUM_TRAIN_COUNTS,
@@ -200,7 +200,7 @@ def test_submit_wrapper_dry_run_prints_expected_counts(tmp_path: Path):
     )
 
     stdout = result.stdout
-    assert "self.figure3_real_seed_data_ablation submit" in stdout
+    assert "self.experiments.figure3_real_seed_data_ablation submit" in stdout
     assert "Initial seed jobs: run_length_medium=9 addition_refined=24 total=33" in stdout
     assert stdout.count("--job-name=fig3-real-seed-run_length") == 9
     assert stdout.count("--job-name=fig3-real-seed-addition") == 24

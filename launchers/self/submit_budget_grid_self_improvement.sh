@@ -31,9 +31,9 @@ BUDGET_LIST=(small medium large)
 
 module_for_task() {
   case "$1" in
-    addition) echo "self.self_improvement" ;;
-    run_length) echo "self.run_length_self_improvement" ;;
-    multiplication) echo "self.multiplication_self_improvement" ;;
+    addition) echo "self.legacy.addition_self_improvement" ;;
+    run_length) echo "self.legacy.run_length_self_improvement" ;;
+    multiplication) echo "self.legacy.multiplication_self_improvement" ;;
     *)
       echo "Unknown task: $1" >&2
       return 1

@@ -24,7 +24,7 @@ def seed_fit_command(
     command = [
         python_bin,
         "-m",
-        "self.seed_fit_experiment",
+        "self.experiments.seed_fit_experiment",
         "--task",
         task,
         "--model-name",
@@ -114,7 +114,7 @@ def run_length_self_improvement_command(
     return [
         python_bin,
         "-m",
-        "self.run_length_self_improvement",
+        "self.legacy.run_length_self_improvement",
         "--model-name",
         str(entry["seed_model"]),
         "--output-dir",

@@ -19,5 +19,5 @@ A:
 and produces an unpadded integer answer.
 
 Important: this checkpoint uses the repository's custom no-position LLaMA recipe
-model and arithmetic character tokenizer. Load it through `self.addition_recipe`
+model and arithmetic character tokenizer. Load it through `self.core.recipes`
 as shown in `model_card.pdf`.

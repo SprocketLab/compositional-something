@@ -23,7 +23,7 @@ def test_multiplication_seed_launcher_uses_edge_only_recipe_defaults():
     assert 'RECIPE_NAME="multiplication_self_improve_v1"' in text
     assert 'FORMAT_VERSION="symbolic_v1"' in text
     assert 'PARTITIONS_SPEC="${PARTITIONS_SPEC:-1x1,1x2,1x3,1x4,1x5,1x6,2x1,3x1,4x1,5x1,6x1}"' in text
-    assert "-m self.rectangular_multiplication_recipe_seed_fit" in text
+    assert "-m self.experiments.rectangular_multiplication_recipe_seed_fit" in text
     assert "--recipe" in text
     assert "--format-version" in text
     assert "--partitions" in text

@@ -15,7 +15,7 @@ DRY_RUN="${DRY_RUN:-0}"
 cmd=(
   "${PYTHON_BIN}"
   -m
-  self.figure3_seed_quality_sweep
+  self.experiments.figure3_seed_quality_sweep
   submit
   --out-root "${OUT_ROOT}"
   --log-dir "${LOG_DIR}"

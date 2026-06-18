@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 
-from self.self_improvement_recipe import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
+from self.core.recipes import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
 
 
 def build_run_length_bit_parser(*, description: str, default_output_dir: str) -> argparse.ArgumentParser:

@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from self.figure2_condition_sweep import (
+from self.experiments.figure2_condition_sweep import (
     build_addition_stage2_followups,
     build_stage1_manifest,
     finalize_selection_payload,
@@ -159,7 +159,7 @@ def test_submit_figure2_condition_sweep_wrapper_dry_run_prints_expected_counts(t
     )
 
     stdout = result.stdout
-    assert "self.figure2_condition_sweep submit" in stdout
+    assert "self.experiments.figure2_condition_sweep submit" in stdout
     assert "Wrote stage-1 manifest" in stdout
     assert "Stage-1 counts: run_length=4 addition=9" in stdout
     assert "fig2-sweep-stage2" in stdout

@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 
 from self.core import worker_io
-from self.adaptive.candidates.candidate_metric_collection import (
+from self.adaptive.candidates.dispatch import (
     candidate_failure_metrics,
     collect_candidate_array_metrics,
 )

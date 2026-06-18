@@ -18,7 +18,7 @@ DRY_RUN="${DRY_RUN:-0}"
 cmd=(
   "${PYTHON_BIN}"
   -m
-  self.figure2_condition_sweep
+  self.experiments.figure2_condition_sweep
   submit
   --out-root "${OUT_ROOT}"
   --selection-json "${SELECTION_JSON}"

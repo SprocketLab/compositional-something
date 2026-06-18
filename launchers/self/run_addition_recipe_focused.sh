@@ -74,7 +74,7 @@ if [[ -n "${EXTRA_ARGS:-}" ]]; then
   COMMON_ARGS+=(${EXTRA_ARGS})
 fi
 
-CMD=("${PYTHON_BIN}" -m self.self_improvement "${COMMON_ARGS[@]}" "${BASELINE_ARGS[@]}")
+CMD=("${PYTHON_BIN}" -m self.legacy.addition_self_improvement "${COMMON_ARGS[@]}" "${BASELINE_ARGS[@]}")
 
 self_print_context \
   "Root dir" "${ROOT_DIR}" \

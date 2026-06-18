@@ -1137,7 +1137,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     addition_model = None
     addition_tokenizer = None
     if addition_model_path and _is_main_process():
-        from self.addition_recipe import (
+        from self.core.recipes import (
             RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
             build_recipe_tokenizer,
             load_recipe_model,

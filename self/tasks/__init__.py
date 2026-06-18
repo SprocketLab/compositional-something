@@ -1,64 +1,248 @@
-"""Task-specific adapters for compositional self-improvement."""
+"""Task-specific adapters and helpers for compositional self-improvement."""
 
+from self.core.evaluation import extract_numeric_answer, generate_prediction_map
+from self.core.task_protocols import JsonDict, SelfImprovementTask
 from self.tasks.addition import AdditionTask
-from self.tasks.addition_data import (
+from self.tasks.addition import (
+    ADDITION_SAMPLING_MODES,
+    ADDITION_SAMPLING_NATURAL,
+    ADDITION_WIDTH_EXACT_DIGITS,
+    ADDITION_WIDTH_FIXED_MIXED_PROMPT,
+    ADDITION_WIDTH_MODES,
+    COMPOSITION_PATH_MODES,
+    COMPOSITION_PATH_RANDOM,
+    AdditionExample,
+    build_composed_datasets,
+    build_composed_pseudo_map,
+    build_length_bucket_dataset,
+    clone_with_override,
     corrupt_numeric_target,
+    decode_key,
+    encode_key,
+    example_key,
     get_boundary_carry_status,
+    has_component_boundary_carry,
     prepare_addition_composed_eval,
     prepare_addition_composed_train,
     prepare_addition_eval_examples,
     prepare_addition_initial_splits,
     split_addition_examples_by_boundary_status,
 )
-from self.tasks.multiplication import (
-    MultiplicationTask,
+from self.tasks.bit import (
+    BIT_COMPOSE_ARITIES,
+    BIT_GUARDED_COMPOSE_RULES,
+    BIT_TARGET_MODES,
+    normalize_bit_composition_path_mode,
+    normalize_bit_target_mode,
+    normalize_compose_arity,
+    normalize_guarded_compose_rule,
+    normalize_symbol_alphabet_size,
+    normalize_task_format_version,
+    sample_unique_bitstrings,
 )
-from self.tasks.multiplication_data import (
+from self.tasks.bit import (
+    BIT_COMPOSITION_PATH_FIXED_BINARY,
+    BIT_COMPOSITION_PATH_MODES,
+    BIT_COMPOSITION_PATH_RANDOM,
+    bit_composed_target_sizes_from_examples,
+    choose_component_sizes,
+    exact2_reachable_sizes_from_examples,
+    fixed_binary_reachable_sizes_from_examples,
+)
+from self.tasks.bit import (
+    INTEGER_PATTERN,
+    MULTIPLICATION_FORMATS,
+    RUN_LENGTH_ALPHABET_SYMBOLS,
+    RUN_LENGTH_FORMATS,
+    RUN_LENGTH_TARGET_RUN_STATE,
+    format_multiplication_target,
+    parse_multiplication_prediction,
+    parse_run_length_prediction,
+    parse_run_length_run_state_prediction,
+    parse_run_length_symbol_pair_prediction,
+)
+from self.tasks.bit import (
+    build_direct_pseudo_examples,
+    build_guarded_bit_pseudo_examples,
+    count_examples_by_size,
+    format_size_count_map,
+    guard_slice_partition,
+    run_length_guard_accepts_true_components,
+)
+from self.tasks.multiplication import MultiplicationTask
+from self.tasks.multiplication import (
     MultiplicationExample,
     clone_multiplication_with_override,
+    decode_multiplication_key,
+    encode_multiplication_key,
     multiplication_key,
 )
-from self.tasks.multiplication_sampling import (
+from self.tasks.multiplication import (
+    analyze_partial_products,
     build_multiplication_component_payload,
     build_multiplication_long_dataset,
     build_multiplication_seed_dataset,
+    generate_long_multiplication_example,
+    generate_multiplication_seed_example,
+    get_multiplication_slice_name,
+    iter_multiplication_sizes,
+    random_int_with_exact_digits,
+    split_value_into_blocks,
 )
 from self.tasks.run_length import RunLengthTask
-from self.tasks.run_length_data import (
+from self.tasks.run_length import (
     RunLengthExample,
     bucket_run_length_by_bits,
     build_run_length_composed_dataset,
     build_run_length_length_bucket_dataset,
     clone_run_length_with_override,
     compose_run_length_examples,
+    compose_run_length_to_length,
+    decode_run_length_key,
+    encode_run_length_key,
+    generate_run_length_example,
+    merge_run_length,
     run_length_key,
 )
-from self.tasks.run_length_logic import compute_run_stats, format_run_length_run_state
+from self.tasks.run_length import (
+    compute_run_state,
+    compute_run_stats,
+    format_run_length_run_state,
+    format_run_length_target,
+    leftmost_max_run_pair,
+    merge_run_state,
+)
 
-__all__ = [
+SplitName = str
+
+TASK_CORE_PROTOCOL_EXPORTS = (
+    "JsonDict",
+    "SelfImprovementTask",
+    "SplitName",
+)
+
+TASK_CORE_EVALUATION_EXPORTS = (
+    "extract_numeric_answer",
+    "generate_prediction_map",
+)
+
+TASK_ADDITION_EXPORTS = (
+    "ADDITION_SAMPLING_MODES",
+    "ADDITION_SAMPLING_NATURAL",
+    "ADDITION_WIDTH_EXACT_DIGITS",
+    "ADDITION_WIDTH_FIXED_MIXED_PROMPT",
+    "ADDITION_WIDTH_MODES",
+    "COMPOSITION_PATH_MODES",
+    "COMPOSITION_PATH_RANDOM",
+    "AdditionExample",
     "AdditionTask",
-    "MultiplicationExample",
-    "MultiplicationTask",
-    "RunLengthExample",
-    "RunLengthTask",
-    "bucket_run_length_by_bits",
-    "build_multiplication_component_payload",
-    "build_multiplication_long_dataset",
-    "build_multiplication_seed_dataset",
-    "build_run_length_composed_dataset",
-    "build_run_length_length_bucket_dataset",
-    "clone_multiplication_with_override",
-    "clone_run_length_with_override",
-    "compose_run_length_examples",
-    "compute_run_stats",
+    "build_composed_datasets",
+    "build_composed_pseudo_map",
+    "build_length_bucket_dataset",
+    "clone_with_override",
     "corrupt_numeric_target",
-    "format_run_length_run_state",
+    "decode_key",
+    "encode_key",
+    "example_key",
     "get_boundary_carry_status",
+    "has_component_boundary_carry",
     "prepare_addition_composed_eval",
     "prepare_addition_composed_train",
     "prepare_addition_eval_examples",
     "prepare_addition_initial_splits",
-    "multiplication_key",
-    "run_length_key",
     "split_addition_examples_by_boundary_status",
-]
+)
+
+TASK_BIT_COMMON_EXPORTS = (
+    "BIT_COMPOSE_ARITIES",
+    "BIT_GUARDED_COMPOSE_RULES",
+    "BIT_TARGET_MODES",
+    "INTEGER_PATTERN",
+    "MULTIPLICATION_FORMATS",
+    "RUN_LENGTH_ALPHABET_SYMBOLS",
+    "RUN_LENGTH_FORMATS",
+    "RUN_LENGTH_TARGET_RUN_STATE",
+    "build_direct_pseudo_examples",
+    "build_guarded_bit_pseudo_examples",
+    "count_examples_by_size",
+    "format_multiplication_target",
+    "format_size_count_map",
+    "guard_slice_partition",
+    "normalize_bit_composition_path_mode",
+    "normalize_bit_target_mode",
+    "normalize_compose_arity",
+    "normalize_guarded_compose_rule",
+    "normalize_symbol_alphabet_size",
+    "normalize_task_format_version",
+    "parse_multiplication_prediction",
+    "parse_run_length_prediction",
+    "parse_run_length_run_state_prediction",
+    "parse_run_length_symbol_pair_prediction",
+    "run_length_guard_accepts_true_components",
+    "sample_unique_bitstrings",
+)
+
+TASK_BIT_COMPOSITION_EXPORTS = (
+    "BIT_COMPOSITION_PATH_FIXED_BINARY",
+    "BIT_COMPOSITION_PATH_MODES",
+    "BIT_COMPOSITION_PATH_RANDOM",
+    "bit_composed_target_sizes_from_examples",
+    "choose_component_sizes",
+    "exact2_reachable_sizes_from_examples",
+    "fixed_binary_reachable_sizes_from_examples",
+)
+
+TASK_MULTIPLICATION_EXPORTS = (
+    "MultiplicationExample",
+    "MultiplicationTask",
+    "analyze_partial_products",
+    "build_multiplication_component_payload",
+    "build_multiplication_long_dataset",
+    "build_multiplication_seed_dataset",
+    "clone_multiplication_with_override",
+    "decode_multiplication_key",
+    "encode_multiplication_key",
+    "generate_long_multiplication_example",
+    "generate_multiplication_seed_example",
+    "get_multiplication_slice_name",
+    "iter_multiplication_sizes",
+    "multiplication_key",
+    "random_int_with_exact_digits",
+    "split_value_into_blocks",
+)
+
+TASK_RUN_LENGTH_EXPORTS = (
+    "RunLengthExample",
+    "RunLengthTask",
+    "bucket_run_length_by_bits",
+    "build_run_length_composed_dataset",
+    "build_run_length_length_bucket_dataset",
+    "clone_run_length_with_override",
+    "compose_run_length_examples",
+    "compose_run_length_to_length",
+    "compute_run_state",
+    "compute_run_stats",
+    "decode_run_length_key",
+    "encode_run_length_key",
+    "format_run_length_run_state",
+    "format_run_length_target",
+    "generate_run_length_example",
+    "leftmost_max_run_pair",
+    "merge_run_length",
+    "merge_run_state",
+    "run_length_key",
+)
+
+TASK_EXPORT_GROUPS = (
+    TASK_CORE_PROTOCOL_EXPORTS,
+    TASK_CORE_EVALUATION_EXPORTS,
+    TASK_ADDITION_EXPORTS,
+    TASK_BIT_COMMON_EXPORTS,
+    TASK_BIT_COMPOSITION_EXPORTS,
+    TASK_MULTIPLICATION_EXPORTS,
+    TASK_RUN_LENGTH_EXPORTS,
+)
+
+TASK_EXPORT_NAMES = tuple(name for group in TASK_EXPORT_GROUPS for name in group)
+
+__all__ = list(TASK_EXPORT_NAMES)

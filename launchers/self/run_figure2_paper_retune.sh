@@ -22,7 +22,7 @@ SKIP_RENDER="${SKIP_RENDER:-0}"
 cmd=(
   "${PYTHON_BIN}"
   -m
-  self.figure2_paper_retune
+  self.experiments.figure2_paper_retune
   --output-dir "${OUT_ROOT}"
   --selection-json "${SELECTION_JSON}"
   --paper-schedule-env "${PAPER_SCHEDULE_ENV}"

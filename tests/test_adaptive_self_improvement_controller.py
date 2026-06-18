@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from self import adaptive_self_improvement
+from self.experiments import adaptive_self_improvement
 from self.adaptive.proposals import proposal_pilot_runtime
 
 

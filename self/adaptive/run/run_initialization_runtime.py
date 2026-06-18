@@ -4,17 +4,65 @@ from __future__ import annotations
 
 import argparse
 import random
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Sequence
-
-from self.adaptive.candidates.checkpoints import CheckpointManager
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig
 
 
 JsonDict = Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class CheckpointManager:
+    output_dir: Path
+    keep_candidate_models: bool = False
+    keep_proposal_grpo_checkpoints: bool = False
+
+    def cleanup_unselected_candidates(
+        self,
+        *,
+        metrics: Sequence[Any],
+        selected: Optional[Any],
+    ) -> None:
+        if self.keep_candidate_models:
+            return
+        selected_dir = selected.model_dir if selected is not None else None
+        for metric in metrics:
+            model_dir = metric.model_dir
+            if model_dir is None or model_dir == selected_dir:
+                continue
+            parent = model_dir.parent
+            if parent.exists():
+                shutil.rmtree(parent, ignore_errors=True)
+
+    def cleanup_replaced_checkpoint(
+        self,
+        *,
+        old_checkpoint: str,
+        new_checkpoint: str,
+    ) -> List[str]:
+        if old_checkpoint == new_checkpoint:
+            return []
+        old_model_dir = Path(old_checkpoint)
+        new_model_dir = Path(new_checkpoint)
+        if old_model_dir.name != "model":
+            return []
+        if not old_model_dir.exists() or not new_model_dir.exists():
+            return []
+        try:
+            old_model_dir.resolve().relative_to(self.output_dir.resolve())
+        except (ValueError, OSError):
+            return []
+        if old_model_dir.parent.name == "proposal_grpo" and self.keep_proposal_grpo_checkpoints:
+            return []
+        if "candidates" in old_model_dir.parts and self.keep_candidate_models:
+            return []
+        shutil.rmtree(old_model_dir, ignore_errors=True)
+        return [str(old_model_dir)]
 
 
 @dataclass(frozen=True)

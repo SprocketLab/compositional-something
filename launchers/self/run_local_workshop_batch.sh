@@ -157,7 +157,7 @@ add_addition_runs() {
         exit 1
         ;;
     esac
-    local -a argv=(python -m self.self_improvement "${COMMON_ARGS[@]}")
+    local -a argv=(python -m self.legacy.addition_self_improvement "${COMMON_ARGS[@]}")
     local -a specific=("${addition_args[@]}")
     specific[1]="${out_dir}"
     argv+=("${specific[@]}" "${mode_args[@]}")
@@ -165,7 +165,7 @@ add_addition_runs() {
   done
 }
 
-add_run_length_runs "run_length" "self.run_length_self_improvement"
+add_run_length_runs "run_length" "self.legacy.run_length_self_improvement"
 add_addition_runs
 
 MANIFEST_PATH="${BASE_OUT}/manifest.tsv"

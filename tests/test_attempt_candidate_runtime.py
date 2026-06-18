@@ -2,8 +2,8 @@ import argparse
 from pathlib import Path
 from typing import Any, Sequence
 
-from self.adaptive.attempts.attempt_candidate_runtime import CandidateAttemptDeps, run_candidate_attempt
-from self.adaptive.attempts.attempt_models import AttemptOutcomeResult
+from self.adaptive.attempts.attempts import CandidateAttemptDeps, run_candidate_attempt
+from self.adaptive.attempts.attempts import AttemptOutcomeResult
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.adaptive.proposals.proposal_config_schema import ConfigProposal
 from self.adaptive.proposals.proposal_prompts import PromptBundle

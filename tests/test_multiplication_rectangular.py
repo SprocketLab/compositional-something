@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from self.multiplication_rectangular import (
+from self.tasks.rectangular import (
     EDGE_ONLY_MULTIPLICATION_PARTITIONS,
     RectangularCompositionLeaf,
     RectangularMultiplicationExample,
@@ -22,8 +22,8 @@ from self.multiplication_rectangular import (
     partition_label,
     prediction_matches_example,
 )
-from self.rectangular_multiplication_recipe_seed_fit import main as rectangular_seed_fit_main
-from self.self_improvement_recipe import fit_recipe_phase_to_max_steps, resolve_self_improvement_recipe
+from self.experiments.rectangular_multiplication_recipe_seed_fit import main as rectangular_seed_fit_main
+from self.core.recipes import fit_recipe_phase_to_max_steps, resolve_self_improvement_recipe
 
 
 def test_cot_reverse_prompt_and_target_match_expected_trace():
@@ -171,7 +171,7 @@ def test_build_sampled_rectangular_dataset_switches_to_fast_duplicates(monkeypat
         return 1
 
     monkeypatch.setattr(
-        "self.multiplication_rectangular.sample_int_with_exact_digits",
+        "self.tasks.rectangular.sample_int_with_exact_digits",
         always_one_digit,
     )
 

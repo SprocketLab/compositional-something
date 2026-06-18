@@ -31,7 +31,7 @@ else
   DEFAULT_MODEL="${DEFAULT_HUB_MODEL}"
 fi
 
-TASK_MODULE="${TASK_MODULE:?Set TASK_MODULE to a python module such as self.run_length_self_improvement.}"
+TASK_MODULE="${TASK_MODULE:?Set TASK_MODULE to a python module such as self.legacy.run_length_self_improvement.}"
 TASK_TAG="${TASK_TAG:-${TASK_MODULE##*.}}"
 BUDGET_TAG="${BUDGET_TAG:-default}"
 MODE_TAG="${MODE_TAG:-compose}"

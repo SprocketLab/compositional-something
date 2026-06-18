@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from core.addition_pipeline import AdditionExample
-from self.addition_recipe import (
+from self.core.recipes import (
     NoPELlamaForCausalLM,
     PaddingAwareCausalLMDataCollator,
     build_recipe_tokenizer,

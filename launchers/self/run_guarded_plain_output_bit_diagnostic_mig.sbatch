@@ -51,7 +51,7 @@ SAVE_MODEL_POLICY="${SAVE_MODEL_POLICY:-all_rounds}"
 
 case "${TASK}" in
   run_length)
-    TASK_MODULE="self.run_length_self_improvement"
+    TASK_MODULE="self.legacy.run_length_self_improvement"
     GUARDED_RULE="run_length_no_boundary_continue"
     SEED_GATE="0.97"
     ;;
@@ -104,7 +104,7 @@ PY
 }
 
 seed_cmd=(
-  "${PYTHON_BIN}" -m self.seed_fit_experiment
+  "${PYTHON_BIN}" -m self.experiments.seed_fit_experiment
   --task "${TASK}"
   --model-name "${SCRATCH_MODEL_NAME}"
   --output-dir "${SEED_OUT}"

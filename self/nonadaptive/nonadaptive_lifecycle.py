@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from self.core.model_io import load_model_for_tokenizer
-from self.core.recipe_models import instantiate_recipe_model, load_recipe_model
+from self.core.recipes import instantiate_recipe_model, load_recipe_model
 
 
 @dataclass

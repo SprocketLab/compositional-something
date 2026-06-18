@@ -69,7 +69,7 @@ run_or_dry() {
 }
 
 cmd=(
-  "${PYTHON_BIN}" -m self.rectangular_multiplication_self_improvement
+  "${PYTHON_BIN}" -m self.experiments.rectangular_multiplication_self_improvement
   --seed-model "${SEED_MODEL}"
   --output-dir "${BASE_OUT}"
   --recipe "${RECIPE_NAME}"

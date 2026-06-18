@@ -69,7 +69,7 @@ self_print_torch_cuda_info
 self_preflight_model_snapshot "${MODEL_NAME}"
 
 echo "[INFO] Run 1/2: with_carry (no filtering)"
-"${PYTHON_BIN}" -m self.self_improvement \
+"${PYTHON_BIN}" -m self.legacy.addition_self_improvement \
   --output-dir "${OUT_ROOT}/with_carry" \
   --composed-strategy with_carry \
   "${COMMON_ARGS[@]}"

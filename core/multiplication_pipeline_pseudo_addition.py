@@ -785,7 +785,7 @@ def _build_generation_encodings(
     prompts: Sequence[str],
     device: torch.device,
 ) -> Dict[str, torch.Tensor]:
-    """Mirrors `self.self_improvement_core.build_generation_encodings`.
+    """Mirrors `self.nonadaptive.nonadaptive_loop.build_generation_encodings`.
 
     Inlined here so the multiplication pipeline can run inference through the
     arithmetic-character tokenizer without importing the full self-improvement
@@ -836,7 +836,7 @@ def _addition_model_pairwise_predict(
         return []
     # Imported lazily so the multiplication pipeline doesn't pull recipe deps
     # unless an addition model is actually being used.
-    from self.addition_recipe import tokenizer_padding_side
+    from self.core.recipes import tokenizer_padding_side
     from core.addition_pipeline import extract_numeric_answer as extract_addition_numeric_answer
 
     canonical_pairs: Dict[Tuple[int, int], int] = {}

@@ -16,31 +16,31 @@ Repository modules are organized into:
 Run self-improvement:
 
 ```bash
-python -m self.self_improvement --help
+python -m self.legacy.addition_self_improvement --help
 ```
 
 Run self-improvement composition wrapper:
 
 ```bash
-python -m self.self_improvement_composition_error_experiment --help
+python -m self.experiments.composition_error_sweep --help
 ```
 
 Run multiplication self-improvement:
 
 ```bash
-python -m self.multiplication_self_improvement --help
+python -m self.legacy.multiplication_self_improvement --help
 ```
 
 Run run-length self-improvement:
 
 ```bash
-python -m self.run_length_self_improvement --help
+python -m self.legacy.run_length_self_improvement --help
 ```
 
 Plot a self-improvement figure from one or more completed runs:
 
 ```bash
-python -m self.plot_self_improvement_figure RUN_DIR [RUN_DIR ...]
+python -m self.analysis.plot_self_improvement_figure RUN_DIR [RUN_DIR ...]
 ```
 
 Run meta self-improvement:

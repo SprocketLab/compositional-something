@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from self.analysis.seed_fit_artifacts import discover_seed_fit_results, load_seed_fit_result
+from self.analysis.seed_fit import discover_seed_fit_results, load_seed_fit_result
 
 
 def load_result(path: Path) -> Dict[str, Any]:

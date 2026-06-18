@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from self.figure3_seed_quality_sweep import (
+from self.experiments.figure3_seed_quality_sweep import (
     build_seed_jobs,
     build_self_improvement_jobs,
     load_seed_candidates,
@@ -182,7 +182,7 @@ def test_submit_figure3_seed_quality_wrapper_dry_run_prints_expected_counts(tmp_
     )
 
     stdout = result.stdout
-    assert "self.figure3_seed_quality_sweep submit" in stdout
+    assert "self.experiments.figure3_seed_quality_sweep submit" in stdout
     assert "Initial seed jobs: run_length=8 addition=8 total=16" in stdout
     assert stdout.count("--job-name=fig3-seed-run_length") == 8
     assert stdout.count("--job-name=fig3-seed-addition") == 8

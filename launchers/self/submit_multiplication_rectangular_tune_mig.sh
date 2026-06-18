@@ -21,7 +21,7 @@ mkdir -p "${OUT_ROOT}"
 mkdir -p "${LOG_DIR}"
 
 cmd=(
-  "${PYTHON_BIN}" -m self.multiplication_rectangular_tune
+  "${PYTHON_BIN}" -m self.experiments.multiplication_rectangular_tune
   submit
   --out-root "${OUT_ROOT}"
   --log-dir "${LOG_DIR}"

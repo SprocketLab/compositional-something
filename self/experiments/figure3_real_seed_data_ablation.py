@@ -398,7 +398,7 @@ def command_submit(args: argparse.Namespace) -> None:
     stage2_cmd = [
         args.python_bin,
         "-m",
-        "self.figure3_real_seed_data_ablation",
+        "self.experiments.figure3_real_seed_data_ablation",
         "stage2",
         "--out-root",
         str(args.out_root),
@@ -458,7 +458,7 @@ def command_stage2(args: argparse.Namespace) -> None:
     collect_cmd = [
         args.python_bin,
         "-m",
-        "self.figure3_real_seed_data_ablation",
+        "self.experiments.figure3_real_seed_data_ablation",
         "collect",
         "--out-root",
         str(args.out_root),

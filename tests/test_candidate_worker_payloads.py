@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from self.core import worker_io
-from self.adaptive.candidates.candidate_worker_payloads import (
+from self.adaptive.candidates.workers import (
     candidate_payload_from_work_item,
     candidate_payload_to_work_item,
     work_item_from_worker_payload,

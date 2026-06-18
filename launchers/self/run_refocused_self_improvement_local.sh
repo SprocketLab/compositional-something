@@ -76,7 +76,7 @@ COMMON_ENV=(
 add_addition_runs() {
   local task_out="${BASE_OUT}/addition"
   local -a common_args=(
-    python -m self.self_improvement
+    python -m self.legacy.addition_self_improvement
     --model-name "${ADDITION_MODEL_NAME}"
     --bf16
     --skip-save-model
@@ -181,7 +181,7 @@ if [[ "${RUN_SCOPE}" != "bit" ]]; then
   add_addition_runs
 fi
 if [[ "${RUN_SCOPE}" != "addition" ]]; then
-  add_bit_runs "run_length" "self.run_length_self_improvement"
+  add_bit_runs "run_length" "self.legacy.run_length_self_improvement"
 fi
 
 MANIFEST_PATH="${BASE_OUT}/manifest.tsv"

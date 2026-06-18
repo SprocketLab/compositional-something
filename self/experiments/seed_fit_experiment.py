@@ -13,12 +13,12 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch
 from transformers import set_seed
 
-from self.core.recipe_presets import (
+from self.core.recipes import (
     RECIPE_ALGORITHMIC_SELF_IMPROVE_V1,
     recipe_enabled,
     resolve_self_improvement_recipe,
 )
-from self.core.recipe_training import PaddingAwareCausalLMDataCollator
+from self.core.recipes import PaddingAwareCausalLMDataCollator
 from core.addition_pipeline import (
     ADDITION_SAMPLING_MODES,
     ADDITION_SAMPLING_NATURAL,

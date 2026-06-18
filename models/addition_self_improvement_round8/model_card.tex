@@ -77,14 +77,14 @@ vanilla \texttt{AutoModelForCausalLM}.
 from pathlib import Path
 import torch
 
-from self.addition_recipe import (
+from self.core.recipes import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     build_recipe_tokenizer,
     load_recipe_model,
     resolve_addition_recipe,
     tokenizer_padding_side,
 )
-from self.self_improvement_core import build_generation_encodings
+from self.core.evaluation import build_generation_encodings
 from core.addition_pipeline import extract_numeric_answer
 
 model_dir = Path("models/addition_self_improvement_round8")

@@ -4684,3 +4684,37 @@ Acceptance criteria for first pilot:
   `bash -n` for touched adaptive launchers; `python -m
   self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
   --help`; `git diff --check`.
+
+### Implementation Log: 2026-06-19 02:38 UTC
+
+- Created and pushed checkpoint tag `pre-self-slimdown-20260618-220652` before
+  the aggressive cleanup.
+- Removed the remaining top-level `self/*.py` implementation wrappers; only
+  `self/__init__.py` and `self/launcher_manifests.py` remain at package top
+  level.
+- Deleted old compatibility modules after migrating tracked launchers/tests/docs
+  to canonical modules.
+- Consolidated shared helpers: recipes into `self/core/recipes.py`, composition
+  pseudolabel helpers into `self/core/composition.py`, task lookup into
+  `self/core/task_protocols.py`, training-curve analysis into
+  `self/analysis/training_curves.py`, seed-fit analysis into
+  `self/analysis/seed_fit.py`, and adaptive artifact loaders into
+  `self/analysis/adaptive_artifacts.py`.
+- Consolidated task code into task-owned modules: `addition.py`, `bit.py`,
+  `multiplication.py`, `rectangular.py`, and `run_length.py`.
+- Consolidated adaptive code that had grown into prefix-split files: attempts
+  into `self/adaptive/attempts/attempts.py`, traces into
+  `self/adaptive/traces/traces.py`, controller phases/workers into
+  `self/adaptive/controller/controller.py`, candidates into
+  `self/adaptive/candidates/{training,dispatch,workers}.py`, frontier helpers
+  into `self/adaptive/frontier/frontier.py`, sandbox models/cases into
+  `self/adaptive/sandbox/program_sandbox.py`, and prompt metadata into
+  `self/adaptive/proposals/proposal_prompts.py`.
+- Preserved the lightweight import contract by keeping phase constants in
+  `self/adaptive/controller/__init__.py` and keeping `CheckpointManager` local
+  to run initialization rather than importing the full candidate training stack.
+- Current `self/` Python file count is 122, with tasks down to 6 files and
+  adaptive candidates down to 4 files.
+- Verification so far: `compileall -q self tests`; stale deleted-module grep
+  over tracked source/docs; focused refactor suite (`157 passed`, with existing
+  multiprocessing fork warnings).

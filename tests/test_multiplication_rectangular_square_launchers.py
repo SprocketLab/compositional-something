@@ -24,7 +24,7 @@ def test_multiplication_square_seed_launcher_uses_square_defaults():
     assert 'RECIPE_NAME="multiplication_self_improve_v1"' in text
     assert 'FORMAT_VERSION="symbolic_v1"' in text
     assert 'PARTITIONS_SPEC="${PARTITIONS_SPEC:-1x1,1x2,1x3,2x1,2x2,2x3,3x1,3x2,3x3}"' in text
-    assert "-m self.rectangular_multiplication_recipe_seed_fit" in text
+    assert "-m self.experiments.rectangular_multiplication_recipe_seed_fit" in text
 
 
 def test_multiplication_square_seed_launcher_dry_run_prints_expected_command(tmp_path):

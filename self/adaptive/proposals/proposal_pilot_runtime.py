@@ -16,11 +16,11 @@ from self.adaptive.proposals.proposal_prompts import (
     render_program_repair_prompt,
 )
 from self.adaptive.sandbox.program_sandbox import validate_program_with_repair
-from self.adaptive.sandbox.program_sandbox_cases import (
+from self.adaptive.sandbox.program_sandbox import (
     build_addition_program_cases,
     build_run_length_program_cases,
 )
-from self.adaptive.sandbox.program_sandbox_models import ProgramValidationResult
+from self.adaptive.sandbox.program_sandbox import ProgramValidationResult
 
 
 JsonDict = Dict[str, Any]

@@ -4,15 +4,14 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.attempts import attempt_prompt_runtime
+from self.adaptive.attempts import attempts
 from self.adaptive.proposals import (
     proposal_executable_validation,
     proposal_generation,
-    proposal_prompt_metadata,
     proposal_prompts,
     proposal_runtime,
 )
-from self.adaptive.run import driver_compat_exports, driver_default_bindings
+from self.adaptive.run import driver_default_bindings
 from self.adaptive.proposals import PromptBundle
 
 
@@ -78,12 +77,8 @@ def test_proposal_runtime_reexports_generation_helpers_for_compatibility():
 
 
 def test_proposal_implementation_imports_use_canonical_owners():
-    assert proposal_prompts.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
-    assert proposal_runtime.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
-    assert attempt_prompt_runtime.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
-    assert attempt_prompt_runtime.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
-    assert driver_default_bindings.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
+    assert proposal_runtime.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert attempts.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert attempts.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
+    assert driver_default_bindings.choose_default_program_pair is proposal_prompts.choose_default_program_pair
     assert driver_default_bindings.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
-    assert driver_compat_exports.load_or_generate_proposal_rows is proposal_generation.load_or_generate_proposal_rows
-    assert driver_compat_exports._extract_python_code is proposal_executable_validation._extract_python_code
-    assert driver_compat_exports.validate_executable_rows is proposal_executable_validation.validate_executable_rows

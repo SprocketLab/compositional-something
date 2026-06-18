@@ -164,7 +164,7 @@ run_seed_fit_task() {
   local task="$1"
   local out_dir="${OUT_ROOT}/${task}/seed"
   local -a cmd=(
-    "${PYTHON_BIN}" -m self.seed_fit_experiment
+    "${PYTHON_BIN}" -m self.experiments.seed_fit_experiment
     --task "${task}"
     --model-name "${SCRATCH_MODEL_NAME}"
     --output-dir "${out_dir}"
@@ -321,7 +321,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import sys
 
-from self.training_curve_notebook_utils import plot_per_size_accuracy_heatmap_from_results
+from self.analysis.training_curves import plot_per_size_accuracy_heatmap_from_results
 
 results_path = Path(sys.argv[1])
 task = sys.argv[2]

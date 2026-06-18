@@ -58,7 +58,7 @@ for baseline_row in "${BASELINE_ROWS[@]}"; do
   out_dir="${OUT_ROOT}/${baseline}"
   results_path="${out_dir}/self_improvement_results.json"
   run_cmd=(
-    "${PYTHON_BIN}" "-m" "self.run_length_self_improvement"
+    "${PYTHON_BIN}" "-m" "self.legacy.run_length_self_improvement"
     "--output-dir" "${out_dir}"
     "--model-name" "${SEED_MODEL}"
     "--format-version" "legacy"

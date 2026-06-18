@@ -9,12 +9,12 @@ from typing import Any, Dict, Optional
 
 from transformers import Trainer, TrainingArguments
 
-from self.core.recipe_training import (
+from self.core.recipes import (
     BatchSamplerWarmupStableDecayTrainer,
     WarmupStableDecayTrainer,
     make_recipe_training_args,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     fit_recipe_phase_to_max_steps,
     recipe_enabled,
     resolve_recipe_phase,

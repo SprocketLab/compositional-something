@@ -15,7 +15,7 @@ DRY_RUN="${DRY_RUN:-0}"
 cmd=(
   "${PYTHON_BIN}"
   -m
-  self.figure3_real_seed_data_ablation
+  self.experiments.figure3_real_seed_data_ablation
   submit
   --out-root "${OUT_ROOT}"
   --log-dir "${LOG_DIR}"

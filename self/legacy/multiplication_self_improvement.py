@@ -131,8 +131,8 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
-    from self.self_improvement_core import run_self_improvement
-    from self.self_improvement_tasks import MultiplicationTask
+    from self.nonadaptive.nonadaptive_loop import run_self_improvement
+    from self.tasks import MultiplicationTask
 
     args = normalize_args(parse_args(argv))
     run_self_improvement(args, MultiplicationTask())

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Sequence
 
-from self.adaptive.controller.controller_phases import PHASE_ROUND_MODEL
+from self.adaptive.controller import PHASE_ROUND_MODEL
 from self.core.models import CandidateWorkItem
 from self.adaptive.proposals.proposal_prompts import PromptBundle
 

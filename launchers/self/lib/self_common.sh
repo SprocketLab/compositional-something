@@ -337,7 +337,7 @@ if model_path.exists() and model_path.is_dir():
         )
 AutoConfig.from_pretrained(model_name, trust_remote_code=True)
 if tokenizer_mode == "fixed_char":
-    from self.task_tokenizer import build_fixed_char_tokenizer
+    from self.core.tokenizers import build_fixed_char_tokenizer
 
     tokenizer = build_fixed_char_tokenizer()
     print(f"[INFO] fixed_char_tokenizer_ok vocab={len(tokenizer)}")

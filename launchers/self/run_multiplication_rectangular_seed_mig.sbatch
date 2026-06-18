@@ -55,7 +55,7 @@ run_or_dry() {
 }
 
 cmd=(
-  "${PYTHON_BIN}" -m self.rectangular_multiplication_recipe_seed_fit
+  "${PYTHON_BIN}" -m self.experiments.rectangular_multiplication_recipe_seed_fit
   --model-name "${MODEL_NAME}"
   --output-dir "${OUT_ROOT}"
   --recipe "${RECIPE_NAME}"

@@ -76,7 +76,7 @@ seed_fit_common_args() {
   local max_steps="$7"
 
   local -a cmd=(
-    "${PYTHON_BIN}" -m self.seed_fit_experiment
+    "${PYTHON_BIN}" -m self.experiments.seed_fit_experiment
     --task addition
     --model-name "${MODEL_NAME}"
     --output-dir "${output_dir}"
@@ -242,7 +242,7 @@ STAGE0_RESULT="${STAGE0_ROOT}/addition/base/overfit_result.json"
 
 echo "[INFO] Stage 0: addition/base overfit sanity on MIG."
 run_or_dry \
-  "${PYTHON_BIN}" -m self.check_self_improvement_overfit \
+  "${PYTHON_BIN}" -m self.diagnostics.check_self_improvement_overfit \
   --tasks addition \
   --settings base \
   --model-name "${MODEL_NAME}" \

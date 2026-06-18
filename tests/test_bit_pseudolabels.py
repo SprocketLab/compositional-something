@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from self import self_improvement_tasks as tasks
-from self.tasks import bit_common, bit_pseudolabels, compat_exports
+import self.tasks as tasks
+from self.tasks import bit
 
 
 @dataclass(frozen=True)
@@ -19,15 +19,13 @@ def _clone(example: TinyExample, override: Optional[str]) -> TinyExample:
 
 
 def test_bit_pseudolabel_helpers_keep_compat_aliases() -> None:
-    assert bit_common.build_direct_pseudo_examples is bit_pseudolabels.build_direct_pseudo_examples
-    assert bit_common.build_guarded_bit_pseudo_examples is bit_pseudolabels.build_guarded_bit_pseudo_examples
-    assert bit_common.guard_slice_partition is bit_pseudolabels.guard_slice_partition
-    assert bit_common.run_length_guard_accepts_true_components is bit_pseudolabels.run_length_guard_accepts_true_components
+    assert bit.build_direct_pseudo_examples is bit.build_direct_pseudo_examples
+    assert bit.build_guarded_bit_pseudo_examples is bit.build_guarded_bit_pseudo_examples
+    assert bit.guard_slice_partition is bit.guard_slice_partition
+    assert bit.run_length_guard_accepts_true_components is bit.run_length_guard_accepts_true_components
 
-    assert compat_exports.build_direct_pseudo_examples is bit_pseudolabels.build_direct_pseudo_examples
-    assert compat_exports.build_guarded_bit_pseudo_examples is bit_pseudolabels.build_guarded_bit_pseudo_examples
-    assert tasks.build_direct_pseudo_examples is bit_pseudolabels.build_direct_pseudo_examples
-    assert tasks.build_guarded_bit_pseudo_examples is bit_pseudolabels.build_guarded_bit_pseudo_examples
+    assert tasks.build_direct_pseudo_examples is bit.build_direct_pseudo_examples
+    assert tasks.build_guarded_bit_pseudo_examples is bit.build_guarded_bit_pseudo_examples
 
 
 def test_direct_pseudo_examples_use_facade_prediction_map(monkeypatch) -> None:
@@ -39,7 +37,7 @@ def test_direct_pseudo_examples_use_facade_prediction_map(monkeypatch) -> None:
 
     monkeypatch.setattr(tasks, "generate_prediction_map", fake_prediction_map)
 
-    pseudo_examples, missing_total, diagnostics = bit_pseudolabels.build_direct_pseudo_examples(
+    pseudo_examples, missing_total, diagnostics = bit.build_direct_pseudo_examples(
         examples,
         model=None,
         tokenizer=None,
@@ -59,19 +57,19 @@ def test_direct_pseudo_examples_use_facade_prediction_map(monkeypatch) -> None:
 
 
 def test_run_length_boundary_guard_and_partition() -> None:
-    assert bit_pseudolabels.run_length_guard_accepts_true_components([(2, "00"), (2, "11")]) is True
-    assert bit_pseudolabels.run_length_guard_accepts_true_components([(2, "01"), (2, "10")]) is False
-    assert bit_pseudolabels.run_length_guard_accepts_true_components([(2, "01")]) is None
+    assert bit.run_length_guard_accepts_true_components([(2, "00"), (2, "11")]) is True
+    assert bit.run_length_guard_accepts_true_components([(2, "01"), (2, "10")]) is False
+    assert bit.run_length_guard_accepts_true_components([(2, "01")]) is None
 
     examples = [TinyExample(1, 1), TinyExample(2, 1), TinyExample(3, 1)]
-    partitions = bit_pseudolabels.guard_slice_partition(
+    partitions = bit.guard_slice_partition(
         examples,
         {
             1: [(2, "00"), (2, "11")],
             2: [(2, "01"), (2, "10")],
         },
         key_getter=lambda example: example.key,
-        guard_fn=bit_pseudolabels.run_length_guard_accepts_true_components,
+        guard_fn=bit.run_length_guard_accepts_true_components,
     )
 
     assert partitions["accepted_by_guard"] == [TinyExample(1, 1)]
@@ -89,7 +87,7 @@ def test_guarded_bit_pseudo_examples_tracks_rejections_without_refill() -> None:
             return "accepted", "label"
         return "rejected", None
 
-    pseudo_examples, missing_total, diagnostics = bit_pseudolabels.build_guarded_bit_pseudo_examples(
+    pseudo_examples, missing_total, diagnostics = bit.build_guarded_bit_pseudo_examples(
         examples,
         component_map,
         target_max_size=1,

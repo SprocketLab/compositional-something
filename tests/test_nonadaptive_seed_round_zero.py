@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.self_improvement_core import cleanup_round_checkpoints, run_self_improvement
+from self.nonadaptive.nonadaptive_loop import cleanup_round_checkpoints, run_self_improvement
 
 
 @dataclass(frozen=True)
@@ -121,7 +121,7 @@ class _DummyTask:
 
 
 def test_nonadaptive_treat_seed_as_round_zero_skips_round0_training(monkeypatch, tmp_path: Path):
-    import self.self_improvement_core as core
+    import self.nonadaptive.nonadaptive_loop as core
 
     trainer_called = {"value": False}
 
@@ -190,7 +190,7 @@ def test_nonadaptive_treat_seed_as_round_zero_skips_round0_training(monkeypatch,
 
 
 def test_final_only_save_policy_keeps_only_final_round_model(monkeypatch, tmp_path: Path):
-    import self.self_improvement_core as core
+    import self.nonadaptive.nonadaptive_loop as core
 
     dummy_model = _DummyModel()
 
@@ -270,7 +270,7 @@ def test_final_only_save_policy_keeps_only_final_round_model(monkeypatch, tmp_pa
 
 
 def test_all_rounds_save_policy_keeps_every_round_model(monkeypatch, tmp_path: Path):
-    import self.self_improvement_core as core
+    import self.nonadaptive.nonadaptive_loop as core
 
     dummy_model = _DummyModel()
 

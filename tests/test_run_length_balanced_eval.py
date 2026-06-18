@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import random
 
-from self.run_length_balanced_eval import (
+from self.diagnostics.run_length_balanced_eval import (
     construct_run_length_string,
     generate_balanced_examples,
     summarize_prediction_rows,
 )
-from self.self_improvement_tasks import compute_run_stats
+from self.tasks import compute_run_stats
 
 
 def test_construct_run_length_string_hits_requested_max_run():

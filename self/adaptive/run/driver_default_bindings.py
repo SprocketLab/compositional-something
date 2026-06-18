@@ -14,33 +14,33 @@ import torch
 
 from self.core import worker_io
 from self.adaptive.run.args import build_parser, normalize_args
-from self.adaptive.attempts.attempt_outcome_runtime import handle_attempt_outcome
-from self.adaptive.attempts.attempt_prompt_runtime import build_attempt_prompt
-from self.adaptive.candidates.candidate_data import build_candidate_work_items
-from self.adaptive.candidates.candidate_scoring import train_and_score_candidate
-from self.adaptive.candidates.candidate_training_runtime import make_config
-from self.adaptive.candidates.candidate_selection import select_candidate
-from self.adaptive.candidates.candidate_worker_payloads import (
+from self.adaptive.attempts.attempts import handle_attempt_outcome
+from self.adaptive.attempts.attempts import build_attempt_prompt
+from self.adaptive.candidates.training import build_candidate_work_items
+from self.adaptive.candidates.training import train_and_score_candidate
+from self.adaptive.candidates.training import make_config
+from self.adaptive.candidates.training import select_candidate
+from self.adaptive.candidates.workers import (
     work_item_from_worker_payload,
     work_item_to_worker_payload,
 )
-from self.adaptive.candidates.candidate_workers import prepare_candidate_worker_specs as _prepare_candidate_worker_specs
-from self.adaptive.controller.controller_phase_runtime import run_round_model_phase, run_seed_phase
-from self.adaptive.controller.controller_workers import (
+from self.adaptive.candidates.workers import prepare_candidate_worker_specs as _prepare_candidate_worker_specs
+from self.adaptive.controller.controller import run_round_model_phase, run_seed_phase
+from self.adaptive.controller.controller import (
     run_controller_worker as _run_controller_worker_generic,
     run_controller_worker_slurm as _run_controller_worker_slurm,
 )
 from self.core.data_io import ensure_dir, sanitize_json_value, save_examples, write_json
-from self.adaptive.attempts.dry_run_runtime import run_dry_attempt
-from self.adaptive.traces.experience_outcome_traces import build_round_outcome_trace_examples
-from self.adaptive.traces.experience_traces import (
+from self.adaptive.attempts.attempts import run_dry_attempt
+from self.adaptive.traces.traces import build_round_outcome_trace_examples
+from self.adaptive.traces.traces import (
     build_selected_proposal_trace_example,
     write_round_trace,
 )
 from self.core.models import candidate_metrics_from_json, float_or_nan as _float_or_nan
 from self.adaptive.proposals.proposal_grpo import apply_proposal_grpo_update
 from self.adaptive.proposals.proposal_generation import _rows_for_round
-from self.adaptive.proposals.proposal_prompt_metadata import choose_default_program_pair
+from self.adaptive.proposals.proposal_prompts import choose_default_program_pair
 from self.adaptive.proposals.proposal_prompts import (
     PromptBundle,
     render_config_prompt,
@@ -53,7 +53,7 @@ from self.adaptive.proposals.proposal_io import load_fixture_proposals, write_tr
 from self.adaptive.run.round_model_dispatch_runtime import run_round_model_dispatch
 from self.adaptive.run.run_setup import append_plan_log, load_trace_jsonl, prepare_datasets
 from self.adaptive.run.seed_dispatch_runtime import run_seed_dispatch
-from self.core.task_registry import task_for_name
+from self.core.task_protocols import task_for_name
 from self.adaptive.run.driver import DEFAULT_BINDING_NAMES
 
 

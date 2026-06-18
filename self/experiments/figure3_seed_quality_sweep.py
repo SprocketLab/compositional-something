@@ -185,7 +185,7 @@ def _addition_si_command(entry: Mapping[str, Any], *, python_bin: str) -> List[s
     return [
         python_bin,
         "-m",
-        "self.self_improvement",
+        "self.legacy.addition_self_improvement",
         "--model-name",
         str(entry["seed_model"]),
         "--output-dir",
@@ -409,7 +409,7 @@ def command_submit(args: argparse.Namespace) -> None:
     stage2_cmd = [
         args.python_bin,
         "-m",
-        "self.figure3_seed_quality_sweep",
+        "self.experiments.figure3_seed_quality_sweep",
         "stage2",
         "--out-root",
         str(args.out_root),
@@ -470,7 +470,7 @@ def command_stage2(args: argparse.Namespace) -> None:
         retry_cmd = [
             args.python_bin,
             "-m",
-            "self.figure3_seed_quality_sweep",
+            "self.experiments.figure3_seed_quality_sweep",
             "stage2",
             "--out-root",
             str(args.out_root),
@@ -518,7 +518,7 @@ def command_stage2(args: argparse.Namespace) -> None:
     collect_cmd = [
         args.python_bin,
         "-m",
-        "self.figure3_seed_quality_sweep",
+        "self.experiments.figure3_seed_quality_sweep",
         "collect",
         "--out-root",
         str(args.out_root),

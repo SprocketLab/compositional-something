@@ -19,7 +19,7 @@ from self.experiments.paper_schedule_selection import (
     choose_addition_candidate,
     score_addition_candidate,
 )
-from self.analysis.training_curve_notebook_utils import plot_per_size_accuracy_heatmap_from_results
+from self.analysis.training_curves import plot_per_size_accuracy_heatmap_from_results
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -129,7 +129,7 @@ def run_run_length_safe(
     cmd = [
         python_bin,
         "-m",
-        "self.run_length_self_improvement",
+        "self.legacy.run_length_self_improvement",
         "--model-name",
         str(seed_model),
         "--output-dir",
@@ -183,7 +183,7 @@ def run_addition_candidate(
     cmd = [
         python_bin,
         "-m",
-        "self.self_improvement",
+        "self.legacy.addition_self_improvement",
         "--model-name",
         str(seed_model),
         "--output-dir",

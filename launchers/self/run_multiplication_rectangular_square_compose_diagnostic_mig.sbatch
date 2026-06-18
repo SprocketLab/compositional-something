@@ -55,7 +55,7 @@ run_or_dry() {
 }
 
 cmd=(
-  "${PYTHON_BIN}" -m self.rectangular_multiplication_compose_diagnostic
+  "${PYTHON_BIN}" -m self.diagnostics.rectangular_multiplication_compose_diagnostic
   --seed-model "${SEED_MODEL}"
   --output-dir "${OUT_ROOT}"
   --recipe "${RECIPE_NAME}"

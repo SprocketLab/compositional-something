@@ -3,13 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.candidates import (
-    candidate_dispatch_entrypoints,
-    candidate_dispatch_runtime,
-    candidate_parallel_runtime,
-    candidate_serial_runtime,
-    candidate_workers,
-)
+from self.adaptive.candidates import dispatch, workers
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.adaptive.proposals import ConfigProposal, PromptBundle
 
@@ -68,7 +62,7 @@ def test_train_candidates_serial_scores_items_with_attempt_seed_offset(tmp_path:
         cache_base_state.append(cache.cache_base_state)
         return _metric(kwargs["item"], kwargs["seed"])
 
-    metrics = candidate_dispatch_runtime.train_candidates_serial(
+    metrics = dispatch.train_candidates_serial(
         args=args,
         task=object(),
         current_checkpoint="checkpoint",
@@ -137,7 +131,7 @@ def test_train_candidates_serial_supports_legacy_scorer_without_cache_kwarg(tmp_
         seen.append(seed)
         return _metric(item, seed)
 
-    metrics = candidate_dispatch_runtime.train_candidates_serial(
+    metrics = dispatch.train_candidates_serial(
         args=args,
         task=object(),
         current_checkpoint="checkpoint",
@@ -167,20 +161,20 @@ def test_local_parallel_dispatch_sets_subprocess_binding_and_delegates(
 ):
     calls = []
     fake_subprocess = object()
-    monkeypatch.setattr(candidate_workers, "subprocess", object())
+    monkeypatch.setattr(workers, "subprocess", object())
 
     def fake_train_candidates_local_parallel(**kwargs):
         calls.append(kwargs)
-        assert candidate_workers.subprocess is fake_subprocess
+        assert workers.subprocess is fake_subprocess
         return ["metric"]
 
     monkeypatch.setattr(
-        candidate_workers,
+        workers,
         "train_candidates_local_parallel",
         fake_train_candidates_local_parallel,
     )
 
-    result = candidate_dispatch_runtime.train_candidates_local_parallel(
+    result = dispatch.train_candidates_local_parallel(
         args=SimpleNamespace(seed=1),
         task=object(),
         current_checkpoint="checkpoint",
@@ -213,12 +207,12 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
         return ["metric"]
 
     monkeypatch.setattr(
-        candidate_workers,
+        workers,
         "train_candidates_slurm_array",
         fake_train_candidates_slurm_array,
     )
 
-    result = candidate_dispatch_runtime.train_candidates_slurm_array(
+    result = dispatch.train_candidates_slurm_array(
         args=SimpleNamespace(seed=1),
         task=object(),
         current_checkpoint="checkpoint",
@@ -242,23 +236,11 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
     assert calls[0]["work_items"][0].index == 2
 
 
-def test_candidate_dispatch_runtime_reexports_dispatch_helpers():
-    assert (
-        candidate_dispatch_entrypoints.CandidateDispatchEntrypointDeps
-        is candidate_dispatch_entrypoints.CandidateDispatchEntrypointDeps
-    )
-    assert (
-        candidate_dispatch_runtime.train_candidates_serial
-        is candidate_serial_runtime.train_candidates_serial
-    )
-    assert (
-        candidate_dispatch_runtime.train_candidates_local_parallel
-        is candidate_parallel_runtime.train_candidates_local_parallel
-    )
-    assert (
-        candidate_dispatch_runtime.train_candidates_slurm_array
-        is candidate_parallel_runtime.train_candidates_slurm_array
-    )
+def test_candidate_dispatch_helpers_live_in_merged_module():
+    assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidates.dispatch"
+    assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidates.dispatch"
+    assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidates.dispatch"
+    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidates.dispatch"
 
 
 def test_build_candidate_dispatch_deps_reads_driver_bindings():
@@ -272,7 +254,7 @@ def test_build_candidate_dispatch_deps_reads_driver_bindings():
         subprocess=object(),
     )
 
-    deps = candidate_dispatch_entrypoints.build_candidate_dispatch_deps(bindings)
+    deps = dispatch.build_candidate_dispatch_deps(bindings)
 
     assert deps.train_and_score_candidate is bindings.train_and_score_candidate
     assert deps.candidate_failure_metrics is bindings._candidate_failure_metrics

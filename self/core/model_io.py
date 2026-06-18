@@ -17,13 +17,13 @@ from self.core.model_bootstrap_cache import (
     model_state_cache_key,
     token_initializers_key,
 )
-from self.core.recipe_models import (
+from self.core.recipes import (
     apply_recipe_runtime_settings,
     build_recipe_tokenizer,
     instantiate_recipe_model,
     load_recipe_model,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     recipe_enabled,
     resolve_self_improvement_recipe,
 )

@@ -73,7 +73,7 @@ run_baseline() {
 
   local out_dir="${OUT_ROOT}/${baseline}"
   local cmd=(
-    "${PYTHON_BIN}" -m self.self_improvement
+    "${PYTHON_BIN}" -m self.legacy.addition_self_improvement
     --model-name "${SEED_MODEL}"
     --output-dir "${out_dir}"
     "${COMMON_ARGS[@]}"

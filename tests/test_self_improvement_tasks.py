@@ -23,15 +23,14 @@ from core.addition_pipeline import (
     example_key,
     generate_addition_pair,
 )
-from self.self_improvement_core import evaluate_accuracy_with_breakdown, extract_numeric_answer, generate_prediction_map
-from self import self_improvement_tasks as tasks
-from self.tasks import compat_exports as task_compat_exports
-from self.tasks import multiplication, multiplication_data, multiplication_pseudolabels, multiplication_sampling
-from self.tasks import run_length_guarded_pseudolabels, run_length_pseudolabels
+from self.nonadaptive.nonadaptive_loop import evaluate_accuracy_with_breakdown, extract_numeric_answer, generate_prediction_map
+import self.tasks as tasks
+from self.tasks import multiplication
+from self.tasks import run_length
 
 
-def test_task_facade_all_exports_are_available_and_unique():
-    assert tasks.__all__ == list(task_compat_exports.TASK_COMPAT_EXPORT_NAMES)
+def test_task_package_exports_are_available_and_unique():
+    assert tasks.__all__ == list(tasks.TASK_EXPORT_NAMES)
     assert len(tasks.__all__) == len(set(tasks.__all__))
     assert all(hasattr(tasks, name) for name in tasks.__all__)
     assert tasks.AdditionTask.__module__ == "self.tasks.addition"
@@ -39,29 +38,14 @@ def test_task_facade_all_exports_are_available_and_unique():
     assert tasks.RunLengthTask.__module__ == "self.tasks.run_length"
 
 
-def test_run_length_guarded_pseudolabel_owner_keeps_old_alias():
-    assert (
-        run_length_pseudolabels._derive_guarded_pair_pseudo
-        is run_length_guarded_pseudolabels.derive_guarded_pair_pseudo
-    )
+def test_run_length_guarded_pseudolabel_helper_lives_in_task_module():
+    assert run_length.derive_guarded_pair_pseudo.__module__ == "self.tasks.run_length"
 
 
-def test_multiplication_pseudolabel_owner_keeps_task_alias():
-    assert (
-        multiplication.derive_multiplication_round_targets
-        is multiplication_pseudolabels.derive_multiplication_round_targets
-    )
-
-
-def test_multiplication_sampling_owner_keeps_data_alias():
-    assert (
-        multiplication_data.build_multiplication_long_dataset
-        is multiplication_sampling.build_multiplication_long_dataset
-    )
-    assert (
-        multiplication_data.build_multiplication_component_payload
-        is multiplication_sampling.build_multiplication_component_payload
-    )
+def test_multiplication_helpers_live_in_task_module():
+    assert multiplication.derive_multiplication_round_targets.__module__ == "self.tasks.multiplication"
+    assert multiplication.build_multiplication_long_dataset.__module__ == "self.tasks.multiplication"
+    assert multiplication.build_multiplication_component_payload.__module__ == "self.tasks.multiplication"
 
 
 def test_fixed_binary_component_size_selection_is_deterministic():

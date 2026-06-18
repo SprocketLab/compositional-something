@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from self.core import training, training_data
-from self import self_improvement_core as core_facade
 
 
 class _Tokenizer:
@@ -37,8 +36,6 @@ def test_training_data_old_reexports_keep_identity() -> None:
     assert training.CausalLMDataCollator is training_data.CausalLMDataCollator
     assert training.SizeBucketBatchSampler is training_data.SizeBucketBatchSampler
     assert training.BatchSamplerTrainer is training_data.BatchSamplerTrainer
-    assert core_facade.TokenizedPromptTargetDataset is training_data.TokenizedPromptTargetDataset
-    assert core_facade.CausalLMDataCollator is training_data.CausalLMDataCollator
 
 
 def test_tokenized_prompt_target_dataset_masks_prompt_and_honors_target_prefix() -> None:

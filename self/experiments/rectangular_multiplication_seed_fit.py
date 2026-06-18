@@ -24,7 +24,7 @@ from self.core.training import (
     TrainingConfig,
     make_training_args,
 )
-from self.tasks.bit_parsing import parse_multiplication_prediction
+from self.tasks.bit import parse_multiplication_prediction
 
 
 PartitionKey = Tuple[int, int]

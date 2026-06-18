@@ -20,10 +20,10 @@ def test_addition_tiny_seed_mig_launcher_uses_expected_seed_fit_pipeline():
     text = SCRIPT.read_text(encoding="utf-8")
 
     assert 'MODEL_NAME="meta/models/tiny_gpt2_8l_384d"' in text
-    assert "-m self.check_self_improvement_overfit" in text
+    assert "-m self.diagnostics.check_self_improvement_overfit" in text
     assert "--tasks addition" in text
     assert "--settings base" in text
-    assert "-m self.seed_fit_experiment" in text
+    assert "-m self.experiments.seed_fit_experiment" in text
     assert "--task addition" in text
     assert "--init-from-scratch" in text
     assert "--tokenizer-mode fixed_char" in text
@@ -54,10 +54,10 @@ def test_addition_tiny_seed_mig_launcher_dry_run_prints_expected_commands(tmp_pa
 
     stdout = result.stdout
     assert "[INFO] Dry run: skipping CUDA and scratch-model config probes." in stdout
-    assert "-m self.check_self_improvement_overfit" in stdout
+    assert "-m self.diagnostics.check_self_improvement_overfit" in stdout
     assert "--tasks addition" in stdout
     assert "--settings base" in stdout
-    assert "-m self.seed_fit_experiment" in stdout
+    assert "-m self.experiments.seed_fit_experiment" in stdout
     assert "--task addition" in stdout
     assert "--model-name meta/models/tiny_gpt2_8l_384d" in stdout
     assert "--init-from-scratch" in stdout

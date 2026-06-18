@@ -3,7 +3,7 @@
 # addition LM driving the diamond operator.
 #
 # Differences from run_self_improvement.multiplication_cot.curriculum.sh:
-#   - Entry point: self.self_improvement_multiplication_cot_pseudo_addition.
+#   - Entry point: self.legacy.multiplication_cot_pseudo_addition.
 #   - The diamond operator (build_composed_pseudo_map) folds component
 #     predictions pred_i * 10^(k-1-i) into a single y_tilde via iterative
 #     pairwise addition through the addition LM at ADDITION_MODEL_PATH instead
@@ -59,7 +59,7 @@ else
     LAUNCHER=(python -u)
 fi
 
-"${LAUNCHER[@]}" -m self.self_improvement_multiplication_cot_pseudo_addition \
+"${LAUNCHER[@]}" -m self.legacy.multiplication_cot_pseudo_addition \
     --bf16 \
     --per-device-train-batch-size "${BATCH}" \
     --per-device-eval-batch-size "${BATCH}" \

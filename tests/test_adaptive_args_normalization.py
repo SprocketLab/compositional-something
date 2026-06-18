@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 from self.adaptive.run import args as adaptive_args
-from self.adaptive.run import args_normalization
-
-
-def test_args_normalization_owner_reexport() -> None:
-    assert adaptive_args.normalize_args is args_normalization.normalize_args
 
 
 def test_args_normalization_preserves_task_defaults() -> None:
     parser = adaptive_args.build_parser()
 
-    addition_args = args_normalization.normalize_args(parser.parse_args(["--task", "addition"]))
+    addition_args = adaptive_args.normalize_args(parser.parse_args(["--task", "addition"]))
     assert addition_args.initial_min_size == 3
     assert addition_args.initial_max_size == 7
     assert addition_args.frontier_min_size == 8
@@ -20,7 +15,7 @@ def test_args_normalization_preserves_task_defaults() -> None:
     assert addition_args.expand_train_per_digit == addition_args.candidate_train_per_size
     assert addition_args.proposal_grpo_steps == 1
 
-    run_length_args = args_normalization.normalize_args(parser.parse_args(["--task", "run_length"]))
+    run_length_args = adaptive_args.normalize_args(parser.parse_args(["--task", "run_length"]))
     assert run_length_args.initial_min_size == 8
     assert run_length_args.initial_max_size == 16
     assert run_length_args.frontier_min_size == 17
@@ -28,7 +23,7 @@ def test_args_normalization_preserves_task_defaults() -> None:
     assert run_length_args.initial_min_bits == run_length_args.initial_min_size
     assert run_length_args.expand_train_per_bit == run_length_args.candidate_train_per_size
 
-    program_args = args_normalization.normalize_args(
+    program_args = adaptive_args.normalize_args(
         parser.parse_args(["--task", "addition", "--condition", "program"])
     )
     assert program_args.proposal_grpo_steps == 0

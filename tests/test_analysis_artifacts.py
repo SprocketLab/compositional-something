@@ -1,14 +1,7 @@
 import json
 from pathlib import Path
 
-from self.analysis import (
-    adaptive_artifact_common,
-    adaptive_artifacts,
-    adaptive_candidate_artifacts,
-    adaptive_summary_artifacts,
-    adaptive_trace_artifacts,
-    nonadaptive_artifacts,
-)
+from self.analysis import adaptive_artifacts, nonadaptive_artifacts
 from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_artifact_records,
@@ -56,12 +49,6 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 def test_adaptive_summary_artifacts_aggregate_runs_and_validity(tmp_path: Path):
-    assert adaptive_run_overview_records is adaptive_summary_artifacts.adaptive_run_overview_records
-    assert (
-        adaptive_validity_summary_records_for_runs
-        is adaptive_summary_artifacts.adaptive_validity_summary_records_for_runs
-    )
-
     root = tmp_path / "adaptive_runs"
     run_dir = root / "addition-config"
     attempt_1 = run_dir / "attempt_0001"
@@ -181,19 +168,16 @@ def test_adaptive_summary_artifacts_aggregate_runs_and_validity(tmp_path: Path):
 
 def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp_path: Path):
     assert adaptive_attempt_records is adaptive_artifacts.adaptive_attempt_records
-    assert adaptive_artifacts.AdaptiveAttemptArtifacts is adaptive_artifact_common.AdaptiveAttemptArtifacts
-    assert adaptive_candidate_artifacts.AdaptiveRunArtifacts is adaptive_artifact_common.AdaptiveRunArtifacts
+    assert hasattr(adaptive_artifacts, "AdaptiveAttemptArtifacts")
+    assert hasattr(adaptive_artifacts, "AdaptiveRunArtifacts")
     assert load_adaptive_run is adaptive_artifacts.load_adaptive_run
-    assert load_adaptive_candidates is adaptive_candidate_artifacts.load_adaptive_candidates
     assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates
     assert adaptive_validity_summary_records is adaptive_artifacts.adaptive_validity_summary_records
-    assert adaptive_candidate_artifact_records is adaptive_candidate_artifacts.adaptive_candidate_artifact_records
-    assert adaptive_local_dispatch_records is adaptive_candidate_artifacts.adaptive_local_dispatch_records
-    assert load_adaptive_local_dispatch is adaptive_candidate_artifacts.load_adaptive_local_dispatch
-    assert adaptive_artifacts.adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
-    assert adaptive_artifacts.adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
-    assert adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
-    assert adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
+    assert adaptive_candidate_artifact_records is adaptive_artifacts.adaptive_candidate_artifact_records
+    assert adaptive_local_dispatch_records is adaptive_artifacts.adaptive_local_dispatch_records
+    assert load_adaptive_local_dispatch is adaptive_artifacts.load_adaptive_local_dispatch
+    assert adaptive_prompt_records is adaptive_artifacts.adaptive_prompt_records
+    assert adaptive_trace_records is adaptive_artifacts.adaptive_trace_records
 
     run_dir = tmp_path / "root" / "addition-config"
     attempt_dir = run_dir / "attempt_0001"

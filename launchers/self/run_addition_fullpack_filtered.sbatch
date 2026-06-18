@@ -109,7 +109,7 @@ run_baseline() {
   mkdir -p "${out_dir}"
 
   local cmd=(
-    "${PYTHON_BIN}" -m self.self_improvement
+    "${PYTHON_BIN}" -m self.legacy.addition_self_improvement
     --output-dir "${out_dir}"
     "${COMMON_ARGS[@]}"
     "$@"

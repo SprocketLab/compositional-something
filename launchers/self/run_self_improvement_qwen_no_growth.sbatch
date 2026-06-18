@@ -75,6 +75,6 @@ nvidia-smi -L || true
 self_print_torch_cuda_info
 self_preflight_model_snapshot "${MODEL_NAME}"
 
-"${PYTHON_BIN}" -m self.self_improvement "${COMMON_ARGS[@]}"
+"${PYTHON_BIN}" -m self.legacy.addition_self_improvement "${COMMON_ARGS[@]}"
 
 echo "[INFO] Finished workshop small-model self-improvement run."

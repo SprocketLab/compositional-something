@@ -11,7 +11,7 @@ from self.nonadaptive.nonadaptive_schedule import (
     build_nonadaptive_size_schedule,
     normalize_frontier_min_size,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     SelfImprovementRecipePreset,
     recipe_enabled,
     resolve_self_improvement_recipe,

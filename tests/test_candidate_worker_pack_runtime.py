@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.candidates import candidate_worker_pack_runtime, candidate_worker_runtime
-from self.adaptive.candidates.candidate_worker_inputs import CandidateWorkerRuntimeDeps
+from self.adaptive.candidates import workers
+from self.adaptive.candidates.workers import CandidateWorkerRuntimeDeps
 
 
 def _deps() -> CandidateWorkerRuntimeDeps:
@@ -35,7 +35,7 @@ def test_pack_runtime_passes_shared_cache_to_cache_aware_runner(tmp_path: Path):
         shared_cache.setdefault("inputs", SimpleNamespace(model_bootstrap_cache=None))
         return SimpleNamespace(index=len(cache_ids) - 1)
 
-    summary = candidate_worker_pack_runtime.run_candidate_worker_pack_from_spec(
+    summary = workers.run_candidate_worker_pack_from_spec(
         pack_path,
         deps=_deps(),
         run_from_spec_fn=run_from_spec,
@@ -59,7 +59,7 @@ def test_pack_runtime_supports_legacy_runner_without_shared_cache(tmp_path: Path
         calls.append(path)
         return SimpleNamespace(index=5)
 
-    summary = candidate_worker_pack_runtime.run_candidate_worker_pack_from_spec(
+    summary = workers.run_candidate_worker_pack_from_spec(
         pack_path,
         deps=_deps(),
         run_from_spec_fn=run_from_spec,
@@ -78,6 +78,6 @@ def test_pack_runtime_supports_legacy_runner_without_shared_cache(tmp_path: Path
 
 def test_candidate_worker_runtime_reexports_pack_runtime_for_compatibility():
     assert (
-        candidate_worker_runtime.run_candidate_worker_pack_from_spec
-        is candidate_worker_pack_runtime.run_candidate_worker_pack_from_spec
+        workers.run_candidate_worker_pack_from_spec
+        is workers.run_candidate_worker_pack_from_spec
     )

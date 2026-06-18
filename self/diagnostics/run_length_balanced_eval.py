@@ -16,14 +16,14 @@ import torch
 from self.core.data_io import ensure_dir, sanitize_json_value
 from self.core.evaluation import build_generation_encodings, parse_prediction
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.core.recipe_presets import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
-from self.tasks.bit_parsing import RUN_LENGTH_ALPHABET_SYMBOLS
+from self.core.recipes import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
+from self.tasks.bit import RUN_LENGTH_ALPHABET_SYMBOLS
 from self.tasks.run_length import RunLengthTask
-from self.tasks.run_length_data import (
+from self.tasks.run_length import (
     RunLengthExample,
     generate_run_length_example,
 )
-from self.tasks.run_length_logic import compute_run_stats
+from self.tasks.run_length import compute_run_stats
 
 
 def build_parser() -> argparse.ArgumentParser:

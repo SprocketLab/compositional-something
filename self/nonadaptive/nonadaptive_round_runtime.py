@@ -27,7 +27,7 @@ from self.nonadaptive.nonadaptive_round_setup import (
     prepare_nonadaptive_round_training_data,
 )
 from self.nonadaptive.nonadaptive_training import train_nonadaptive_round_model
-from self.core.recipe_models import instantiate_recipe_model, load_recipe_model
+from self.core.recipes import instantiate_recipe_model, load_recipe_model
 from self.core.summaries import RoundSummary, SliceMetric, summarize_round, summary_to_payload
 from self.core.training import TokenizedPromptTargetDataset, build_trainer, make_training_args
 

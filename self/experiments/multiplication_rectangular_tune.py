@@ -500,7 +500,7 @@ def command_submit(args: argparse.Namespace) -> None:
     stage2_cmd = [
         args.python_bin,
         "-m",
-        "self.multiplication_rectangular_tune",
+        "self.experiments.multiplication_rectangular_tune",
         "stage2",
         "--out-root",
         str(out_root),
@@ -570,7 +570,7 @@ def command_stage2(args: argparse.Namespace) -> None:
     stage3_cmd = [
         args.python_bin,
         "-m",
-        "self.multiplication_rectangular_tune",
+        "self.experiments.multiplication_rectangular_tune",
         "stage3",
         "--out-root",
         str(out_root),
@@ -639,7 +639,7 @@ def command_stage3(args: argparse.Namespace) -> None:
     finalize_cmd = [
         args.python_bin,
         "-m",
-        "self.multiplication_rectangular_tune",
+        "self.experiments.multiplication_rectangular_tune",
         "finalize",
         "--out-root",
         str(out_root),

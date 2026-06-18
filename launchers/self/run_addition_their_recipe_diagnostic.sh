@@ -16,7 +16,7 @@ MAX_STEPS="${MAX_STEPS:-}"
 DRY_RUN="${DRY_RUN:-0}"
 
 CMD=(
-  "${PYTHON_BIN}" -m self.addition_recipe_diagnostic
+  "${PYTHON_BIN}" -m self.diagnostics.addition_recipe_diagnostic
   --output-dir "${OUT_ROOT}"
   --recipe arithmetic_self_improve_v1
   --device-target "${DEVICE_TARGET}"

@@ -19,7 +19,7 @@ from self.adaptive.proposals.proposal_generation import (
 )
 from self.adaptive.proposals.proposal_config_validation import _raw_output, validate_config_rows
 from self.adaptive.proposals.proposal_config_schema import ConfigProposal
-from self.adaptive.proposals.proposal_prompt_metadata import (
+from self.adaptive.proposals.proposal_prompts import (
     choose_default_program_pair,
     component_prediction_examples_for_task,
     program_validation_cases,

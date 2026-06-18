@@ -143,7 +143,7 @@ def test_addition_recipe_recovery_launcher_dry_run_chains_all_stages(tmp_path):
     )
 
     stdout = result.stdout
-    assert "self.addition_recipe_diagnostic" in stdout
+    assert "self.diagnostics.addition_recipe_diagnostic" in stdout
     assert "--recipe arithmetic_self_improve_v1" in stdout
     assert "--num-expand-rounds 1" in stdout
     assert "--num-expand-rounds 8" in stdout

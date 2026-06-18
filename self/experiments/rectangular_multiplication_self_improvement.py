@@ -27,7 +27,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import torch
 from transformers import set_seed
 
-from self.tasks.rectangular_multiplication import (
+from self.tasks.rectangular import (
     EDGE_ONLY_MULTIPLICATION_PARTITIONS,
     RECTANGULAR_MULTIPLICATION_FORMATS,
     RectangularMultiplicationExample,
@@ -59,13 +59,13 @@ from self.core.training import (
     build_trainer,
     make_training_args,
 )
-from self.core.recipe_presets import (
+from self.core.recipes import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     RECIPE_MULTIPLICATION_SELF_IMPROVE_V1,
     recipe_enabled,
     resolve_self_improvement_recipe,
 )
-from self.core.recipe_training import PaddingAwareCausalLMDataCollator
+from self.core.recipes import PaddingAwareCausalLMDataCollator
 
 
 DEFAULT_EDGE_PARTITIONS_SPEC = ",".join(partition_label(partition) for partition in EDGE_ONLY_MULTIPLICATION_PARTITIONS)

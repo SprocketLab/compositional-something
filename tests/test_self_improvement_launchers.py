@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from self import run_length_self_improvement as run_length_launcher
+from self.legacy import run_length_self_improvement as run_length_launcher
 
 
 def test_run_length_launcher_normalizes_bit_schedule():
@@ -68,7 +68,7 @@ def test_run_length_launcher_main_wires_run_length_task(monkeypatch, tmp_path: P
         captured["args"] = args
         captured["task"] = task
 
-    import self.self_improvement_core as core
+    import self.nonadaptive.nonadaptive_loop as core
 
     monkeypatch.setattr(core, "run_self_improvement", fake_run_self_improvement)
 

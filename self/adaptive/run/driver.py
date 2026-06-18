@@ -8,8 +8,6 @@ import sys
 from collections.abc import Callable, Iterable, MutableMapping
 from typing import Any, List, Optional, Sequence
 
-from self.adaptive.run.driver_compat_exports import COMPAT_EXPORT_NAMES
-
 DEFAULT_BINDING_NAMES = (
     "PromptBundle",
     "_PATH_ARG_NAMES",
@@ -64,7 +62,6 @@ DEFAULT_BINDING_NAMES = (
 )
 
 _DEFAULT_BINDING_NAME_SET = frozenset(DEFAULT_BINDING_NAMES)
-_COMPAT_EXPORT_NAME_SET = frozenset(COMPAT_EXPORT_NAMES)
 
 
 def _bindings() -> Any:
@@ -150,15 +147,11 @@ def install_driver_wiring_delegates(
 def __getattr__(name: str) -> Any:
     if name in _DEFAULT_BINDING_NAME_SET:
         return getattr(_default_bindings(), name)
-    if name in _COMPAT_EXPORT_NAME_SET:
-        from self.adaptive.run import driver_compat_exports
-
-        return getattr(driver_compat_exports, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def __dir__() -> List[str]:
-    return sorted(set(globals()) | _DEFAULT_BINDING_NAME_SET | _COMPAT_EXPORT_NAME_SET)
+    return sorted(set(globals()) | _DEFAULT_BINDING_NAME_SET)
 
 
 install_driver_wiring_delegates(globals(), driver_wiring=_LazyDriverWiring(), get_bindings=_bindings)

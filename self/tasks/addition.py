@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""Addition task adapter."""
+"""Addition task adapter, data generation, and pseudolabel helpers."""
 
 from __future__ import annotations
 
-import json
+# --- from addition_data.py ---
 import random
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
-from self.core.evaluation import extract_numeric_answer, generate_prediction_map
-from self.core.task_protocols import JsonDict, SelfImprovementTask
-from self.tasks.addition_data import (
+from core.addition_pipeline import (
     ADDITION_SAMPLING_MODES,
     ADDITION_SAMPLING_NATURAL,
     ADDITION_WIDTH_EXACT_DIGITS,
@@ -24,19 +20,389 @@ from self.tasks.addition_data import (
     build_composed_pseudo_map,
     build_length_bucket_dataset,
     clone_with_override,
-    corrupt_numeric_target,
     decode_key,
     encode_key,
     example_key,
-    get_boundary_carry_status,
     has_component_boundary_carry,
-    prepare_addition_composed_eval,
-    prepare_addition_composed_train,
-    prepare_addition_eval_examples,
-    prepare_addition_initial_splits,
-    split_addition_examples_by_boundary_status,
 )
-from self.tasks.addition_pseudolabels import derive_addition_round_targets
+
+SplitName = str
+
+
+def corrupt_numeric_target(value: str) -> str:
+    return str(int(value) + 1)
+
+
+def prepare_addition_initial_splits(
+    rng: random.Random,
+    min_digits: int,
+    max_digits: int,
+    train_per_digit: int,
+    eval_per_digit: int,
+    addition_width_mode: str = ADDITION_WIDTH_EXACT_DIGITS,
+    addition_sampling_mode: str = ADDITION_SAMPLING_NATURAL,
+) -> Tuple[Dict[SplitName, List[AdditionExample]], Dict[SplitName, set[Tuple[int, int, int]]]]:
+    splits = {name: [] for name in ("train", "validation", "test")}
+    records: Dict[SplitName, set[Tuple[int, int, int]]] = {name: set() for name in splits}
+    generated = build_length_bucket_dataset(
+        min_digits=min_digits,
+        max_digits=max_digits,
+        per_digit_counts={
+            "train": train_per_digit,
+            "validation": eval_per_digit,
+            "test": eval_per_digit,
+        },
+        allow_carry=True,
+        rng=rng,
+        record_pairs=records,
+        progress_name="initial",
+        addition_width_mode=addition_width_mode,
+        addition_sampling_mode=addition_sampling_mode,
+    )
+    for split in splits:
+        splits[split] = generated.get(split, [])
+    return splits, records
+
+
+def prepare_addition_composed_train(
+    rng: random.Random,
+    base_splits: Dict[SplitName, List[AdditionExample]],
+    base_records: Dict[SplitName, set[Tuple[int, int, int]]],
+    min_digits: int,
+    max_digits: int,
+    per_digit_count: int,
+    allow_carry: bool,
+    boundary_carry_policy: str = "any",
+    additional_exclude: Optional[set[Tuple[int, int, int]]] = None,
+    addition_width_mode: str = ADDITION_WIDTH_EXACT_DIGITS,
+    composition_path_mode: str = COMPOSITION_PATH_RANDOM,
+) -> Tuple[List[AdditionExample], Dict[Tuple[int, int, int], List[Tuple[int, int, int]]], set[Tuple[int, int, int]]]:
+    if max_digits < min_digits or per_digit_count <= 0:
+        return [], {}, set()
+    composed_records: Dict[SplitName, set[Tuple[int, int, int]]] = {"train": set(), "validation": set(), "test": set()}
+    component_records: Dict[SplitName, Dict[Tuple[int, int, int], List[Tuple[int, int, int]]]] = {
+        "train": {},
+        "validation": {},
+        "test": {},
+    }
+    base_used = set().union(*base_records.values())
+    if additional_exclude:
+        base_used.update(additional_exclude)
+    composed_splits = build_composed_datasets(
+        base_splits=base_splits,
+        min_digits=min_digits,
+        max_digits=max_digits,
+        per_digit_counts={"train": per_digit_count, "validation": 0, "test": 0},
+        rng=rng,
+        exclude_pairs=base_used,
+        record_pairs=composed_records,
+        progress_name="composed",
+        record_components=component_records,
+        allow_carry=allow_carry,
+        allow_nocarry=True,
+        boundary_carry_policy=boundary_carry_policy,
+        addition_width_mode=addition_width_mode,
+        composition_path_mode=composition_path_mode,
+    )
+    return composed_splits.get("train", []), component_records.get("train", {}), composed_records.get("train", set())
+
+
+def prepare_addition_composed_eval(
+    rng: random.Random,
+    base_splits: Dict[SplitName, List[AdditionExample]],
+    base_records: Dict[SplitName, set[Tuple[int, int, int]]],
+    min_digits: int,
+    max_digits: int,
+    per_digit_count: int,
+    additional_exclude: Optional[set[Tuple[int, int, int]]] = None,
+    addition_width_mode: str = ADDITION_WIDTH_EXACT_DIGITS,
+    composition_path_mode: str = COMPOSITION_PATH_RANDOM,
+) -> Tuple[List[AdditionExample], Dict[Tuple[int, int, int], List[Tuple[int, int, int]]], set[Tuple[int, int, int]]]:
+    if max_digits < min_digits or per_digit_count <= 0:
+        return [], {}, set()
+    composed_records: Dict[SplitName, set[Tuple[int, int, int]]] = {"train": set(), "validation": set(), "test": set()}
+    component_records: Dict[SplitName, Dict[Tuple[int, int, int], List[Tuple[int, int, int]]]] = {
+        "train": {},
+        "validation": {},
+        "test": {},
+    }
+    base_used = set().union(*base_records.values())
+    if additional_exclude:
+        base_used.update(additional_exclude)
+    stitched_base_splits = {
+        "train": list(base_splits.get("train", [])),
+        "validation": list(base_splits.get("train", [])),
+        "test": list(base_splits.get("train", [])),
+    }
+    composed_splits = build_composed_datasets(
+        base_splits=stitched_base_splits,
+        min_digits=min_digits,
+        max_digits=max_digits,
+        per_digit_counts={"train": 0, "validation": 0, "test": per_digit_count},
+        rng=rng,
+        exclude_pairs=base_used,
+        record_pairs=composed_records,
+        progress_name="composed-eval",
+        record_components=component_records,
+        allow_carry=True,
+        allow_nocarry=True,
+        addition_width_mode=addition_width_mode,
+        composition_path_mode=composition_path_mode,
+    )
+    return composed_splits.get("test", []), component_records.get("test", {}), composed_records.get("test", set())
+
+
+def prepare_addition_eval_examples(
+    rng: random.Random,
+    min_digits: int,
+    max_digits: int,
+    per_digit: int,
+    exclude: set[Tuple[int, int, int]],
+    addition_width_mode: str = ADDITION_WIDTH_EXACT_DIGITS,
+    addition_sampling_mode: str = ADDITION_SAMPLING_NATURAL,
+) -> List[AdditionExample]:
+    generated = build_length_bucket_dataset(
+        min_digits=min_digits,
+        max_digits=max_digits,
+        per_digit_counts={"train": 0, "validation": 0, "test": per_digit},
+        allow_carry=True,
+        rng=rng,
+        exclude_pairs=exclude,
+        record_pairs={split: set() for split in ("train", "validation", "test")},
+        progress_name="evaluation",
+        addition_width_mode=addition_width_mode,
+        addition_sampling_mode=addition_sampling_mode,
+    )
+    return list(generated.get("test", []))
+
+
+def get_boundary_carry_status(
+    example: AdditionExample,
+    component_map: Dict[Tuple[int, int, int], List[Tuple[int, int, int]]],
+) -> Optional[bool]:
+    component_keys = component_map.get(example_key(example))
+    if not component_keys:
+        return None
+    component_digits = [key[0] for key in component_keys]
+    if len(component_digits) <= 1:
+        return None
+    if sum(component_digits) != example.digits:
+        return None
+    return has_component_boundary_carry(example, component_digits)
+
+
+def split_addition_examples_by_boundary_status(
+    examples: Sequence[AdditionExample],
+    component_map: Dict[Tuple[int, int, int], List[Tuple[int, int, int]]],
+) -> Dict[str, List[AdditionExample]]:
+    slices: Dict[str, List[AdditionExample]] = {
+        "boundary_carry": [],
+        "no_boundary_carry": [],
+        "unknown": [],
+    }
+    for example in examples:
+        status = get_boundary_carry_status(example, component_map)
+        if status is True:
+            slices["boundary_carry"].append(example)
+        elif status is False:
+            slices["no_boundary_carry"].append(example)
+        else:
+            slices["unknown"].append(example)
+    return slices
+
+
+# --- from addition_pseudolabels.py ---
+import math
+import random
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+
+from self.core.task_protocols import JsonDict
+
+GeneratePredictionMap = Callable[..., Dict[Tuple[int, int, int], str]]
+BuildComposedPseudoMap = Callable[..., Dict[Tuple[int, int, int], str]]
+PredictionParser = Callable[[str], Optional[str]]
+
+
+def _build_direct_pseudo_examples(
+    candidate_examples: Sequence[AdditionExample],
+    *,
+    model: Any,
+    tokenizer: Any,
+    batch_size: int,
+    decode_max_new_tokens: int,
+    prediction_parser: PredictionParser,
+    generate_prediction_map_fn: GeneratePredictionMap,
+) -> Tuple[List[AdditionExample], int, JsonDict]:
+    prediction_map = generate_prediction_map_fn(
+        model=model,
+        tokenizer=tokenizer,
+        examples=candidate_examples,
+        batch_size=batch_size,
+        max_new_tokens=decode_max_new_tokens,
+        key_getter=example_key,
+        prediction_parser=prediction_parser,
+    )
+    pseudo_examples: List[AdditionExample] = []
+    missing_total = 0
+    for example in candidate_examples:
+        override = prediction_map.get(example_key(example))
+        if override is None:
+            missing_total += 1
+            continue
+        pseudo_examples.append(clone_with_override(example, override))
+    diagnostics: JsonDict = {
+        "mode": "direct",
+        "candidate_total": len(candidate_examples),
+        "retained_total": len(pseudo_examples),
+        "missing_total": missing_total,
+        "retained_fraction": len(pseudo_examples) / len(candidate_examples) if candidate_examples else math.nan,
+    }
+    return pseudo_examples, missing_total, diagnostics
+
+
+def derive_addition_round_targets(
+    *,
+    model: Any,
+    tokenizer: Any,
+    composed_examples: Sequence[AdditionExample],
+    component_map: Dict[Tuple[int, int, int], List[Tuple[int, int, int]]],
+    target_max_size: int,
+    base_examples: Sequence[AdditionExample],
+    batch_size: int,
+    decode_max_new_tokens: int,
+    args: Any,
+    rng: random.Random,
+    prediction_parser: PredictionParser,
+    generate_prediction_map_fn: GeneratePredictionMap,
+    build_composed_pseudo_map_fn: BuildComposedPseudoMap,
+) -> Tuple[List[AdditionExample], int, JsonDict]:
+    candidate_examples = [example for example in composed_examples if example.digits <= target_max_size]
+    if args.pseudo_label_mode == "direct":
+        return _build_direct_pseudo_examples(
+            candidate_examples,
+            model=model,
+            tokenizer=tokenizer,
+            batch_size=batch_size,
+            decode_max_new_tokens=decode_max_new_tokens,
+            prediction_parser=prediction_parser,
+            generate_prediction_map_fn=generate_prediction_map_fn,
+        )
+    if args.pseudo_label_mode not in {"compose", "compose_corrupt"}:
+        return [], 0, {
+            "mode": args.pseudo_label_mode,
+            "candidate_total": len(candidate_examples),
+            "retained_total": 0,
+            "missing_total": 0,
+        }
+
+    filter_component_carries = args.composed_strategy == "with_carry_filtered"
+    carry_error_fraction = args.composition_error_percent / 100.0
+    candidate_keys = {example_key(example) for example in candidate_examples}
+    base_predictions = generate_prediction_map_fn(
+        model=model,
+        tokenizer=tokenizer,
+        examples=base_examples,
+        batch_size=batch_size,
+        max_new_tokens=decode_max_new_tokens,
+        key_getter=example_key,
+        prediction_parser=prediction_parser,
+    )
+    base_map = {
+        key: base_predictions[key]
+        for key in (example_key(example) for example in base_examples)
+        if key in base_predictions
+    }
+    component_subset = {key: component_map[key] for key in component_map if key in candidate_keys}
+    pseudo_map = build_composed_pseudo_map_fn(
+        base_map,
+        candidate_examples,
+        component_subset,
+        base_predictions,
+        filter_component_carries=filter_component_carries,
+        carry_error_fraction=carry_error_fraction if filter_component_carries else 0.0,
+        rng=rng,
+    )
+
+    candidate_boundary = 0
+    candidate_no_boundary = 0
+    candidate_unknown = 0
+    kept_boundary = 0
+    kept_no_boundary = 0
+    kept_unknown = 0
+    missing_boundary = 0
+    missing_no_boundary = 0
+    missing_unknown = 0
+    corrupted_total = 0
+
+    pseudo_examples: List[AdditionExample] = []
+    missing_labels = 0
+    for example in candidate_examples:
+        status = get_boundary_carry_status(example, component_subset)
+        if status is True:
+            candidate_boundary += 1
+        elif status is False:
+            candidate_no_boundary += 1
+        else:
+            candidate_unknown += 1
+
+        override = pseudo_map.get(example_key(example))
+        if override is None:
+            missing_labels += 1
+            if status is True:
+                missing_boundary += 1
+            elif status is False:
+                missing_no_boundary += 1
+            else:
+                missing_unknown += 1
+            continue
+
+        if args.pseudo_label_mode == "compose_corrupt" and rng.random() < args.corruption_rate:
+            override = corrupt_numeric_target(override)
+            corrupted_total += 1
+
+        pseudo_examples.append(clone_with_override(example, override))
+        if status is True:
+            kept_boundary += 1
+        elif status is False:
+            kept_no_boundary += 1
+        else:
+            kept_unknown += 1
+
+    diagnostics: JsonDict = {
+        "mode": args.pseudo_label_mode,
+        "target_max_digits": int(target_max_size),
+        "candidate_total": len(candidate_examples),
+        "candidate_boundary_carry": candidate_boundary,
+        "candidate_no_boundary_carry": candidate_no_boundary,
+        "candidate_unknown_boundary": candidate_unknown,
+        "retained_total": len(pseudo_examples),
+        "retained_boundary_carry": kept_boundary,
+        "retained_no_boundary_carry": kept_no_boundary,
+        "retained_unknown_boundary": kept_unknown,
+        "missing_total": missing_labels,
+        "missing_boundary_carry": missing_boundary,
+        "missing_no_boundary_carry": missing_no_boundary,
+        "missing_unknown_boundary": missing_unknown,
+        "retained_boundary_fraction": kept_boundary / candidate_boundary if candidate_boundary > 0 else math.nan,
+        "retained_no_boundary_fraction": kept_no_boundary / candidate_no_boundary if candidate_no_boundary > 0 else math.nan,
+        "retained_unknown_fraction": kept_unknown / candidate_unknown if candidate_unknown > 0 else math.nan,
+        "filter_component_carries": bool(filter_component_carries),
+        "carry_error_fraction": carry_error_fraction if filter_component_carries else 0.0,
+        "corruption_rate": args.corruption_rate if args.pseudo_label_mode == "compose_corrupt" else 0.0,
+        "corrupted_total": corrupted_total,
+    }
+    return pseudo_examples, missing_labels, diagnostics
+
+
+# --- from addition.py ---
+import json
+import random
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from self.core.evaluation import extract_numeric_answer, generate_prediction_map
+from self.core.task_protocols import JsonDict, SelfImprovementTask
 
 
 SplitName = str
@@ -45,7 +411,7 @@ _DEFAULT_BUILD_COMPOSED_PSEUDO_MAP = build_composed_pseudo_map
 
 
 def _compat_symbol(name: str, fallback: Any) -> Any:
-    facade = sys.modules.get("self.self_improvement_tasks")
+    facade = sys.modules.get("self.tasks")
     if facade is None:
         return fallback
     return getattr(facade, name, fallback)
