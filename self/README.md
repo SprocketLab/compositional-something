@@ -39,6 +39,8 @@ tests, notebooks, and older artifacts.
 - `self/core/candidate_data.py`: candidate composed-data construction,
   component-prediction collection, pseudo-label attachment, and per-candidate
   data artifacts.
+- `self/core/candidate_training_mix.py`: candidate task/pseudo/replay trace
+  training mix construction plus train-mix JSONL/summary artifact writing.
 - `self/core/candidate_dispatch_runtime.py`: candidate training mode
   selection plus serial, local-parallel, and Slurm-array execution helpers.
 - `self/core/candidate_dispatch_entrypoints.py`: compatibility-aware wiring
@@ -518,10 +520,11 @@ new implementation code:
 - Continue splitting `self/core/driver.py` into smaller modules for round-loop
   orchestration. The CLI/args, shared data model, composition/pseudolabel,
   generic controller-worker dispatch, controller-worker spec runtime,
-  seed/round-model controller phases, candidate train/eval scoring, checkpoint
-  cleanup, proposal runtime generation/validation, proposal prompt rendering,
-  candidate data construction, dry-run attempt handling, selected/no-selection
-  attempt outcome handling, proposal-GRPO dispatch, run setup/trace loading,
+  seed/round-model controller phases, candidate train/eval scoring, candidate
+  training-mix construction/artifact writing, checkpoint cleanup, proposal
+  runtime generation/validation, proposal prompt rendering, candidate data
+  construction, dry-run attempt handling, selected/no-selection attempt
+  outcome handling, proposal-GRPO dispatch, run setup/trace loading,
   final result/log finalization, output/data initialization, worker-spec
   JSON/key serialization, attempt-level proposal prompt construction, seed
   initialization/initial summary construction, round-model local/Slurm

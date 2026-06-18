@@ -2977,3 +2977,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_adaptive_candidate_launcher.py` with bash syntax coverage and a stub-Python execution check that verifies the config emits `--candidate-local-pack-size 2` and `--candidate-local-cache-base-state` without starting real training.
 - Updated `self/README.md` runtime notes to distinguish parser defaults from the shared AILAB adaptive candidate config defaults.
 - Verification: `bash -n launchers/self/run_adaptive_candidate_training_ailab.sbatch launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/config/adaptive_candidate_base.env`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_launcher tests/test_adaptive_candidate_launcher.py -q` (`2 passed`). The temporary `.pytest_tmp_launcher` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 07:08:03 UTC
+
+- Extracted candidate task/pseudo/replay trace train-mix construction and artifact writing from `self/core/candidate_scoring.py` into `self/core/candidate_training_mix.py`.
+- The new module owns `CandidateTrainingMix`, `build_candidate_training_mix(...)`, and `write_candidate_training_mix_artifacts(...)`, preserving existing artifact paths and `train_mix_summary.json` fields.
+- `candidate_scoring.py` now focuses on no-pseudo rejection, checkpoint training, optional proposal rehearsal phase, evaluation, reward/metric construction, and model cleanup; it consumes the returned training mix for counts and train examples.
+- Added `tests/test_candidate_training_mix.py` for mixed replay with post-task rehearsal disabled, separated post-task rehearsal examples, and train-mix artifact writing.
+- Updated `self/README.md` with the candidate training-mix module ownership. `self/core/candidate_scoring.py` is now `318` lines, down from `387`.
+- Verification: `python -m py_compile self/core/candidate_training_mix.py self/core/candidate_scoring.py tests/test_candidate_training_mix.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mix tests/test_candidate_training_mix.py -q` (`3 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mix tests/test_candidate_training_mix.py tests/test_adaptive_candidate_training.py tests/test_candidate_dispatch_runtime.py tests/test_candidate_worker_specs.py -q` (`49 passed`, `3` existing multiprocessing fork warnings). The temporary `.pytest_tmp_mix` directory was removed after verification.

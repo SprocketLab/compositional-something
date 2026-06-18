@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import random
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
@@ -13,17 +12,13 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 import torch
 
 from self.core import worker_io
-from self.core.experience_trace_models import (
-    OutcomeTraceExample,
-    ProposalTraceExample,
-    build_post_task_proposal_rehearsal_examples,
-    sample_outcome_trace_replay,
-    sample_proposal_trace_replay,
+from self.core.candidate_training_mix import (
+    build_candidate_training_mix,
+    write_candidate_training_mix_artifacts,
 )
-from self.core.experience_traces import build_candidate_proposal_trace_example
+from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.core.proposals import PromptBundle, write_trace_jsonl
-from self.core.data_io import save_examples
+from self.core.proposals import PromptBundle
 from self.core.evaluation import evaluate_accuracy_with_breakdown, resolve_max_new_tokens
 from self.core.model_io import ModelBootstrapCache, instantiate_model_and_tokenizer
 from self.core.training import (
@@ -210,93 +205,29 @@ def train_and_score_candidate(
         worker_io.write_json(candidate_dir / "candidate_metrics.json", metrics.to_json_dict())
         return metrics
 
-    task_train_examples = list(source_examples) + list(item.pseudo_examples)
-    outcome_replay_examples = sample_outcome_trace_replay(
+    training_mix = build_candidate_training_mix(
         args=args,
-        trace_buffer=outcome_trace_buffer,
-        task_train_count=len(task_train_examples),
-        rng=random.Random(seed + 6151),
-    )
-    candidate_trace_examples: List[ProposalTraceExample] = []
-    if item.completion and (args.post_task_proposal_rehearsal or args.proposal_trace_replay_ratio > 0.0):
-        candidate_trace_examples.append(
-            build_candidate_proposal_trace_example(
-                task_name=args.task,
-                condition=args.condition,
-                round_index=round_index,
-                prompt=proposal_prompt,
-                item=item,
-            )
-        )
-    mixed_proposal_replay_examples: List[ProposalTraceExample] = []
-    if not args.post_task_proposal_rehearsal:
-        mixed_proposal_replay_examples = sample_proposal_trace_replay(
-            args=args,
-            trace_buffer=proposal_trace_buffer,
-            task_train_count=len(task_train_examples),
-            rng=random.Random(seed + 7919),
-        )
-    mixed_candidate_trace_examples = [] if args.post_task_proposal_rehearsal else list(candidate_trace_examples)
-    post_task_rehearsal_examples = build_post_task_proposal_rehearsal_examples(
-        args=args,
+        source_examples=source_examples,
+        item=item,
         proposal_trace_buffer=proposal_trace_buffer,
-        candidate_trace_examples=candidate_trace_examples,
-        rng=random.Random(seed + 8863),
+        outcome_trace_buffer=outcome_trace_buffer,
+        proposal_prompt=proposal_prompt,
+        round_index=round_index,
+        seed=seed,
     )
-    train_examples = (
-        task_train_examples
-        + list(outcome_replay_examples)
-        + mixed_proposal_replay_examples
-        + mixed_candidate_trace_examples
-    )
-    save_examples(candidate_dir / "train_examples.jsonl", task_train_examples, task.serialize_example)
-    if outcome_replay_examples:
-        write_trace_jsonl(
-            candidate_dir / "outcome_trace_replay_examples.jsonl",
-            [example.to_json_dict() for example in outcome_replay_examples],
-        )
-    if mixed_proposal_replay_examples:
-        write_trace_jsonl(
-            candidate_dir / "proposal_trace_replay_examples.jsonl",
-            [example.to_json_dict() for example in mixed_proposal_replay_examples],
-        )
-    if candidate_trace_examples:
-        write_trace_jsonl(
-            candidate_dir / "candidate_proposal_trace_example.jsonl",
-            [example.to_json_dict() for example in candidate_trace_examples],
-        )
-    if post_task_rehearsal_examples:
-        write_trace_jsonl(
-            candidate_dir / "post_task_proposal_rehearsal_examples.jsonl",
-            [example.to_json_dict() for example in post_task_rehearsal_examples],
-        )
-    worker_io.write_json(
-        candidate_dir / "train_mix_summary.json",
-        {
-            "task_train_examples": len(task_train_examples),
-            "source_examples": len(source_examples),
-            "pseudo_examples": len(item.pseudo_examples),
-            "outcome_trace_buffer_size": len(outcome_trace_buffer),
-            "outcome_trace_replay_examples": len(outcome_replay_examples),
-            "outcome_trace_target_mode": args.outcome_trace_target_mode,
-            "outcome_trace_replay_ratio": args.outcome_trace_replay_ratio,
-            "outcome_trace_replay_max_examples": args.outcome_trace_replay_max_examples,
-            "proposal_trace_buffer_size": len(proposal_trace_buffer),
-            "proposal_trace_replay_examples": len(mixed_proposal_replay_examples),
-            "candidate_proposal_trace_examples": len(candidate_trace_examples),
-            "mixed_candidate_proposal_trace_examples": len(mixed_candidate_trace_examples),
-            "proposal_trace_replay_ratio": args.proposal_trace_replay_ratio,
-            "proposal_trace_replay_max_examples": args.proposal_trace_replay_max_examples,
-            "post_task_proposal_rehearsal": bool(args.post_task_proposal_rehearsal),
-            "post_task_proposal_rehearsal_examples": len(post_task_rehearsal_examples),
-            "post_task_proposal_rehearsal_repeat_count": args.post_task_proposal_rehearsal_repeat_count,
-            "post_task_proposal_rehearsal_max_examples": args.post_task_proposal_rehearsal_max_examples,
-            "total_train_examples": len(train_examples),
-        },
+    write_candidate_training_mix_artifacts(
+        candidate_dir=candidate_dir,
+        task=task,
+        args=args,
+        source_examples=source_examples,
+        item=item,
+        proposal_trace_buffer=proposal_trace_buffer,
+        outcome_trace_buffer=outcome_trace_buffer,
+        mix=training_mix,
     )
     model, tokenizer, task_model_dir = train_checkpoint(
         source_checkpoint=current_checkpoint,
-        train_examples=train_examples,
+        train_examples=training_mix.train_examples,
         output_dir=candidate_dir / "training",
         task=task,
         args=args,
@@ -306,14 +237,14 @@ def train_and_score_candidate(
         model_bootstrap_cache=model_bootstrap_cache,
     )
     model_dir = task_model_dir
-    if post_task_rehearsal_examples:
+    if training_mix.post_task_rehearsal_examples:
         del model
         del tokenizer
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         model, tokenizer, model_dir = train_checkpoint(
             source_checkpoint=str(task_model_dir),
-            train_examples=post_task_rehearsal_examples,
+            train_examples=training_mix.post_task_rehearsal_examples,
             output_dir=candidate_dir / "proposal_rehearsal",
             task=task,
             args=args,
@@ -326,8 +257,8 @@ def train_and_score_candidate(
             {
                 "source_checkpoint": str(task_model_dir),
                 "model_dir": str(model_dir),
-                "examples": len(post_task_rehearsal_examples),
-                "base_candidate_trace_examples": len(candidate_trace_examples),
+                "examples": len(training_mix.post_task_rehearsal_examples),
+                "base_candidate_trace_examples": len(training_mix.candidate_trace_examples),
                 "base_selected_trace_buffer_size": len(proposal_trace_buffer),
                 "repeat_count": args.post_task_proposal_rehearsal_repeat_count,
                 "max_examples": args.post_task_proposal_rehearsal_max_examples,
@@ -373,10 +304,10 @@ def train_and_score_candidate(
         per_size_accuracy={int(size): float(value) for size, value in per_size_accuracy.items()},
         pseudo_count=len(item.pseudo_examples),
         model_dir=model_dir,
-        proposal_trace_replay_count=len(mixed_proposal_replay_examples),
-        candidate_proposal_trace_count=len(candidate_trace_examples),
-        post_task_proposal_rehearsal_count=len(post_task_rehearsal_examples),
-        outcome_trace_replay_count=len(outcome_replay_examples),
+        proposal_trace_replay_count=len(training_mix.mixed_proposal_replay_examples),
+        candidate_proposal_trace_count=len(training_mix.candidate_trace_examples),
+        post_task_proposal_rehearsal_count=len(training_mix.post_task_rehearsal_examples),
+        outcome_trace_replay_count=len(training_mix.outcome_replay_examples),
         proposal_prediction=dict(item.proposal_prediction),
     )
     worker_io.write_json(candidate_dir / "candidate_metrics.json", metrics.to_json_dict())
