@@ -3326,3 +3326,11 @@ Acceptance criteria for first pilot:
 - Added `tests/test_rectangular_composition.py` to pin direct composition behavior and old-path reexport compatibility.
 - Updated `self/README.md` with the new rectangular composition helper ownership boundary.
 - Verification: `python -m py_compile self/tasks/rectangular_composition.py self/tasks/rectangular_multiplication.py self/tasks/rectangular_data.py self/tasks/rectangular_digits.py self/multiplication_rectangular.py tests/test_rectangular_composition.py tests/test_rectangular_data.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_composition tests/test_rectangular_composition.py tests/test_rectangular_data.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`41 passed`).
+
+### Implementation Log: 2026-06-18 10:31:19 UTC
+
+- Added `self/core/module_proxy.py`, a reusable compatibility proxy installer for old module paths that should forward missing reads and monkeypatch-style attribute writes to canonical modules.
+- Migrated `self/multiplication_rectangular.py` onto the shared module-proxy helper, replacing its local proxy class while preserving old imports and sampler monkeypatch behavior.
+- Added `tests/test_module_proxy.py` to pin rectangular old-path exports, `__all__`/`dir()` exposure, and write-forwarding to `self.tasks.rectangular_multiplication`.
+- Updated `self/README.md` with the shared proxy helper ownership boundary and wrapper policy.
+- Verification: `python -m py_compile self/core/module_proxy.py self/multiplication_rectangular.py tests/test_module_proxy.py tests/test_rectangular_composition.py tests/test_rectangular_data.py tests/test_multiplication_rectangular.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_module_proxy tests/test_module_proxy.py tests/test_rectangular_composition.py tests/test_rectangular_data.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`43 passed`).

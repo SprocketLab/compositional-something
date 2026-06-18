@@ -44,6 +44,9 @@ the supported public surface.
   delegates that forward through `driver_wiring.py` with the live driver module
   as the binding surface, keeping `driver.py` small without breaking old
   monkeypatch points.
+- `self/core/module_proxy.py`: shared compatibility helper for old module
+  paths that should proxy canonical modules while forwarding monkeypatch-style
+  attribute writes.
 - `self/core/args.py`: CLI parser construction plus argument validation and
   task-specific default normalization.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
@@ -654,6 +657,9 @@ new implementation code:
   `self/core`, `self/experiments`, and `self/diagnostics` modules import
   recipe helpers from the canonical core module, while legacy scripts and old
   tests can keep using the wrappers.
+- Compatibility wrappers that need monkeypatch-style write forwarding should use
+  `self/core/module_proxy.py`; `self/multiplication_rectangular.py` now uses the
+  shared helper instead of carrying its own proxy class.
 - Tokenizer helpers now live in `self/core/tokenizers.py`; `self/task_tokenizer.py`
   is a compatibility wrapper. Current core modules import tokenizer helpers
   from the canonical core module, while legacy scripts and old tests can keep
