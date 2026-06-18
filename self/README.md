@@ -8,6 +8,21 @@ The current workshop/main-track task surface is addition, run-length, and
 multiplication. Older auxiliary classification task experiments are not part of
 the supported public surface.
 
+## Supported Pseudolabel Modes
+
+The maintained workshop/main-track pipeline exposes only these pseudolabel
+families:
+
+- `none`: no generated labels are added.
+- `direct`: the current model labels the target example directly.
+- `compose`: the current model labels source components, then task-specific
+  composition builds the target label.
+- `compose_corrupt`: the `compose` control with injected label noise.
+
+Any new label-family baseline should be added as an explicit experimental mode
+with tests, launcher coverage, and paper-facing documentation before it becomes
+part of the supported surface.
+
 ## Current Core
 
 - `self/core/driver.py`: thin adaptive CLI/worker entry point and

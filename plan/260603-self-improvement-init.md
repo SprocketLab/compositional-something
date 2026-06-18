@@ -4521,3 +4521,14 @@ Acceptance criteria for first pilot:
   tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_round_setup.py
   tests/test_nonadaptive_seed_round_zero.py -q` passed (`14 passed`);
   `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:30:17 UTC
+
+- Audited the tracked repository for unsupported sampled label-family
+  terminology and implementation hooks; no tracked source, tests, launchers, or
+  maintained docs exposed such a mode.
+- Clarified `self/README.md` with the supported pseudolabel mode surface:
+  `none`, `direct`, `compose`, and `compose_corrupt`.
+- No runtime behavior changed. Unsupported label-family baselines stay out of
+  the maintained workshop/main-track surface unless they are later introduced
+  as explicit experiments with tests and launcher/docs coverage.
