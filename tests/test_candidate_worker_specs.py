@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from self.adaptive.candidates import candidate_worker_specs, candidate_workers
-from self.adaptive.proposals.proposals import PromptBundle
+from self.adaptive.proposals import PromptBundle
 
 
 class _Task:

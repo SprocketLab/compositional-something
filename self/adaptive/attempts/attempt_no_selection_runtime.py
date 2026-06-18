@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
-from self.adaptive.attempts.attempt_outcome_models import AttemptOutcomeDeps, AttemptOutcomeResult, JsonDict
+from self.adaptive.attempts.attempt_models import AttemptOutcomeDeps, AttemptOutcomeResult, JsonDict
 from self.core.models import CandidateMetrics
 from self.adaptive.proposals.proposal_prompts import PromptBundle
 

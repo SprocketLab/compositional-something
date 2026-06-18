@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 from self.adaptive.run import run_models
-from self.adaptive.run.driver_run_wiring import AdaptiveRunDeps
+from self.adaptive.run.driver_wiring import AdaptiveRunDeps
 from self.adaptive.run.run_orchestration import AdaptiveRunDeps as OrchestrationAdaptiveRunDeps
 
 
@@ -11,10 +11,10 @@ def test_adaptive_run_deps_old_paths_reexport_model() -> None:
     assert OrchestrationAdaptiveRunDeps is run_models.AdaptiveRunDeps
 
 
-def test_driver_run_wiring_import_does_not_load_orchestration_stack() -> None:
+def test_driver_wiring_import_does_not_load_orchestration_stack() -> None:
     code = (
         "import sys\n"
-        "import self.adaptive.run.driver_run_wiring\n"
+        "import self.adaptive.run.driver_wiring\n"
         "print('self.adaptive.run.run_orchestration' in sys.modules)\n"
         "print('torch' in sys.modules)\n"
         "print('transformers' in sys.modules)\n"

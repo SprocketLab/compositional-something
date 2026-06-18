@@ -10,7 +10,7 @@ from self.adaptive.candidates.candidate_training_mix import (
 )
 from self.adaptive.traces.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposals import ConfigProposal, PromptBundle
 
 
 class _Task:

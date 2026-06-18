@@ -14,7 +14,7 @@ from self.adaptive.candidates.candidate_worker_inputs import (
     candidate_item_from_payload,
     load_candidate_worker_shared_inputs,
 )
-from self.adaptive.candidates.candidate_worker_failures import write_candidate_worker_failure_from_spec
+from self.adaptive.candidates.candidate_worker_payloads import write_candidate_worker_failure_from_spec
 from self.adaptive.candidates.candidate_worker_pack_runtime import run_candidate_worker_pack_from_spec
 from self.core.data_io import load_examples
 from self.core.models import CandidateMetrics, float_or_nan

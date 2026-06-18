@@ -3,15 +3,38 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Mapping, Sequence
+from typing import Any, Callable, List, Mapping, Sequence
 
 from self.adaptive.candidates import candidate_dispatch_runtime
-from self.adaptive.candidates.candidate_dispatch_deps import CandidateDispatchEntrypointDeps
 from self.adaptive.traces.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.adaptive.proposals.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
+
+
+@dataclass(frozen=True)
+class CandidateDispatchEntrypointDeps:
+    train_and_score_candidate: Callable[..., CandidateMetrics]
+    candidate_failure_metrics: Callable[..., CandidateMetrics]
+    collect_candidate_array_metrics: Callable[..., List[CandidateMetrics]]
+    train_candidates_serial: Callable[..., List[CandidateMetrics]]
+    train_candidates_local_parallel: Callable[..., List[CandidateMetrics]]
+    train_candidates_slurm_array: Callable[..., List[CandidateMetrics]]
+    subprocess_module: Any
+
+
+def build_candidate_dispatch_deps(bindings: Any) -> CandidateDispatchEntrypointDeps:
+    return CandidateDispatchEntrypointDeps(
+        train_and_score_candidate=bindings.train_and_score_candidate,
+        candidate_failure_metrics=bindings._candidate_failure_metrics,
+        collect_candidate_array_metrics=bindings._collect_candidate_array_metrics,
+        train_candidates_serial=bindings.train_candidates_serial,
+        train_candidates_local_parallel=bindings.train_candidates_local_parallel,
+        train_candidates_slurm_array=bindings.train_candidates_slurm_array,
+        subprocess_module=bindings.subprocess,
+    )
 
 
 def candidate_failure_metrics(

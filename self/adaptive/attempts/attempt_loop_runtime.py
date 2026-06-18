@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Sequence
 
 from self.adaptive.attempts.attempt_candidate_runtime import run_candidate_attempt
-from self.adaptive.attempts.attempt_loop_models import CandidateAttemptDeps, AttemptLoopDeps, AttemptLoopResult
+from self.adaptive.attempts.attempt_models import CandidateAttemptDeps, AttemptLoopDeps, AttemptLoopResult
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig

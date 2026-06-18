@@ -13,7 +13,7 @@ from self.adaptive.candidates.candidate_rewards import (
     static_frontier_sizes,
 )
 from self.core.models import CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposals import ConfigProposal
+from self.adaptive.proposals import ConfigProposal
 
 
 def _args(**overrides):

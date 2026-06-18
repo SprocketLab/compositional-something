@@ -4649,3 +4649,38 @@ Acceptance criteria for first pilot:
   for the touched adaptive Slurm launchers; `python -m
   self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
   --help`; `git diff --check`.
+
+### Implementation Log: 2026-06-18 21:41:02 UTC
+
+- Created and pushed checkpoint tag
+  `pre-self-consolidation-20260618-173223` at commit `8d81bdf` before deleting
+  additional internal modules.
+- Consolidated narrow helper/compatibility files into their owning modules:
+  attempt-loop/outcome containers now live in
+  `self/adaptive/attempts/attempt_models.py`; candidate dispatch dependencies
+  live in `candidate_dispatch_entrypoints.py`; candidate worker failure helpers
+  live in `candidate_worker_payloads.py`; proposal compatibility exports live
+  in `self/adaptive/proposals/__init__.py`; nonadaptive facade targets live in
+  `nonadaptive_facade_exports.py`; adaptive driver compat names/targets live in
+  `driver_compat_exports.py`; and driver delegate installation now lives in
+  `driver.py`.
+- Removed test-only compatibility facades including
+  `candidate_execution.py`, `candidate_dispatch_deps.py`,
+  `candidate_worker_failures.py`, `attempt_loop_models.py`,
+  `attempt_outcome_models.py`, `proposal/proposals.py`,
+  `nonadaptive_facade_targets.py`, `driver_compat_manifest.py`,
+  `driver_compat_targets.py`, `driver_default_binding_manifest.py`, and
+  `driver_public_api.py`.
+- Merged the remaining thin adaptive driver-binding files
+  (`driver_candidate_dispatch_wiring.py`, `driver_worker_wiring.py`,
+  `driver_proposal_grpo_wiring.py`, and `driver_run_wiring.py`) into
+  `self/adaptive/run/driver_wiring.py`; the adaptive/nonadaptive/shared runtime
+  surface is now 123 Python files, down from 136 immediately after the package
+  reorganization.
+- Verification: focused consolidation suite
+  (`tests/test_driver_lazy_imports.py`, attempt/candidate/proposal/nonadaptive
+  touched tests, `tests/test_run_models.py`, and `tests/test_module_proxy.py`)
+  passed; stale deleted-module grep found no live references; `compileall`;
+  `bash -n` for touched adaptive launchers; `python -m
+  self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
+  --help`; `git diff --check`.

@@ -35,7 +35,7 @@ echo "[INFO] Compile check"
   self/self_improvement_tasks.py \
   self/legacy/run_length_bit_cli.py \
   self/seed_fit_experiment.py \
-  self/adaptive/proposals/proposals.py \
+  self/adaptive/proposals/__init__.py \
   self/adaptive/sandbox/program_sandbox.py \
   self/adaptive_self_improvement.py
 

@@ -4,16 +4,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from self.adaptive.candidates import (
-    candidate_dispatch_deps,
     candidate_dispatch_entrypoints,
     candidate_dispatch_runtime,
-    candidate_execution,
     candidate_parallel_runtime,
     candidate_serial_runtime,
     candidate_workers,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposals import ConfigProposal, PromptBundle
 
 
 def _work_item(index: int) -> CandidateWorkItem:
@@ -244,10 +242,10 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
     assert calls[0]["work_items"][0].index == 2
 
 
-def test_candidate_execution_reexports_dispatch_runtime_helpers():
+def test_candidate_dispatch_runtime_reexports_dispatch_helpers():
     assert (
         candidate_dispatch_entrypoints.CandidateDispatchEntrypointDeps
-        is candidate_dispatch_deps.CandidateDispatchEntrypointDeps
+        is candidate_dispatch_entrypoints.CandidateDispatchEntrypointDeps
     )
     assert (
         candidate_dispatch_runtime.train_candidates_serial
@@ -260,18 +258,6 @@ def test_candidate_execution_reexports_dispatch_runtime_helpers():
     assert (
         candidate_dispatch_runtime.train_candidates_slurm_array
         is candidate_parallel_runtime.train_candidates_slurm_array
-    )
-    assert (
-        candidate_execution.train_candidates_serial
-        is candidate_dispatch_runtime.train_candidates_serial
-    )
-    assert (
-        candidate_execution.train_candidates_local_parallel
-        is candidate_dispatch_runtime.train_candidates_local_parallel
-    )
-    assert (
-        candidate_execution.train_candidates_slurm_array
-        is candidate_dispatch_runtime.train_candidates_slurm_array
     )
 
 
@@ -286,7 +272,7 @@ def test_build_candidate_dispatch_deps_reads_driver_bindings():
         subprocess=object(),
     )
 
-    deps = candidate_dispatch_deps.build_candidate_dispatch_deps(bindings)
+    deps = candidate_dispatch_entrypoints.build_candidate_dispatch_deps(bindings)
 
     assert deps.train_and_score_candidate is bindings.train_and_score_candidate
     assert deps.candidate_failure_metrics is bindings._candidate_failure_metrics

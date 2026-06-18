@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from self.adaptive.attempts import (
+    attempt_models,
     attempt_no_selection_runtime,
-    attempt_outcome_models,
     attempt_outcome_runtime,
     attempt_selected_runtime,
 )
@@ -60,8 +60,8 @@ def _candidate_metric() -> CandidateMetrics:
 
 
 def test_attempt_outcome_model_and_no_selection_compat_aliases() -> None:
-    assert attempt_outcome_runtime.AttemptOutcomeDeps is attempt_outcome_models.AttemptOutcomeDeps
-    assert attempt_outcome_runtime.AttemptOutcomeResult is attempt_outcome_models.AttemptOutcomeResult
+    assert attempt_outcome_runtime.AttemptOutcomeDeps is attempt_models.AttemptOutcomeDeps
+    assert attempt_outcome_runtime.AttemptOutcomeResult is attempt_models.AttemptOutcomeResult
     assert (
         attempt_outcome_runtime._handle_no_selection_attempt
         is attempt_no_selection_runtime.handle_no_selection_attempt

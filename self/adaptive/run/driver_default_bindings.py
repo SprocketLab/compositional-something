@@ -17,10 +17,13 @@ from self.adaptive.run.args import build_parser, normalize_args
 from self.adaptive.attempts.attempt_outcome_runtime import handle_attempt_outcome
 from self.adaptive.attempts.attempt_prompt_runtime import build_attempt_prompt
 from self.adaptive.candidates.candidate_data import build_candidate_work_items
-from self.adaptive.candidates.candidate_execution import work_item_from_worker_payload, work_item_to_worker_payload
 from self.adaptive.candidates.candidate_scoring import train_and_score_candidate
 from self.adaptive.candidates.candidate_training_runtime import make_config
 from self.adaptive.candidates.candidate_selection import select_candidate
+from self.adaptive.candidates.candidate_worker_payloads import (
+    work_item_from_worker_payload,
+    work_item_to_worker_payload,
+)
 from self.adaptive.candidates.candidate_workers import prepare_candidate_worker_specs as _prepare_candidate_worker_specs
 from self.adaptive.controller.controller_phase_runtime import run_round_model_phase, run_seed_phase
 from self.adaptive.controller.controller_workers import (
@@ -51,7 +54,7 @@ from self.adaptive.run.round_model_dispatch_runtime import run_round_model_dispa
 from self.adaptive.run.run_setup import append_plan_log, load_trace_jsonl, prepare_datasets
 from self.adaptive.run.seed_dispatch_runtime import run_seed_dispatch
 from self.core.task_registry import task_for_name
-from self.adaptive.run.driver_default_binding_manifest import DEFAULT_BINDING_NAMES
+from self.adaptive.run.driver import DEFAULT_BINDING_NAMES
 
 
 def _default_bf16_on_cuda(args: argparse.Namespace, label: str) -> None:

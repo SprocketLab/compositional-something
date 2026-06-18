@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 from self.adaptive.attempts.attempt_no_selection_runtime import handle_no_selection_attempt as _handle_no_selection_attempt
-from self.adaptive.attempts.attempt_outcome_models import AttemptOutcomeDeps, AttemptOutcomeResult, JsonDict
+from self.adaptive.attempts.attempt_models import AttemptOutcomeDeps, AttemptOutcomeResult, JsonDict
 from self.adaptive.attempts.attempt_selected_runtime import handle_selected_attempt as _handle_selected_attempt
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.adaptive.proposals.proposal_prompts import PromptBundle

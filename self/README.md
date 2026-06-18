@@ -55,6 +55,10 @@ The implementation surface is organized by subsystem instead of one large flat
   tokenizers, training utilities, task protocols/registry, summaries, lazy export
   helpers, and module proxy helpers.
 
+The adaptive/nonadaptive/shared runtime surface currently has 123 Python files,
+down from 136 after the first package move and 127 files in `self/core` before
+the reorganization.
+
 Top-level `self/*.py` files are now treated as CLI or legacy compatibility
 wrappers. Tests should import implementation modules from `self/adaptive/`,
 `self/nonadaptive/`, `self/tasks/`, or the reduced `self/core/` directly rather
@@ -485,7 +489,7 @@ own implementation logic.
 - Adaptive wrappers:
   - `self/adaptive_candidate_training.py` -> `self/adaptive/run/driver.py`
   - `self/adaptive_frontier.py` -> `self/adaptive/frontier/frontier.py`
-  - `self/adaptive_proposals.py` -> `self/adaptive/proposals/proposals.py`
+  - `self/adaptive_proposals.py` -> `self/adaptive/proposals/__init__.py`
   - `self/program_sandbox.py` -> `self/adaptive/sandbox/program_sandbox.py`
   - `self/adaptive_self_improvement.py` -> `self/experiments/adaptive_self_improvement.py`
 - Nonadaptive/legacy wrappers:
@@ -499,12 +503,14 @@ own implementation logic.
 
 ## Remaining Cleanup Queue
 
-- Continue reducing compatibility machinery inside `self/adaptive/run/` once old
-  notebook/import needs are clearer. The current refactor moved it out of
-  shared core but did not remove every lazy export or monkeypatch bridge.
-- Consider a second, smaller consolidation pass inside each subsystem package,
-  especially `self/adaptive/candidates`, `self/adaptive/run`, and
-  `self/nonadaptive`, where many files are still narrow extraction modules.
+- Continue reducing compatibility machinery inside `self/adaptive/run/` once
+  old notebook/import needs are clearer. The driver still carries lazy exports
+  and monkeypatch bridges for old paths, though the separate manifest/target and
+  driver binding helper files have been folded into their owners.
+- The next useful file-count pass should merge behavior modules, not more
+  one-line compatibility manifests. Best targets are `self/adaptive/candidates`
+  local/Slurm/worker dispatch and `self/nonadaptive` round setup/context/runtime
+  flows.
 - Keep CLI wrappers and implementation tests separate: tests should target
   canonical subsystem packages, while top-level wrappers should remain command
   surfaces and compatibility facades only.

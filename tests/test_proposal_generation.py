@@ -13,7 +13,7 @@ from self.adaptive.proposals import (
     proposal_runtime,
 )
 from self.adaptive.run import driver_compat_exports, driver_default_bindings
-from self.adaptive.proposals.proposals import PromptBundle
+from self.adaptive.proposals import PromptBundle
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:

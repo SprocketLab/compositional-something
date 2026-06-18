@@ -6,8 +6,8 @@ import argparse
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from self.adaptive.attempts.attempt_loop_models import CandidateAttemptDeps
-from self.adaptive.attempts.attempt_outcome_models import AttemptOutcomeResult
+from self.adaptive.attempts.attempt_models import CandidateAttemptDeps
+from self.adaptive.attempts.attempt_models import AttemptOutcomeResult
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig

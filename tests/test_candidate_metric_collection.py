@@ -4,13 +4,12 @@ import math
 from pathlib import Path
 
 from self.core import worker_io
-from self.adaptive.candidates import candidate_execution, candidate_metric_collection
 from self.adaptive.candidates.candidate_metric_collection import (
     candidate_failure_metrics,
     collect_candidate_array_metrics,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposals import ConfigProposal
+from self.adaptive.proposals import ConfigProposal
 
 
 def _work_item(index: int = 0) -> CandidateWorkItem:
@@ -132,11 +131,3 @@ def test_collect_candidate_array_metrics_writes_failure_metric_and_manifest(tmp_
             ),
         }
     ]
-
-
-def test_candidate_execution_reexports_metric_collection_helpers():
-    assert candidate_execution.candidate_failure_metrics is candidate_metric_collection.candidate_failure_metrics
-    assert (
-        candidate_execution.collect_candidate_array_metrics
-        is candidate_metric_collection.collect_candidate_array_metrics
-    )

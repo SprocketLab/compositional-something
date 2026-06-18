@@ -8,7 +8,7 @@ from pathlib import Path
 
 from core.addition_pipeline import AdditionExample, example_key, has_component_boundary_carry
 from self.adaptive.run import driver as loop
-from self.adaptive.proposals.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposals import ConfigProposal, PromptBundle
 from self.self_improvement_tasks import (
     RUN_LENGTH_TARGET_RUN_STATE,
     RunLengthExample,

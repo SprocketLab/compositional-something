@@ -6,7 +6,7 @@ import inspect
 from pathlib import Path
 from typing import Any, Callable, Dict, Sequence
 
-from self.adaptive.candidates.candidate_worker_failures import write_candidate_worker_failure_from_spec
+from self.adaptive.candidates.candidate_worker_payloads import write_candidate_worker_failure_from_spec
 from self.adaptive.candidates.candidate_worker_inputs import CandidateWorkerRuntimeDeps, SharedInputCache
 from self.core.models import CandidateMetrics
 

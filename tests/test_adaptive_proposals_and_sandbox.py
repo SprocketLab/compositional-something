@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from self.adaptive.proposals import proposals
+from self.adaptive import proposals
 from self.adaptive.sandbox import program_sandbox
 from self.adaptive.run import driver_compat_exports
 from self.adaptive.proposals import proposal_config_schema, proposal_prompt_metadata, proposal_prompts
