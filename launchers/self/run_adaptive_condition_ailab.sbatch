@@ -61,9 +61,10 @@ if [[ "${ENFORCE_SELECTED_FRONTIER}" == "1" ]]; then
   FRONTIER_ARGS+=(--enforce-selected-frontier)
 fi
 
-echo "[INFO] Task/condition: ${TASK}/${CONDITION}"
-echo "[INFO] Output dir: ${OUT_DIR}"
-echo "[INFO] Fixture: ${FIXTURE}"
+self_print_context \
+  "Task/condition" "${TASK}/${CONDITION}" \
+  "Output dir" "${OUT_DIR}" \
+  "Fixture" "${FIXTURE}"
 adaptive_print_worker_context "Adaptive proposal condition"
 "${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
 

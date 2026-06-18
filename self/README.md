@@ -360,7 +360,8 @@ tests, notebooks, and older artifacts.
   `launchers/self/run_adaptive_controller_worker_ailab.sbatch`,
   `launchers/self/run_adaptive_condition_ailab.sbatch`, and
   `launchers/self/run_adaptive_self_improvement_ailab.sbatch` source the
-  shared adaptive launcher helper.
+  shared adaptive launcher helper. The condition runner also routes its
+  task/output/fixture banner through the shared context printer.
 - `launchers/self/submit_adaptive_candidate_training_ailab.sh`,
   `launchers/self/submit_adaptive_condition_pilots_ailab.sh`, and
   `launchers/self/submit_main_experiments_ailab.sh` source the shared helper

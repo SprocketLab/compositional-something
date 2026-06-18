@@ -3176,3 +3176,11 @@ Acceptance criteria for first pilot:
 - Renamed the current run-length recipe and non-adaptive seed-round tests away from `bit_task` filenames/function names, and changed the Figure 2 manifest kind from `bit_task` to `run_length_bit`.
 - Updated user-facing wording in `self/README.md`, `self/core/nonadaptive_setup.py`, `self/diagnostics/check_self_improvement_overfit.py`, `self/experiments/seed_fit_experiment.py`, and `launchers/self/run_refocused_self_improvement_local.sh` so the remaining bit-size controls are described as run-length bit-string controls rather than a generic auxiliary bit task.
 - Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no `majority`, voting/consensus/plurality, or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.
+
+### Implementation Log: 2026-06-18 08:54:57 UTC
+
+- Extended shared context-banner printing to the adaptive condition runner.
+- Updated `launchers/self/run_adaptive_condition_ailab.sbatch` to route its task/condition, output directory, and fixture context output through `self_print_context(...)` while preserving required environment validation, runtime setup, optional compile check, worker context logging, and the adaptive proposal-condition command.
+- Added `tests/test_adaptive_condition_launcher.py` with bash syntax coverage and a fake-`PYTHON_BIN` execution test that verifies the shared context banner plus the wired adaptive proposal command without importing Torch or running model code.
+- Updated `self/README.md` to note that the adaptive condition runner now uses the shared context printer for its task/output/fixture banner.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/lib/adaptive_common.sh launchers/self/run_adaptive_condition_ailab.sbatch`; `python -m py_compile tests/test_adaptive_condition_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_condition_context tests/test_adaptive_condition_launcher.py -q` (`2 passed`); `git diff --check`.
