@@ -6,7 +6,11 @@ import argparse
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from self.core import candidate_execution
+from self.core import candidate_workers
+from self.core.candidate_metric_collection import (
+    candidate_failure_metrics as _candidate_failure_metrics,
+    collect_candidate_array_metrics as _collect_candidate_array_metrics,
+)
 from self.core.experience_traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposals import PromptBundle
@@ -21,7 +25,7 @@ def candidate_failure_metrics(
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
 ) -> CandidateMetrics:
-    return candidate_execution.candidate_failure_metrics(
+    return _candidate_failure_metrics(
         item=item,
         reason=reason,
         current_final_accuracy=current_final_accuracy,
@@ -50,25 +54,29 @@ def train_candidates_serial(
     attempt_index: int,
     score_candidate_fn: Callable[..., CandidateMetrics],
 ) -> list[CandidateMetrics]:
-    return candidate_execution.train_candidates_serial(
-        args=args,
-        task=task,
-        current_checkpoint=current_checkpoint,
-        source_examples=source_examples,
-        proposal_trace_buffer=proposal_trace_buffer,
-        outcome_trace_buffer=outcome_trace_buffer,
-        proposal_prompt=proposal_prompt,
-        round_index=round_index,
-        work_items=work_items,
-        round_dir=round_dir,
-        eval_examples=eval_examples,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-        config=config,
-        attempt_index=attempt_index,
-        score_candidate_fn=score_candidate_fn,
-    )
+    metrics: list[CandidateMetrics] = []
+    for item in work_items:
+        metrics.append(
+            score_candidate_fn(
+                args=args,
+                task=task,
+                current_checkpoint=current_checkpoint,
+                source_examples=source_examples,
+                proposal_trace_buffer=proposal_trace_buffer,
+                outcome_trace_buffer=outcome_trace_buffer,
+                proposal_prompt=proposal_prompt,
+                round_index=round_index,
+                item=item,
+                round_dir=round_dir,
+                eval_examples=eval_examples,
+                current_final_accuracy=current_final_accuracy,
+                current_per_size_accuracy=current_per_size_accuracy,
+                init_final_accuracy=init_final_accuracy,
+                config=config,
+                seed=args.seed + attempt_index * 1009 + item.index,
+            )
+        )
+    return metrics
 
 
 def collect_candidate_array_metrics(
@@ -78,9 +86,9 @@ def collect_candidate_array_metrics(
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
-    failure_metrics_fn: Callable[..., CandidateMetrics],
+    failure_metrics_fn: Callable[..., CandidateMetrics] | None = None,
 ) -> list[CandidateMetrics]:
-    return candidate_execution.collect_candidate_array_metrics(
+    return _collect_candidate_array_metrics(
         round_dir=round_dir,
         work_items=work_items,
         current_final_accuracy=current_final_accuracy,
@@ -109,7 +117,7 @@ def train_candidates_slurm_array(
     attempt_index: int,
     collect_metrics_fn: Callable[..., list[CandidateMetrics]],
 ) -> list[CandidateMetrics]:
-    return candidate_execution.train_candidates_slurm_array(
+    return candidate_workers.train_candidates_slurm_array(
         args=args,
         task=task,
         current_checkpoint=current_checkpoint,
@@ -147,9 +155,11 @@ def train_candidates_local_parallel(
     init_final_accuracy: float,
     attempt_index: int,
     collect_metrics_fn: Callable[..., list[CandidateMetrics]],
-    subprocess_module: Any,
+    subprocess_module: Any = None,
 ) -> list[CandidateMetrics]:
-    return candidate_execution.train_candidates_local_parallel(
+    if subprocess_module is not None:
+        candidate_workers.subprocess = subprocess_module
+    return candidate_workers.train_candidates_local_parallel(
         args=args,
         task=task,
         current_checkpoint=current_checkpoint,
@@ -166,7 +176,6 @@ def train_candidates_local_parallel(
         init_final_accuracy=init_final_accuracy,
         attempt_index=attempt_index,
         collect_metrics_fn=collect_metrics_fn,
-        subprocess_module=subprocess_module,
     )
 
 

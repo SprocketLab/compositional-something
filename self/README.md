@@ -39,14 +39,14 @@ tests, notebooks, and older artifacts.
 - `self/core/candidate_data.py`: candidate composed-data construction,
   component-prediction collection, pseudo-label attachment, and per-candidate
   data artifacts.
-- `self/core/candidate_dispatch_runtime.py`: candidate training dispatch
-  wrappers for serial, local-parallel, and Slurm-array execution.
+- `self/core/candidate_dispatch_runtime.py`: candidate training mode
+  selection plus serial, local-parallel, and Slurm-array execution helpers.
 - `self/core/candidate_dispatch_entrypoints.py`: compatibility-aware wiring
   between driver-level monkeypatchable names and candidate dispatch runtimes.
 - `self/core/checkpoints.py`: checkpoint retention policy and cleanup helpers
   for unselected candidates and superseded model directories.
-- `self/core/candidate_execution.py`: serial candidate execution and
-  local/Slurm worker dispatch glue.
+- `self/core/candidate_execution.py`: compatibility reexport surface for old
+  candidate execution imports.
 - `self/core/candidate_metric_collection.py`: candidate worker metric loading,
   failure-metric construction, missing-metric recovery, and gather-failure
   manifests.
