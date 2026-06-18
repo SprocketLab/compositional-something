@@ -58,6 +58,8 @@ CONTROLLER_ROUND_WORKER_TIME_LIMIT="${CONTROLLER_ROUND_WORKER_TIME_LIMIT:-01:00:
 CONTROLLER_GRPO_WORKER_TIME_LIMIT="${CONTROLLER_GRPO_WORKER_TIME_LIMIT:-01:00:00}"
 CANDIDATE_EXECUTION_MODE="${CANDIDATE_EXECUTION_MODE:-local_parallel}"
 CANDIDATE_LOCAL_PARALLELISM="${CANDIDATE_LOCAL_PARALLELISM:-4}"
+CANDIDATE_LOCAL_PACK_SIZE="${CANDIDATE_LOCAL_PACK_SIZE:-1}"
+CANDIDATE_LOCAL_CACHE_BASE_STATE="${CANDIDATE_LOCAL_CACHE_BASE_STATE:-0}"
 CANDIDATE_ARRAY_SBATCH_SCRIPT="${CANDIDATE_ARRAY_SBATCH_SCRIPT:-${ROOT_DIR}/launchers/self/run_adaptive_candidate_worker_ailab.sbatch}"
 CANDIDATE_ARRAY_MAX_PARALLEL="${CANDIDATE_ARRAY_MAX_PARALLEL:-4}"
 CANDIDATE_ARRAY_POLL_SECONDS="${CANDIDATE_ARRAY_POLL_SECONDS:-30}"
@@ -218,6 +220,9 @@ fi
 if [[ "${KEEP_ALL_PROPOSAL_GRPO_CHECKPOINTS}" == "1" ]]; then
   OPTIONAL_ARGS+=(--keep-all-proposal-grpo-checkpoints)
 fi
+if [[ "${CANDIDATE_LOCAL_CACHE_BASE_STATE}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--candidate-local-cache-base-state)
+fi
 if [[ "${BUCKET_TRAIN_BATCHES_BY_SIZE:-0}" == "1" ]]; then
   OPTIONAL_ARGS+=(--bucket-train-batches-by-size)
 fi
@@ -255,7 +260,7 @@ echo "[INFO] Controller execution mode: ${CONTROLLER_EXECUTION_MODE}"
 echo "[INFO] Controller worker poll/fallback time limit: ${CONTROLLER_WORKER_POLL_SECONDS}/${CONTROLLER_WORKER_TIME_LIMIT}"
 echo "[INFO] Controller seed/round/GRPO time limits: ${CONTROLLER_SEED_WORKER_TIME_LIMIT}/${CONTROLLER_ROUND_WORKER_TIME_LIMIT}/${CONTROLLER_GRPO_WORKER_TIME_LIMIT}"
 echo "[INFO] Candidate execution mode: ${CANDIDATE_EXECUTION_MODE}"
-echo "[INFO] Candidate local parallelism: ${CANDIDATE_LOCAL_PARALLELISM}"
+echo "[INFO] Candidate local parallelism/pack/cache-base-state: ${CANDIDATE_LOCAL_PARALLELISM}/${CANDIDATE_LOCAL_PACK_SIZE}/${CANDIDATE_LOCAL_CACHE_BASE_STATE}"
 echo "[INFO] Candidate array max parallel/poll/time limit: ${CANDIDATE_ARRAY_MAX_PARALLEL}/${CANDIDATE_ARRAY_POLL_SECONDS}/${CANDIDATE_ARRAY_TIME_LIMIT}"
 echo "[INFO] Proposal trace replay ratio/max examples: ${PROPOSAL_TRACE_REPLAY_RATIO}/${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES}"
 echo "[INFO] Post-task proposal rehearsal/repeats/max examples: ${POST_TASK_PROPOSAL_REHEARSAL}/${POST_TASK_PROPOSAL_REHEARSAL_REPEAT_COUNT}/${POST_TASK_PROPOSAL_REHEARSAL_MAX_EXAMPLES}"
@@ -309,6 +314,7 @@ fi
   --controller-grpo-worker-time-limit "${CONTROLLER_GRPO_WORKER_TIME_LIMIT}" \
   --candidate-execution-mode "${CANDIDATE_EXECUTION_MODE}" \
   --candidate-local-parallelism "${CANDIDATE_LOCAL_PARALLELISM}" \
+  --candidate-local-pack-size "${CANDIDATE_LOCAL_PACK_SIZE}" \
   --candidate-array-sbatch-script "${CANDIDATE_ARRAY_SBATCH_SCRIPT}" \
   --candidate-array-max-parallel "${CANDIDATE_ARRAY_MAX_PARALLEL}" \
   --candidate-array-poll-seconds "${CANDIDATE_ARRAY_POLL_SECONDS}" \

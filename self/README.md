@@ -434,9 +434,12 @@ tests, notebooks, and older artifacts.
 
 ## Runtime Notes
 
-- Local candidate execution defaults to `--candidate-execution-mode
+- Local candidate execution parser defaults are `--candidate-execution-mode
   local_parallel`, `--candidate-local-parallelism 4`, and
-  `--candidate-local-pack-size 1`.
+  `--candidate-local-pack-size 1`. The shared AILAB adaptive candidate config
+  `launchers/self/config/adaptive_candidate_base.env` now opts main
+  experiments into `CANDIDATE_LOCAL_PACK_SIZE=2` and
+  `CANDIDATE_LOCAL_CACHE_BASE_STATE=1`.
 - Increase `--candidate-local-pack-size` to run multiple candidates
   sequentially inside one local worker subprocess. This preserves candidate
   semantics because each candidate still starts from the current checkpoint, but
