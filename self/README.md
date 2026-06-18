@@ -91,9 +91,12 @@ tests, notebooks, and older artifacts.
 - `self/core/program_sandbox.py`: sandboxed composition-program validation.
 - `self/core/proposals.py`: proposal schemas, prompts, parsing, validation,
   and trace row helpers.
-- `self/core/proposal_runtime.py`: runtime proposal prompt rendering, fixture
-  or model proposal generation, config validation, executable program/policy
-  validation, and program-repair dispatch.
+- `self/core/proposal_prompts.py`: task-specific proposal target formats,
+  default executable source-pair selection, sandbox validation-case selection,
+  and executable program/policy/meta prompt rendering.
+- `self/core/proposal_runtime.py`: runtime proposal loading/generation,
+  config validation, executable program/policy validation, and program-repair
+  dispatch.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
 - `self/core/proposal_grpo.py`: proposal-GRPO rewards, trace construction,
@@ -433,11 +436,11 @@ new implementation code:
   orchestration. The CLI/args, shared data model, composition/pseudolabel,
   generic controller-worker dispatch, controller-worker spec runtime,
   seed/round-model controller phases, candidate train/eval scoring, checkpoint
-  cleanup, proposal runtime generation/validation, candidate data construction,
-  dry-run attempt handling, selected/no-selection attempt outcome handling,
-  proposal-GRPO dispatch, run setup/trace loading, final result/log
-  finalization, output/data initialization, worker-spec JSON/key
-  serialization, attempt-level proposal prompt construction, seed
+  cleanup, proposal runtime generation/validation, proposal prompt rendering,
+  candidate data construction, dry-run attempt handling, selected/no-selection
+  attempt outcome handling, proposal-GRPO dispatch, run setup/trace loading,
+  final result/log finalization, output/data initialization, worker-spec
+  JSON/key serialization, attempt-level proposal prompt construction, seed
   initialization/initial summary construction, round-model local/Slurm
   dispatch, selected-round attempt loop orchestration, candidate-worker
   runtime, candidate dispatch runtime/entrypoint wiring, candidate
