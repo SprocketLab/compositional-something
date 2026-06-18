@@ -8,7 +8,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -19,6 +19,12 @@ MIG_GRES = "gpu:1g.10gb:1"
 MIG_MEM = "64G"
 MIG_CPUS = "1"
 MIG_TIME = "48:00:00"
+DEFAULT_SEED_BANDS = {
+    "low": (0.70, 0.80, 0.75),
+    "medium": (0.80, 0.90, 0.85),
+    "high": (0.95, 1.01, 1.00),
+}
+SEED_BAND_NAMES = ("low", "medium", "high")
 
 
 def json_dump(path: Path, payload: Mapping[str, Any]) -> None:
@@ -121,6 +127,98 @@ def metric_from_seed_payload(path: Path) -> Dict[str, Any]:
         "worst_case_accuracy": min(float(validation_min), float(test_min)),
         "results": results,
     }
+
+
+def load_seed_candidates(entries: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    for entry in entries:
+        results_path = Path(str(entry["results_path"]))
+        model_dir = Path(str(entry["model_dir"]))
+        if not results_path.exists():
+            raise FileNotFoundError(f"Missing seed result file: {results_path}")
+        if not model_dir.exists():
+            raise FileNotFoundError(f"Missing seed model directory: {model_dir}")
+        metrics = metric_from_seed_payload(results_path)
+        candidates.append({**dict(entry), **metrics})
+    return candidates
+
+
+def seed_band_candidates(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    band: str,
+    task: Optional[str] = None,
+    seed_bands: Mapping[str, tuple[float, float, float]] = DEFAULT_SEED_BANDS,
+) -> List[Dict[str, Any]]:
+    lower, upper, _target = seed_bands[band]
+    return [
+        dict(candidate)
+        for candidate in candidates
+        if (task is None or candidate["task"] == task)
+        and lower <= float(candidate["worst_case_accuracy"]) < upper
+    ]
+
+
+def select_seed_band(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    band: str,
+    high_source: Optional[str] = None,
+    seed_bands: Mapping[str, tuple[float, float, float]] = DEFAULT_SEED_BANDS,
+    extra_sort_key: Optional[Callable[[Mapping[str, Any]], tuple[Any, ...]]] = None,
+) -> Optional[Dict[str, Any]]:
+    lower, upper, target = seed_bands[band]
+    del upper
+    candidate_dicts = [dict(candidate) for candidate in candidates]
+    if band == "high":
+        eligible: List[Dict[str, Any]] = []
+        if high_source is not None:
+            eligible = [
+                candidate
+                for candidate in candidate_dicts
+                if candidate.get("source") == high_source and float(candidate["worst_case_accuracy"]) >= lower
+            ]
+        if not eligible:
+            eligible = [candidate for candidate in candidate_dicts if float(candidate["worst_case_accuracy"]) >= lower]
+    else:
+        eligible = seed_band_candidates(candidate_dicts, band=band, seed_bands=seed_bands)
+    if not eligible:
+        return None
+
+    def sort_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+        extra = extra_sort_key(candidate) if extra_sort_key is not None else ()
+        return (
+            abs(float(candidate["worst_case_accuracy"]) - target),
+            -float(candidate["worst_case_accuracy"]),
+            int(candidate["train_count"]),
+            *extra,
+        )
+
+    eligible.sort(key=sort_key)
+    return eligible[0]
+
+
+def missing_seed_bands_for_task(
+    selection: Mapping[str, Mapping[str, Any]],
+    task: str,
+    *,
+    bands: Sequence[str] = SEED_BAND_NAMES,
+) -> List[str]:
+    return [band for band in bands if band not in selection.get(task, {})]
+
+
+def missing_seed_bands_by_task(
+    selection: Mapping[str, Mapping[str, Any]],
+    tasks: Sequence[str],
+    *,
+    bands: Sequence[str] = SEED_BAND_NAMES,
+) -> Dict[str, List[str]]:
+    missing: Dict[str, List[str]] = {}
+    for task in tasks:
+        absent = missing_seed_bands_for_task(selection, task, bands=bands)
+        if absent:
+            missing[task] = absent
+    return missing
 
 
 def final_row(results_path: Path) -> Dict[str, Any]:

@@ -7,13 +7,19 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.experiments.figure3_common import (
+    DEFAULT_SEED_BANDS,
+    SEED_BAND_NAMES,
     final_row as _final_row,
     json_dump as _json_dump,
+    load_seed_candidates as _load_seed_candidates,
     max_at_90 as _max_at_90,
     metric_from_seed_payload as _metric_from_seed_payload,
+    missing_seed_bands_for_task as _missing_seed_bands_for_task,
+    seed_band_candidates as _seed_band_candidates,
+    select_seed_band as _select_seed_band_common,
     submit_sbatch_job as _submit_sbatch_job,
     write_csv as _write_csv,
 )
@@ -47,11 +53,7 @@ ADDITION_TRAIN_COUNTS = (850, 900, 950, 1000)
 ADDITION_MAX_STEPS = (1500, 2500, 3500, 5000, 7500, 10000)
 RUN_LENGTH_SAMPLE_SIZES = {"low": 500, "medium": 1000, "high": 2000}
 
-SEED_BANDS = {
-    "low": (0.70, 0.80, 0.75),
-    "medium": (0.80, 0.90, 0.85),
-    "high": (0.95, 1.01, 1.00),
-}
+SEED_BANDS = DEFAULT_SEED_BANDS
 
 
 def _seed_entry(
@@ -242,59 +244,24 @@ def existing_seed_candidates() -> List[Dict[str, Any]]:
     ]
 
 
-def load_seed_candidates(entries: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
-    candidates: List[Dict[str, Any]] = []
-    for entry in entries:
-        results_path = Path(str(entry["results_path"]))
-        model_dir = Path(str(entry["model_dir"]))
-        if not results_path.exists():
-            raise FileNotFoundError(f"Missing seed result file: {results_path}")
-        if not model_dir.exists():
-            raise FileNotFoundError(f"Missing seed model directory: {model_dir}")
-        metrics = _metric_from_seed_payload(results_path)
-        candidates.append({**dict(entry), **metrics})
-    return candidates
+load_seed_candidates = _load_seed_candidates
 
 
 def _select_band(candidates: Sequence[Mapping[str, Any]], band: str) -> Optional[Dict[str, Any]]:
-    lower, upper, target = SEED_BANDS[band]
-    if band == "high":
-        eligible = [
-            dict(candidate)
-            for candidate in candidates
-            if candidate.get("source") == "existing_high_seed"
-            and float(candidate["worst_case_accuracy"]) >= lower
-        ]
-        if not eligible:
-            eligible = [
-                dict(candidate)
-                for candidate in candidates
-                if float(candidate["worst_case_accuracy"]) >= lower
-            ]
-    else:
-        eligible = [
-            dict(candidate)
-            for candidate in candidates
-            if lower <= float(candidate["worst_case_accuracy"]) < upper
-        ]
-    if not eligible:
-        return None
-    eligible.sort(
-        key=lambda candidate: (
-            abs(float(candidate["worst_case_accuracy"]) - target),
-            -float(candidate["worst_case_accuracy"]),
-            int(candidate["train_count"]),
-            int(candidate.get("max_steps", 0)),
-        )
+    return _select_seed_band_common(
+        candidates,
+        band=band,
+        high_source="existing_high_seed",
+        seed_bands=SEED_BANDS,
+        extra_sort_key=lambda candidate: (int(candidate.get("max_steps", 0)),),
     )
-    return eligible[0]
 
 
 def select_seed_bands(candidates: Sequence[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
     selected: Dict[str, Dict[str, Any]] = {"run_length": {}, "addition": {}}
     for task in selected:
         task_candidates = [candidate for candidate in candidates if candidate["task"] == task]
-        for band in ("low", "medium", "high"):
+        for band in SEED_BAND_NAMES:
             winner = _select_band(task_candidates, band)
             if winner is not None:
                 selected[task][band] = winner
@@ -303,12 +270,7 @@ def select_seed_bands(candidates: Sequence[Mapping[str, Any]]) -> Dict[str, Dict
 
 
 def _band_candidates(candidates: Sequence[Mapping[str, Any]], *, task: str, band: str) -> List[Dict[str, Any]]:
-    lower, upper, _target = SEED_BANDS[band]
-    return [
-        dict(candidate)
-        for candidate in candidates
-        if candidate["task"] == task and lower <= float(candidate["worst_case_accuracy"]) < upper
-    ]
+    return _seed_band_candidates(candidates, task=task, band=band, seed_bands=SEED_BANDS)
 
 
 def _enforce_addition_monotone_low_medium(
@@ -348,7 +310,7 @@ def _enforce_addition_monotone_low_medium(
 
 
 def missing_bands(selection: Mapping[str, Mapping[str, Any]], task: str) -> List[str]:
-    return [band for band in ("low", "medium", "high") if band not in selection.get(task, {})]
+    return _missing_seed_bands_for_task(selection, task, bands=SEED_BAND_NAMES)
 
 
 def build_run_length_si_jobs(

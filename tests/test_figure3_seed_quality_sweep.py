@@ -124,6 +124,8 @@ def test_seed_quality_private_helpers_reexport_common_owner():
     assert figure3_seed_quality_sweep._final_row is figure3_common.final_row
     assert figure3_seed_quality_sweep._max_at_90 is figure3_common.max_at_90
     assert figure3_seed_quality_sweep._write_csv is figure3_common.write_csv
+    assert figure3_seed_quality_sweep.load_seed_candidates is figure3_common.load_seed_candidates
+    assert figure3_seed_quality_sweep.SEED_BANDS is figure3_common.DEFAULT_SEED_BANDS
 
 
 def test_submit_figure3_seed_quality_wrapper_dry_run_prints_expected_counts(tmp_path: Path):

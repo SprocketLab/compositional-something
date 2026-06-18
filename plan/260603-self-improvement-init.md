@@ -3875,3 +3875,12 @@ Acceptance criteria for first pilot:
 - Added alias tests for the seed-quality and real-seed ablation helper surfaces.
 - Updated `self/README.md` so the Figure 3 common module documents JSON/CSV artifact ownership.
 - Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_csv tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`13 passed`).
+
+### Implementation Log: 2026-06-18 16:46:37 UTC
+
+- Extended `self/experiments/figure3_common.py` with shared Figure 3 seed-candidate loading, seed-band constants, generic band filtering, high-seed candidate selection, and missing-band helpers.
+- Migrated `self/experiments/figure3_seed_quality_sweep.py` to delegate candidate loading, high-source preference, and missing-band aggregation through the common helpers while preserving `load_seed_candidates`, `SEED_BANDS`, `select_seed_bands`, and `missing_seed_bands` at the old module path.
+- Migrated `self/experiments/figure3_real_seed_data_ablation.py` to delegate candidate loading, generic band candidate extraction, high-source preference, and missing-band checks through the common helpers while keeping its monotone addition low/medium policy local.
+- Added alias tests for the shared loader and seed-band constant on both Figure 3 module surfaces.
+- Updated `self/README.md` so `figure3_common.py` documents seed-band selection ownership.
+- Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_seed_helpers tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`13 passed`); `git diff --check`.

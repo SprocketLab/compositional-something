@@ -146,6 +146,8 @@ def test_addition_seed_selection_prefers_monotone_low_medium_pair(tmp_path: Path
 
 def test_real_ablation_private_csv_helper_reexports_common_owner():
     assert figure3_real_seed_data_ablation._write_csv is figure3_common.write_csv
+    assert figure3_real_seed_data_ablation.load_seed_candidates is figure3_common.load_seed_candidates
+    assert figure3_real_seed_data_ablation.SEED_BANDS is figure3_common.DEFAULT_SEED_BANDS
 
 
 def test_submit_wrapper_dry_run_prints_expected_counts(tmp_path: Path):
