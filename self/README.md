@@ -406,12 +406,12 @@ the supported public surface.
   resolution, Python resolution, Slurm resource defaults, Slurm resource
   argument construction for default and per-job explicit resource blocks, and
   wrapped-job or script-job submission/dry-run handling. It also owns command
-  printing to stdout or stderr and small shell utilities such as boolean
-  parsing for launcher flags.
+  printing to stdout or stderr, colon-separated config-file sourcing, and
+  small shell utilities such as boolean parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
-  environment setup, adaptive config-file sourcing, worker context logging,
-  and Torch/CUDA probe printing.
+  environment setup, adaptive-labeled config-file sourcing wrappers, worker
+  context logging, and Torch/CUDA probe printing.
 - `launchers/self/run_adaptive_candidate_training_ailab.sbatch`,
   `launchers/self/run_adaptive_candidate_worker_ailab.sbatch`,
   `launchers/self/run_adaptive_controller_worker_ailab.sbatch`,

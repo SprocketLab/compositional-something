@@ -33,6 +33,38 @@ self_resolve_python() {
   export PYTHON_BIN
 }
 
+self_source_config_file() {
+  local config_path="${1:-}"
+  local label="${2:-config}"
+  if [[ -z "${config_path}" ]]; then
+    return 0
+  fi
+  if [[ "${config_path}" != /* ]]; then
+    config_path="${ROOT_DIR:-$(pwd)}/${config_path}"
+  fi
+  if [[ ! -f "${config_path}" ]]; then
+    echo "[ERROR] Missing ${label} file: ${config_path}" >&2
+    return 2
+  fi
+  # shellcheck source=/dev/null
+  source "${config_path}"
+  echo "[INFO] Loaded ${label}: ${config_path}"
+}
+
+self_source_config_files() {
+  local raw="${1:-}"
+  local label="${2:-config}"
+  local config_path
+  if [[ -z "${raw}" ]]; then
+    return 0
+  fi
+  IFS=':' read -r -a _self_config_paths <<< "${raw}"
+  for config_path in "${_self_config_paths[@]}"; do
+    self_source_config_file "${config_path}" "${label}"
+  done
+  unset _self_config_paths
+}
+
 self_set_sbatch_defaults() {
   local default_partition="$1"
   local default_gres="$2"

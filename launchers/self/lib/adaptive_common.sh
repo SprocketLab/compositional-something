@@ -29,33 +29,12 @@ adaptive_resolve_python() {
 }
 
 adaptive_source_config_file() {
-  local config_path="${1:-}"
-  if [[ -z "${config_path}" ]]; then
-    return 0
-  fi
-  if [[ "${config_path}" != /* ]]; then
-    config_path="${ROOT_DIR}/${config_path}"
-  fi
-  if [[ ! -f "${config_path}" ]]; then
-    echo "[ERROR] Missing adaptive config file: ${config_path}" >&2
-    return 2
-  fi
-  # shellcheck source=/dev/null
-  source "${config_path}"
-  echo "[INFO] Loaded adaptive config: ${config_path}"
+  self_source_config_file "${1:-}" "adaptive config"
 }
 
 adaptive_source_config_files() {
   local raw="${ADAPTIVE_CONFIG_FILES:-${ADAPTIVE_CONFIG_FILE:-}}"
-  local config_path
-  if [[ -z "${raw}" ]]; then
-    return 0
-  fi
-  IFS=':' read -r -a _adaptive_config_paths <<< "${raw}"
-  for config_path in "${_adaptive_config_paths[@]}"; do
-    adaptive_source_config_file "${config_path}"
-  done
-  unset _adaptive_config_paths
+  self_source_config_files "${raw}" "adaptive config"
 }
 
 adaptive_print_worker_context() {

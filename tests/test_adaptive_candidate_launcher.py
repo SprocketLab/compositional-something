@@ -48,6 +48,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     )
 
     stdout = result.stdout
+    assert f"[INFO] Loaded adaptive config: {BASE_CONFIG}" in stdout
     assert "Candidate local parallelism/pack/cache-base-state: 4/2/1" in stdout
     assert "--candidate-local-pack-size 2" in stdout
     assert "--candidate-local-cache-base-state" in stdout
