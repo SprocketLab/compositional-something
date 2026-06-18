@@ -61,11 +61,14 @@ the supported public surface.
 - `self/core/attempt_no_selection_runtime.py`: no-selection adaptive attempt
   continuation, proposal-GRPO retry updates, failure summaries, and patience
   stopping decisions.
+- `self/core/attempt_selected_runtime.py`: selected-candidate adaptive attempt
+  application, selected proposal-trace buffering, source-pool updates,
+  selected pseudo-example artifacts, selected-round summaries, and optional
+  proposal-GRPO follow-up updates.
 - `self/core/attempt_outcome_runtime.py`: adaptive attempt-outcome
-  orchestration plus selected-candidate outcome handling, including outcome
-  traces, selected proposal traces, source-pool updates, selected pseudo-example
-  artifacts, and selected-round summaries. It reexports the attempt-outcome
-  containers and no-selection helper for old imports.
+  orchestration plus shared candidate/outcome-trace artifact writing. It
+  delegates selected and no-selection branch application to the focused
+  runtime modules and reexports the old private helpers for compatibility.
 - `self/core/candidate_scoring.py`: candidate scoring orchestration across
   train-mix setup, checkpoint training, optional proposal rehearsal,
   evaluation, reward construction, metric artifact writing, and cleanup.

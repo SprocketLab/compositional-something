@@ -3674,3 +3674,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_attempt_outcome_runtime.py` to pin compatibility aliases and exercise the no-selection public handler path, including summary artifacts and proposal-GRPO retry metrics.
 - Updated `self/README.md` with the narrower ownership boundary for attempt-outcome modules.
 - Verification: `python -m py_compile self/core/attempt_outcome_models.py self/core/attempt_no_selection_runtime.py self/core/attempt_outcome_runtime.py tests/test_attempt_outcome_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_outcome tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`43 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:19:23 UTC
+
+- Split the selected-candidate attempt branch from `self/core/attempt_outcome_runtime.py` into `self/core/attempt_selected_runtime.py`.
+- The new module owns selected proposal-trace buffering, source-pool mutation, selected pseudo-example artifact writing, selected-round summary writing, checkpoint replacement cleanup, and optional post-selection proposal-GRPO updates.
+- Kept `self/core/attempt_outcome_runtime.py` as the branch router plus shared candidate/outcome-trace artifact writer while reexporting `_handle_selected_attempt` for old imports/tests.
+- Extended `tests/test_attempt_outcome_runtime.py` with a selected-candidate public-handler smoke test covering source sizes, exclusion keys, selected trace buffering, selected pseudo-example JSONL, and selected-round summary artifacts.
+- Updated `self/README.md` with the selected-attempt runtime ownership boundary.
+- Verification: `python -m py_compile self/core/attempt_selected_runtime.py self/core/attempt_outcome_runtime.py tests/test_attempt_outcome_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_selected tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`44 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
