@@ -6,10 +6,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import training_curve_logs, training_curve_results, training_curve_style
+from self.analysis import (
+    training_curve_bundle,
+    training_curve_logs,
+    training_curve_results,
+    training_curve_style,
+)
 from self.training_curve_notebook_utils import (
+    build_run_summary,
     configure_plot_style,
+    load_curve_bundle,
     load_round_metrics,
+    load_submission_jobs,
+    per_size_accuracy_frame,
     per_size_accuracy_frame_from_results,
     parse_training_log,
     plot_per_size_accuracy_heatmap_from_results,
@@ -56,6 +65,81 @@ def test_per_size_accuracy_frame_supports_addition_schema(tmp_path: Path):
         (7, 7, 0.91),
         (12, 12, 0.73),
     ]
+
+
+def test_curve_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: Path):
+    assert load_curve_bundle is training_curve_bundle.load_curve_bundle
+    assert load_submission_jobs is training_curve_bundle.load_submission_jobs
+    assert build_run_summary is training_curve_bundle.build_run_summary
+    assert per_size_accuracy_frame is training_curve_bundle.per_size_accuracy_frame
+
+    run_root = tmp_path / "runs" / "grid" / "addition"
+    out_dir = tmp_path / "out" / "addition_compose_small"
+    logs_dir = tmp_path / "logs"
+    run_root.mkdir(parents=True)
+    out_dir.mkdir(parents=True)
+    logs_dir.mkdir(parents=True)
+
+    (run_root / "submission_jobs.tsv").write_text(
+        "\t".join(["job_id", "task", "mode", "budget", "out_dir"])
+        + "\n"
+        + "\t".join(["123", "addition", "compose", "small", str(out_dir)])
+        + "\n",
+        encoding="utf-8",
+    )
+    (logs_dir / "selfimp-grid-123.out").write_text(
+        "\n".join(
+            [
+                "{'loss': 0.4, 'epoch': 0.25}",
+                "{'eval_loss': 0.3, 'epoch': 0.5}",
+                "{'train_loss': 0.35}",
+                "[ROUND 2] eval_acc=0.72",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (out_dir / "self_improvement_results.json").write_text(
+        json.dumps(
+            [
+                {
+                    "round": 2,
+                    "max_size": 12,
+                    "train_examples": 100,
+                    "pseudo_examples": 40,
+                    "eval_accuracy": 0.72,
+                    "composed_eval_accuracy": 0.68,
+                    "pseudo_retention_rate": 0.5,
+                    "max_solved_size_at_90_accuracy": 8,
+                    "per_size_accuracy": {"12": 0.72},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    bundle = load_curve_bundle(run_root, logs_dir=logs_dir)
+    assert bundle.jobs["job_id"].tolist() == ["123"]
+    assert bundle.train_logs["loss"].tolist() == [0.4]
+    assert bundle.validation_logs["validation_loss"].tolist() == [0.3]
+    assert bundle.round_metrics["eval_accuracy"].tolist() == [0.72]
+
+    summary = build_run_summary(bundle)
+    assert summary[["job_id", "rounds", "final_train_examples", "final_eval_accuracy"]].to_dict(
+        orient="records"
+    ) == [
+        {
+            "job_id": "123",
+            "rounds": 1,
+            "final_train_examples": 100,
+            "final_eval_accuracy": 0.72,
+        }
+    ]
+
+    per_size = per_size_accuracy_frame(bundle, "addition", "compose", "small")
+    assert [
+        (int(row.size), int(row.max_size), float(row.accuracy))
+        for row in per_size.itertuples(index=False)
+    ] == [(12, 12, 0.72)]
 
 
 def test_training_log_and_round_metric_helpers_keep_compatibility(tmp_path: Path):

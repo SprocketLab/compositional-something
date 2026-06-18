@@ -281,8 +281,11 @@ tests, notebooks, and older artifacts.
   ordering, plot rcParams, and display labels for training-curve plots.
 - `self/analysis/training_curve_logs.py`: Slurm training-log parsing and
   round-level metric loading for training-curve bundles.
+- `self/analysis/training_curve_bundle.py`: submission-table loading, curve
+  bundle assembly, bundle summaries, and bundle per-size accuracy frames.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
-  curve bundle assembly, per-size heatmaps, and paper-style curve plots.
+  per-size heatmaps, paper-style curve plots, and compatibility imports for
+  older notebooks.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for
   seed-fit training curves and budget sweeps.
 - `self/analysis/plot_appendix_baseline_heatmaps.py`: appendix baseline
