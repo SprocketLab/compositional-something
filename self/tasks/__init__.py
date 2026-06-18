@@ -15,11 +15,13 @@ from self.tasks.multiplication import (
 )
 from self.tasks.multiplication_data import (
     MultiplicationExample,
+    clone_multiplication_with_override,
+    multiplication_key,
+)
+from self.tasks.multiplication_sampling import (
     build_multiplication_component_payload,
     build_multiplication_long_dataset,
     build_multiplication_seed_dataset,
-    clone_multiplication_with_override,
-    multiplication_key,
 )
 from self.tasks.run_length import RunLengthTask
 from self.tasks.run_length_data import (

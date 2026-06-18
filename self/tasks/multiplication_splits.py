@@ -10,10 +10,12 @@ from self.tasks.bit_common import normalize_task_format_version
 from self.tasks.multiplication_data import (
     MultiplicationExample,
     MultiplicationKey,
+    multiplication_key,
+)
+from self.tasks.multiplication_sampling import (
     build_multiplication_long_dataset,
     build_multiplication_seed_dataset,
     get_multiplication_slice_name,
-    multiplication_key,
 )
 
 SplitName = str

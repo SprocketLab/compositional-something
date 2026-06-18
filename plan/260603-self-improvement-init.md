@@ -3809,3 +3809,12 @@ Acceptance criteria for first pilot:
 - Added a focused ownership assertion in `tests/test_self_improvement_tasks.py`.
 - Updated `self/README.md` with the new multiplication pseudolabel ownership boundary.
 - Verification: `python -m py_compile self/tasks/multiplication_pseudolabels.py self/tasks/multiplication.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_multiplication_pseudolabels tests/test_self_improvement_tasks.py tests/test_nonadaptive_pseudo.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py -q` (`96 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:01:22 UTC
+
+- Split multiplication sampling, seed/long dataset construction, blocked-component payload construction, exact-digit sampling, and overlap/carry slice naming out of `self/tasks/multiplication_data.py` into `self/tasks/multiplication_sampling.py`.
+- Kept `self/tasks/multiplication_data.py` as the multiplication example/key/override owner and as a compatibility reexport surface for older imports.
+- Updated `MultiplicationTask`, multiplication split preparation, task package exports, and `self.self_improvement_tasks` compatibility exports to import sampling helpers from the new canonical owner.
+- Added a focused compatibility assertion that old `self.tasks.multiplication_data` sampling imports are identical to the new owner functions.
+- Updated `self/README.md` with the new multiplication sampling ownership boundary.
+- Verification: `python -m py_compile self/tasks/multiplication_sampling.py self/tasks/multiplication_data.py self/tasks/multiplication.py self/tasks/multiplication_splits.py self/tasks/compat_exports.py self/tasks/__init__.py tests/test_self_improvement_tasks.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_multiplication_sampling tests/test_self_improvement_tasks.py tests/test_nonadaptive_pseudo.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py -q` (`97 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

@@ -75,18 +75,20 @@ from self.tasks.bit_pseudolabels import (
 from self.tasks.multiplication import MultiplicationTask
 from self.tasks.multiplication_data import (
     MultiplicationExample,
+    clone_multiplication_with_override,
+    decode_multiplication_key,
+    encode_multiplication_key,
+    multiplication_key,
+)
+from self.tasks.multiplication_sampling import (
     analyze_partial_products,
     build_multiplication_component_payload,
     build_multiplication_long_dataset,
     build_multiplication_seed_dataset,
-    clone_multiplication_with_override,
-    decode_multiplication_key,
-    encode_multiplication_key,
     generate_long_multiplication_example,
     generate_multiplication_seed_example,
     get_multiplication_slice_name,
     iter_multiplication_sizes,
-    multiplication_key,
     random_int_with_exact_digits,
     split_value_into_blocks,
 )

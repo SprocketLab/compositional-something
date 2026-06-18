@@ -26,7 +26,7 @@ from core.addition_pipeline import (
 from self.self_improvement_core import evaluate_accuracy_with_breakdown, extract_numeric_answer, generate_prediction_map
 from self import self_improvement_tasks as tasks
 from self.tasks import compat_exports as task_compat_exports
-from self.tasks import multiplication, multiplication_pseudolabels
+from self.tasks import multiplication, multiplication_data, multiplication_pseudolabels, multiplication_sampling
 from self.tasks import run_length_guarded_pseudolabels, run_length_pseudolabels
 
 
@@ -50,6 +50,17 @@ def test_multiplication_pseudolabel_owner_keeps_task_alias():
     assert (
         multiplication.derive_multiplication_round_targets
         is multiplication_pseudolabels.derive_multiplication_round_targets
+    )
+
+
+def test_multiplication_sampling_owner_keeps_data_alias():
+    assert (
+        multiplication_data.build_multiplication_long_dataset
+        is multiplication_sampling.build_multiplication_long_dataset
+    )
+    assert (
+        multiplication_data.build_multiplication_component_payload
+        is multiplication_sampling.build_multiplication_component_payload
     )
 
 
