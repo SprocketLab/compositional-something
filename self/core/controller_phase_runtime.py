@@ -14,7 +14,8 @@ from self.core.attempt_prompt_runtime import build_attempt_prompt
 from self.core.candidate_data import attach_pseudo_labels, build_candidate_work_items
 from self.core.candidate_training_runtime import evaluate_model, train_checkpoint
 from self.core.controller_phases import RoundModelPhaseResult, SeedPhaseResult
-from self.core.proposal_runtime import load_or_generate_proposal_rows, validate_proposal_rows
+from self.core.proposal_generation import load_or_generate_proposal_rows
+from self.core.proposal_runtime import validate_proposal_rows
 from self.core import worker_io
 from self.core.data_io import ensure_dir
 from self.core.model_io import instantiate_model_and_tokenizer

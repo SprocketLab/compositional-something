@@ -36,8 +36,8 @@ from self.core.experience_traces import (
 )
 from self.core.models import candidate_metrics_from_json, float_or_nan as _float_or_nan
 from self.core.proposal_grpo import apply_proposal_grpo_update
+from self.core.proposal_generation import _rows_for_round
 from self.core.proposal_runtime import (
-    _rows_for_round,
     choose_default_program_pair,
     render_program_candidate_prompt,
     validate_proposal_rows,

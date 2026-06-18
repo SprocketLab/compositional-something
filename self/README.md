@@ -198,8 +198,12 @@ the supported public surface.
 - `self/core/proposal_config_validation.py`: config proposal row output
   normalization, schema/action-prediction validation, duplicate marking, and
   repeat-target annotation.
-- `self/core/proposal_runtime.py`: runtime proposal loading/generation,
-  executable program/policy validation, and program-repair dispatch.
+- `self/core/proposal_generation.py`: proposal fixture row selection,
+  current/alternate model sampling, and proposal-model cleanup after
+  generation.
+- `self/core/proposal_runtime.py`: executable program/policy/meta proposal
+  validation, program-repair dispatch, and compatibility reexports for the
+  proposal generation helpers.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
 - `self/core/proposal_grpo.py`: proposal-GRPO rewards, trace construction,
