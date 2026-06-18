@@ -92,6 +92,9 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_evaluation.py`: non-adaptive base/composed round
   evaluation, composed-slice aggregation, and guarded-slice debug sample
   writing.
+- `self/core/nonadaptive_lifecycle.py`: non-adaptive post-round lifecycle
+  handling, including stop/final-round decisions, trainer release, CUDA cache
+  clearing, reset-each-round model release, and reset checkpoint/model reloads.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
   self-improvement loop runtime, including round-by-round orchestration,
   training/evaluation dispatch, pseudo-label handoff, and summary writing.

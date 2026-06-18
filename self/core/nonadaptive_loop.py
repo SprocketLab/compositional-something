@@ -44,6 +44,7 @@ from self.core.model_io import (
 from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
+from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
 from self.core.nonadaptive_results import record_nonadaptive_round_summary
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
@@ -338,43 +339,31 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             json_module=json,
         )
 
-        if stop_after_round is not None and round_idx >= stop_after_round:
-            print(f"[INFO] Stop-after-round reached at round {round_idx}; exiting.", flush=True)
-            del trainer
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+        round_resources = NonAdaptiveRoundResources(model=model, trainer=trainer)
+        model = None
+        trainer = None
+        post_round_action = finish_nonadaptive_round(
+            args=args,
+            tokenizer=tokenizer,
+            resources=round_resources,
+            round_idx=round_idx,
+            stop_after_round=stop_after_round,
+            reset_each_round=reset_each_round,
+            use_recipe=use_recipe,
+            recipe_preset=recipe_preset,
+            path_cls=Path,
+            cuda_is_available_fn=torch.cuda.is_available,
+            empty_cache_fn=torch.cuda.empty_cache,
+            instantiate_recipe_model_fn=instantiate_recipe_model,
+            load_recipe_model_fn=load_recipe_model,
+            load_model_for_tokenizer_fn=load_model_for_tokenizer,
+        )
+        model = round_resources.model
+        trainer = round_resources.trainer
+        if post_round_action.should_break:
             break
-
-        if round_idx >= args.num_expand_rounds:
-            del trainer
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+        if post_round_action.should_continue:
             continue
-
-        if reset_each_round:
-            del trainer
-            del model
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            if use_recipe:
-                if getattr(args, "init_from_scratch", False):
-                    model = instantiate_recipe_model(tokenizer, recipe_preset, bf16=args.bf16, fp16=args.fp16)
-                else:
-                    model_dir = Path(args.model_name)
-                    if not model_dir.exists():
-                        raise FileNotFoundError(
-                            f"Recipe-backed reset-in-each-round expects a local checkpoint directory, got {args.model_name!r}."
-                        )
-                    model = load_recipe_model(model_dir, tokenizer, bf16=args.bf16, fp16=args.fp16)
-            else:
-                model = load_model_for_tokenizer(
-                    args.model_name,
-                    tokenizer,
-                    bf16=args.bf16,
-                    fp16=args.fp16,
-                )
-        else:
-            del trainer
 
     if not args.keep_checkpoints and save_model_policy != "none":
         cleanup_round_checkpoints(round_dirs)
