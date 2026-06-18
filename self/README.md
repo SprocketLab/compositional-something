@@ -346,8 +346,10 @@ the supported public surface.
 - `self/tasks/run_length_logic.py`: pure run-length statistics, state
   formatting, state merging, leftmost max-run tie-breaking, and target
   formatting.
-- `self/tasks/run_length_pseudolabels.py`: run-length direct, guarded-pair,
-  run-state, and default tuple pseudolabel derivation.
+- `self/tasks/run_length_guarded_pseudolabels.py`: run-length guarded
+  plain-output and symbol-pair pseudolabel derivation.
+- `self/tasks/run_length_pseudolabels.py`: run-length pseudolabel dispatch
+  plus direct, run-state, and default tuple pseudolabel derivation.
 - `self/tasks/run_length_splits.py`: run-length initial/eval/composed split
   preparation and composed-eval guard-slice partitioning.
 - `self/tasks/compat_exports.py`: explicit legacy export manifest for
@@ -698,8 +700,10 @@ new implementation code:
   orchestration layer. The large run-length adapter has split pure
   state/target logic into `self/tasks/run_length_logic.py`, data/example
   construction into `self/tasks/run_length_data.py`, bit-string composition
-  path helpers into `self/tasks/bit_composition.py`, and round-target
-  pseudolabel derivation into `self/tasks/run_length_pseudolabels.py`.
+  path helpers into `self/tasks/bit_composition.py`, guarded plain/symbol-pair
+  pseudolabel derivation into `self/tasks/run_length_guarded_pseudolabels.py`,
+  and round-target pseudolabel dispatch into
+  `self/tasks/run_length_pseudolabels.py`.
   Initial/eval/composed split preparation and composed-eval guard slicing live
   in `self/tasks/run_length_splits.py`.
   Multiplication example/data construction now lives in

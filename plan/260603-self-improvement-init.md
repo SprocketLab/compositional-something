@@ -3644,3 +3644,13 @@ Acceptance criteria for first pilot:
 - Added a direct task-adapter test covering multiplication initial/composed/eval split delegation and composed-eval slice partitioning.
 - Updated `self/README.md` to document `self/tasks/multiplication_splits.py`.
 - Verification: `python -m py_compile self/tasks/multiplication.py self/tasks/multiplication_splits.py self/tasks/multiplication_data.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_multiplication_splits tests/test_self_improvement_tasks.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`93 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:02:15 UTC
+
+- Split run-length guarded plain-output and symbol-pair pseudolabel derivation from `self/tasks/run_length_pseudolabels.py` into `self/tasks/run_length_guarded_pseudolabels.py`.
+- The new module owns guarded component prediction evaluation, no-boundary filtering, unfiltered pair composition, guarded refill construction, and retained/missing diagnostics for the guarded pair modes.
+- Kept `self/tasks/run_length_pseudolabels.py` as the run-length pseudolabel dispatcher plus direct, run-state, and default tuple pseudolabel owner; it reimports the moved guarded helper as `_derive_guarded_pair_pseudo` for old private imports.
+- Reduced `self/tasks/run_length_pseudolabels.py` from `445` to `324` lines in this pass.
+- Added a compatibility test pinning the old private helper alias to the new owner.
+- Updated `self/README.md` to document `self/tasks/run_length_guarded_pseudolabels.py`.
+- Verification: `python -m py_compile self/tasks/run_length_pseudolabels.py self/tasks/run_length_guarded_pseudolabels.py self/tasks/run_length.py self/tasks/run_length_splits.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_guarded_pseudolabels tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`84 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
