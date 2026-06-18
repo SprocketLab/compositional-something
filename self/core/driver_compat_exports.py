@@ -68,7 +68,7 @@ from self.core.experience_trace_models import (
 from self.core.model_io import instantiate_model_and_tokenizer
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset, ExecutableProposal, proposal_from_payload
 from self.core.program_sandbox import execute_program_cases
-from self.core.proposal_grpo import build_proposal_grpo_traces, proposal_grpo_advantages, proposal_grpo_reward
+from self.core.proposal_grpo_traces import build_proposal_grpo_traces, proposal_grpo_advantages, proposal_grpo_reward
 from self.core.proposal_config_validation import _raw_output, validate_config_rows
 from self.core.proposal_executable_validation import (
     _extract_python_code,

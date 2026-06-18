@@ -229,8 +229,11 @@ the supported public surface.
   owner modules rather than through this compatibility wrapper.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
-- `self/core/proposal_grpo.py`: proposal-GRPO rewards, trace construction,
-  advantages, and lightweight policy update.
+- `self/core/proposal_grpo_traces.py`: proposal-GRPO reward shaping,
+  advantage construction, and raw/normalized proposal trace construction.
+- `self/core/proposal_grpo.py`: proposal-GRPO sample encoding, lightweight
+  policy update, checkpoint writing, metrics writing, and compatibility
+  reexports for old reward/trace imports.
 - `self/core/recipes.py`: shared algorithmic self-improvement recipe presets,
   recipe tokenizer/model construction, recipe training arguments, and
   recipe-aware Trainer variants.
