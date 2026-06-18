@@ -115,24 +115,18 @@ if self_parse_bool "${DRY_RUN}"; then
   exit 0
 fi
 
-sbatch_args=(
-  --parsable
-  --partition="${SBATCH_PARTITION}"
-  --time="${SBATCH_TIME}"
-  --gres="${SBATCH_GRES}"
-  --mem="${SBATCH_MEM}"
-  --cpus-per-task="${SBATCH_CPUS}"
-  --job-name="${JOB_NAME}"
-  --output="${stdout_log}"
-  --error="${stderr_log}"
-)
-
-if [[ -n "${SBATCH_CONSTRAINT}" ]]; then
-  sbatch_args+=(--constraint="${SBATCH_CONSTRAINT}")
-fi
-
-sbatch_args+=(--wrap="$(self_wrap_repo_command "${wrap_cmd[@]}")")
-
-job_id="$(sbatch "${sbatch_args[@]}")"
+job_id="$(
+  self_submit_wrapped_job \
+    "${JOB_NAME}" \
+    "${stdout_log}" \
+    "${stderr_log}" \
+    "${SBATCH_PARTITION}" \
+    "${SBATCH_GRES}" \
+    "${SBATCH_CPUS}" \
+    "${SBATCH_MEM}" \
+    "${SBATCH_TIME}" \
+    "" \
+    "$(self_wrap_repo_command "${wrap_cmd[@]}")"
+)"
 
 echo "[INFO] Submitted ${JOB_NAME} -> ${job_id}"

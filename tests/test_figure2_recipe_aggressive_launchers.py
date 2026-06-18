@@ -145,9 +145,9 @@ def test_figure2_recipe_aggressive_submitter_uses_shared_wrap_helper(tmp_path):
     sbatch_text = sbatch_log.read_text(encoding="utf-8")
 
     assert "[INFO] Submitted fig2-rec-aggr -> 24680" in stdout
-    assert "--partition=mig" in sbatch_text
-    assert "--gres=gpu:1g.10gb:1" in sbatch_text
-    assert "--wrap=" in sbatch_text
+    assert "--partition mig" in sbatch_text
+    assert "--gres gpu:1g.10gb:1" in sbatch_text
+    assert "--wrap " in sbatch_text
     assert "PYTHONPATH=." in sbatch_text
     assert "TRAIN_BATCH_SIZE=128" in sbatch_text
     assert "run_figure2_recipe_aggressive.sh" in sbatch_text

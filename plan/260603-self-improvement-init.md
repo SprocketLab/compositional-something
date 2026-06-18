@@ -3849,3 +3849,12 @@ Acceptance criteria for first pilot:
 - Added a fake-`sbatch` launcher test to cover the non-dry submission path and verify the wrapped command includes `PYTHONPATH=.`, forwarded environment values, and the canonical runner.
 - Updated `self/README.md` with the Figure 2 recipe submitter boundary.
 - Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_figure2_recipe_aggressive.sh`, `launchers/self/run_figure2_recipe_aggressive.sh`, and `launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_wrap tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:31:46 UTC
+
+- Verified that tracked `main` has no residue from the unsupported pseudolabel path removed earlier, and that the prior removal commits are ancestors of current `HEAD`.
+- Migrated `launchers/self/submit_figure2_recipe_aggressive.sh` from direct `sbatch_args` construction and direct `sbatch` invocation to `self_submit_wrapped_job`.
+- Preserved device-target resource resolution, constraint propagation through the shared helper, dry-run early exit, job metadata, and wrapped command construction through `self_wrap_repo_command`.
+- Updated the fake-`sbatch` launcher test to assert the shared helper's separated Slurm argument form.
+- Updated `self/README.md` with the Figure 2 wrapped-job submission boundary.
+- Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_figure2_recipe_aggressive.sh`, `launchers/self/run_figure2_recipe_aggressive.sh`, and `launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_submit_helper tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); tracked unsupported-pseudolabel terminology grep returned no matches.
