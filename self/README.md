@@ -86,8 +86,12 @@ the supported public surface.
 - `self/core/candidate_worker_payloads.py`: candidate work-item payload
   serialization/deserialization for controller handoff artifacts and
   candidate-worker spec blocks.
+- `self/core/candidate_worker_inputs.py`: candidate-worker shared input
+  loading, packed-worker shared-input cache keys, proposal/outcome trace
+  buffer loading, proposal prompt reconstruction, and per-pack model bootstrap
+  cache setup.
 - `self/core/candidate_worker_runtime.py`: candidate-worker spec entry point
-  runtime, including spec loading, trace/pseudo-example reconstruction, metric
+  runtime, including spec loading, pseudo-example reconstruction, metric
   generation, packed local-worker execution, and worker-failure artifact
   writing.
 - `self/core/candidate_workers.py`: compatibility wrapper/reexport surface for
@@ -766,8 +770,9 @@ new implementation code:
   bundles, local cache/editor state, and command/LaTeX logs are ignored.
 - Optimize candidate training to avoid repeated full model reloads for each
   local candidate worker where semantics allow it. Current packed-local workers
-  reduce subprocess and shared-input IO/parsing overhead by default, reuse
-  tokenizer bootstrap work inside each pack, and report bootstrap cache hit/miss
-  counters. With `--candidate-local-cache-base-state`, packed workers also avoid
-  repeated disk reads of the shared source checkpoint while still instantiating
-  a fresh model object per candidate from an unmodified cached CPU state.
+  reduce subprocess and shared-input IO/parsing overhead by default through
+  `self/core/candidate_worker_inputs.py`, reuse tokenizer bootstrap work inside
+  each pack, and report bootstrap cache hit/miss counters. With
+  `--candidate-local-cache-base-state`, packed workers also avoid repeated disk
+  reads of the shared source checkpoint while still instantiating a fresh model
+  object per candidate from an unmodified cached CPU state.

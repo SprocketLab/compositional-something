@@ -3419,3 +3419,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_nonadaptive_round_loop.py` for dependency forwarding, early-stop behavior, and empty-loop behavior.
 - Updated `self/README.md` to document the new non-adaptive round-loop owner and to narrow `nonadaptive_loop.py` to setup/bootstrap/finalization wiring.
 - Verification: `python -m py_compile self/core/nonadaptive_round_loop.py self/core/nonadaptive_loop.py tests/test_nonadaptive_round_loop.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_nonadaptive_round_loop tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_nonadaptive_results.py tests/test_nonadaptive_pseudo.py -q` (`13 passed`).
+
+### Implementation Log: 2026-06-18 11:19:47 UTC
+
+- Extracted candidate-worker shared input loading and packed-worker cache setup from `self/core/candidate_worker_runtime.py` into `self/core/candidate_worker_inputs.py`.
+- The new module owns `CandidateWorkerRuntimeDeps`, `CandidateWorkerSharedInputs`, shared-input cache keys, source/eval example loading, proposal/outcome trace-buffer loading, proposal prompt reconstruction, model bootstrap cache construction, and candidate payload-to-work-item reconstruction.
+- Kept old imports stable by reexporting the dependency/shared-input classes through `candidate_worker_runtime.py`; `worker_entrypoints.py` can continue importing `CandidateWorkerRuntimeDeps` from the runtime module.
+- Added `tests/test_candidate_worker_inputs.py` to pin shared artifact reuse, model-bootstrap cache flag propagation, prompt/example/trace loading, and validation-call behavior without requiring model construction.
+- Updated `self/README.md` to document `candidate_worker_inputs.py` ownership and the packed-worker optimization path.
+- Verification: `python -m py_compile self/core/candidate_worker_inputs.py self/core/candidate_worker_runtime.py tests/test_candidate_worker_inputs.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_candidate_worker_inputs tests/test_candidate_worker_inputs.py tests/test_adaptive_candidate_training.py::test_candidate_worker_spec_roundtrip_loads_inputs tests/test_adaptive_candidate_training.py::test_candidate_pack_worker_reuses_shared_inputs tests/test_adaptive_candidate_training.py::test_candidate_pack_worker_passes_tokenizer_cache_without_base_state tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py -q` (`12 passed`).
