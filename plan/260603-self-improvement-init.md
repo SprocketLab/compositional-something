@@ -3884,3 +3884,12 @@ Acceptance criteria for first pilot:
 - Added alias tests for the shared loader and seed-band constant on both Figure 3 module surfaces.
 - Updated `self/README.md` so `figure3_common.py` documents seed-band selection ownership.
 - Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_seed_helpers tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`13 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:51:43 UTC
+
+- Extended `self/experiments/figure3_common.py` with shared seed-fit and run-length self-improvement command builders for Figure 3 experiment submission.
+- Migrated `self/experiments/figure3_seed_quality_sweep.py` to delegate `_seed_job_command` and `_run_length_si_command` through the common builders while preserving the old private function names and the seed-quality command ordering.
+- Migrated `self/experiments/figure3_real_seed_data_ablation.py` to delegate the same command builders through the common module while preserving its explicit `max_steps` placement and 8-round run-length matrix setting.
+- Added command-builder tests for both Figure 3 scripts, including checks for the experiment-specific max-step placement and run-length round counts.
+- Updated `self/README.md` so `figure3_common.py` documents shared command-builder ownership.
+- Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_commands tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.

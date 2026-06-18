@@ -150,6 +150,35 @@ def test_real_ablation_private_csv_helper_reexports_common_owner():
     assert figure3_real_seed_data_ablation.SEED_BANDS is figure3_common.DEFAULT_SEED_BANDS
 
 
+def test_real_ablation_command_builders_delegate_to_common_helpers(tmp_path: Path):
+    seed_entry = {
+        "task": "addition",
+        "train_count": 900,
+        "max_steps": 2500,
+        "output_root": str(tmp_path / "seed"),
+    }
+    seed_cmd = figure3_real_seed_data_ablation._seed_job_command(seed_entry, python_bin="python")
+    assert seed_cmd == figure3_common.seed_fit_command(
+        seed_entry,
+        python_bin="python",
+        max_steps_position="before_batch_args",
+    )
+    assert seed_cmd.index("--max-steps") < seed_cmd.index("--per-device-train-batch-size")
+
+    si_entry = {
+        "seed_model": str(tmp_path / "model"),
+        "output_root": str(tmp_path / "si"),
+        "sample_size": 1000,
+    }
+    si_cmd = figure3_real_seed_data_ablation._run_length_si_command(si_entry, python_bin="python")
+    assert si_cmd == figure3_common.run_length_self_improvement_command(
+        si_entry,
+        python_bin="python",
+        num_expand_rounds=8,
+    )
+    assert si_cmd[si_cmd.index("--num-expand-rounds") + 1] == "8"
+
+
 def test_submit_wrapper_dry_run_prints_expected_counts(tmp_path: Path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"
