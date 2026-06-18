@@ -3,6 +3,7 @@ from pathlib import Path
 
 from self.analysis.artifacts import (
     adaptive_attempt_records,
+    adaptive_candidate_per_size_records,
     adaptive_candidate_records,
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
@@ -137,6 +138,33 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert candidate_rows[0]["selected_candidate"] is True
     assert candidate_rows[0]["proposal_guard"] == "none"
     assert candidate_rows[0]["per_size_accuracy"] == {"10": 0.8}
+    candidate_size_rows = adaptive_candidate_per_size_records(run)
+    assert candidate_size_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "candidate_id": "model_candidate_0",
+            "candidate_index": 0,
+            "selected_candidate": True,
+            "valid": True,
+            "reward": 0.12,
+            "metric_key": "per_size_accuracy",
+            "proposal_left": 3,
+            "proposal_right": 7,
+            "proposal_target": 10,
+            "proposal_guard": "none",
+            "size": 10,
+            "accuracy": 0.8,
+        }
+    ]
     grpo_rows = adaptive_proposal_grpo_records(run)
     assert grpo_rows == [
         {

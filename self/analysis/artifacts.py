@@ -270,6 +270,47 @@ def adaptive_candidate_records(run: AdaptiveRunArtifacts | Path | str) -> list[J
     return rows
 
 
+def adaptive_candidate_per_size_records(
+    run: AdaptiveRunArtifacts | Path | str,
+    *,
+    metric_key: str = "per_size_accuracy",
+) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        selected_id = _selected_id(attempt.attempt_summary.get("selected"))
+        for candidate in attempt.candidate_metrics:
+            accuracy_map = candidate.get(metric_key) or {}
+            if not isinstance(accuracy_map, Mapping):
+                continue
+            selected_candidate = (
+                candidate.get("id") == selected_id if selected_id is not None else None
+            )
+            base: JsonDict = {
+                **context,
+                "attempt_dir": str(attempt.path),
+                "attempt": attempt.attempt,
+                "selected_round": attempt.attempt_summary.get("selected_round"),
+                "candidate_id": candidate.get("id"),
+                "candidate_index": candidate.get("index"),
+                "selected_candidate": selected_candidate,
+                "valid": candidate.get("valid"),
+                "reward": candidate.get("reward"),
+                "metric_key": metric_key,
+            }
+            base.update(_proposal_fields(candidate))
+            for size, accuracy in accuracy_map.items():
+                rows.append(
+                    {
+                        **base,
+                        "size": int(size),
+                        "accuracy": accuracy,
+                    }
+                )
+    return rows
+
+
 def adaptive_proposal_grpo_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
     artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
     context = _run_context(artifacts)

@@ -2822,3 +2822,11 @@ Acceptance criteria for first pilot:
 - The new helper adds the same run/attempt context as the existing adaptive attempt/proposal/candidate record helpers, avoiding notebook-side direct path parsing for proposal-GRPO diagnostics.
 - Updated `tests/test_analysis_artifacts.py` to cover proposal-GRPO metric record loading from the synthetic adaptive-run fixture.
 - Verification: `python -m py_compile self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest tests/test_analysis_artifacts.py -q` (`2 passed`); `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; an initial broader pytest run hit pytest `/tmp` numbered-directory exhaustion during fixture setup, then `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` passed (`6 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 05:12:35 UTC
+
+- Extended `self/analysis/artifacts.py` with `adaptive_candidate_per_size_records(...)`, a notebook-facing flattener for adaptive candidate `per_size_accuracy` maps.
+- The helper carries run, attempt, candidate, selected-candidate, reward, and proposal fields so adaptive heatmaps can use stable records instead of direct `candidate_metrics.json` parsing.
+- Updated `tests/test_analysis_artifacts.py` to cover candidate per-size record loading from the synthetic adaptive-run fixture.
+- Updated `self/README.md` to document adaptive candidate per-size records in the current analysis module map.
+- Verification: `python -m py_compile self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`6 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
