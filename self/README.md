@@ -283,9 +283,10 @@ tests, notebooks, and older artifacts.
   round-level metric loading for training-curve bundles.
 - `self/analysis/training_curve_bundle.py`: submission-table loading, curve
   bundle assembly, bundle summaries, and bundle per-size accuracy frames.
+- `self/analysis/training_curve_plots.py`: task training curves, per-size
+  heatmaps, comparison curves, and figure bundle export helpers.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
-  per-size heatmaps, paper-style curve plots, and compatibility imports for
-  older notebooks.
+  compatibility imports over the canonical training-curve analysis modules.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for
   seed-fit training curves and budget sweeps.
 - `self/analysis/plot_appendix_baseline_heatmaps.py`: appendix baseline
