@@ -4,6 +4,7 @@ from pathlib import Path
 from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_records,
+    adaptive_proposal_grpo_records,
     adaptive_proposal_records,
     adaptive_trace_rows,
     discover_adaptive_runs,
@@ -85,6 +86,14 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
         ],
     )
     _write_jsonl(attempt_dir / "trace_examples.jsonl", [{"prompt": "p", "target": "t"}])
+    _write_json(
+        attempt_dir / "proposal_grpo" / "proposal_grpo_metrics.json",
+        {
+            "applied": True,
+            "loss": 0.13,
+            "reward_mean": 0.2,
+        },
+    )
 
     assert discover_adaptive_runs(tmp_path / "root") == [run_dir]
     run = load_adaptive_run(run_dir)
@@ -128,6 +137,27 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert candidate_rows[0]["selected_candidate"] is True
     assert candidate_rows[0]["proposal_guard"] == "none"
     assert candidate_rows[0]["per_size_accuracy"] == {"10": 0.8}
+    grpo_rows = adaptive_proposal_grpo_records(run)
+    assert grpo_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "proposal_grpo_metrics_path": str(
+                attempt_dir / "proposal_grpo" / "proposal_grpo_metrics.json"
+            ),
+            "applied": True,
+            "loss": 0.13,
+            "reward_mean": 0.2,
+        }
+    ]
     assert adaptive_trace_rows(run.attempts[0]) == [{"prompt": "p", "target": "t"}]
 
 

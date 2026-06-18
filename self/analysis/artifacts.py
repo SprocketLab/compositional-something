@@ -270,6 +270,27 @@ def adaptive_candidate_records(run: AdaptiveRunArtifacts | Path | str) -> list[J
     return rows
 
 
+def adaptive_proposal_grpo_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        metrics_path = attempt.path / "proposal_grpo" / "proposal_grpo_metrics.json"
+        metrics = read_json(metrics_path, None)
+        if not isinstance(metrics, Mapping):
+            continue
+        row: JsonDict = {
+            **context,
+            "attempt_dir": str(attempt.path),
+            "attempt": attempt.attempt,
+            "selected_round": attempt.attempt_summary.get("selected_round"),
+            "proposal_grpo_metrics_path": str(metrics_path),
+        }
+        row.update(metrics)
+        rows.append(row)
+    return rows
+
+
 def adaptive_trace_rows(
     attempt: AdaptiveAttemptArtifacts | Path | str,
     *,
