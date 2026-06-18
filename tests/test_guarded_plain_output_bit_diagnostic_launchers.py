@@ -101,6 +101,7 @@ def test_run_length_alpha10_baseline_pack_dry_run_prints_three_baselines(tmp_pat
     env = os.environ.copy()
     env["DRY_RUN"] = "1"
     env["OUT_ROOT"] = str(tmp_path / "rl_alpha10_baselines")
+    env["LOG_DIR"] = str(tmp_path / "logs")
 
     result = subprocess.run(
         ["bash", str(RUN_LENGTH_ALPHA10_BASELINE_PACK)],
@@ -112,17 +113,22 @@ def test_run_length_alpha10_baseline_pack_dry_run_prints_three_baselines(tmp_pat
     )
 
     stdout = result.stdout.replace("\\ ", " ")
-    assert "run_length_multisymbol_pair_alpha10_seed50k_steps15k_20260423_123229/seed/model" in stdout
-    assert "--target-mode symbol_run_pair" in stdout
-    assert "--compose-arity exact2" in stdout
-    assert "--bit-composition-path-mode random" in stdout
-    assert "--num-expand-rounds 7" in stdout
-    assert "--expand-num-bits 9" in stdout
-    assert "--expand-train-per-bit 2000" in stdout
-    assert "--self-improve-warmup-steps 500" in stdout
-    assert "--pseudo-label-mode direct" in stdout
-    assert "--guarded-compose-rule run_length_unfiltered_pair" in stdout
-    assert "--guarded-compose-rule run_length_no_boundary_continue" in stdout
+    combined = (result.stdout + result.stderr).replace("\\ ", " ")
+    assert "run_length_multisymbol_pair_alpha10_seed50k_steps15k_20260423_123229/seed/model" in combined
+    assert "--target-mode symbol_run_pair" in combined
+    assert "--compose-arity exact2" in combined
+    assert "--bit-composition-path-mode random" in combined
+    assert "--num-expand-rounds 7" in combined
+    assert "--expand-num-bits 9" in combined
+    assert "--expand-train-per-bit 2000" in combined
+    assert "--self-improve-warmup-steps 500" in combined
+    assert "--pseudo-label-mode direct" in combined
+    assert "--guarded-compose-rule run_length_unfiltered_pair" in combined
+    assert "--guarded-compose-rule run_length_no_boundary_continue" in combined
+    assert "--job-name rl-a10-direct" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert "--wrap" in combined
     assert "DRY_RUN=1; sbatch not executed for direct." in stdout
     assert "DRY_RUN=1; sbatch not executed for unfiltered_compose." in stdout
     assert "DRY_RUN=1; sbatch not executed for guarded_compose." in stdout

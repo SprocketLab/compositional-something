@@ -602,7 +602,8 @@ the supported public surface.
   `launchers/self/run_self_improvement_mig_boundary_eval.sbatch`, and
   `launchers/self/run_self_improvement_qwen_no_growth.sbatch` now source the
   generic helper for repo-root/Python setup, boolean parsing, Slurm resource
-  construction where applicable, and dry-run/print-only command verification.
+  construction where applicable, wrapped-job submission, and dry-run/print-only
+  command verification.
 
 ## Runtime Notes
 

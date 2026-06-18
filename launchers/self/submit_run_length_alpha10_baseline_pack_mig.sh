@@ -19,6 +19,7 @@ EXPAND_NUM_BITS="${EXPAND_NUM_BITS:-9}"
 ROUND_WARMUP_STEPS="${ROUND_WARMUP_STEPS:-500}"
 SEED="${SEED:-7}"
 DRY_RUN="${DRY_RUN:-0}"
+LOG_DIR="${LOG_DIR:-${ROOT_DIR}/artifacts/logs}"
 
 declare -A MODE_ARGS
 MODE_ARGS[direct]="--pseudo-label-mode direct --guarded-compose-rule none"
@@ -28,7 +29,7 @@ MODE_ARGS[guarded_compose]="--pseudo-label-mode compose --guarded-compose-rule r
 BASELINES=(direct unfiltered_compose guarded_compose)
 MANIFEST="${OUT_ROOT}/manifest.tsv"
 
-mkdir -p "${OUT_ROOT}"
+mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 printf "baseline\tjob_id\toutput_dir\tresults_path\n" > "${MANIFEST}"
 
 self_print_context \
@@ -41,6 +42,7 @@ self_print_context \
   "Expand train per bit" "${EXPAND_TRAIN_PER_BIT}" \
   "Round warmup steps" "${ROUND_WARMUP_STEPS}" \
   "Trainer seed" "${SEED}" \
+  "Log dir" "${LOG_DIR}" \
   "Dry run" "${DRY_RUN}"
 
 for baseline in "${BASELINES[@]}"; do
@@ -81,23 +83,26 @@ for baseline in "${BASELINES[@]}"; do
   printf -v quoted_root "%q" "${ROOT_DIR}"
   printf -v quoted_run_cmd " %q" "${run_cmd[@]}"
   wrapped_cmd="cd ${quoted_root} && PYTHONPATH=.${quoted_run_cmd}"
-  log_stem="${ROOT_DIR}/artifacts/logs/rl-a10-baseline-${baseline}-%j"
-  sbatch_cmd=(
-    sbatch
-    --job-name "rl-a10-${baseline}"
-    --output "${log_stem}.out"
-    --error "${log_stem}.err"
-  )
-  self_add_sbatch_resources sbatch_cmd
-  sbatch_cmd+=(--wrap "${wrapped_cmd}")
-  self_print_prefixed_command_stdout "Submit command" "${sbatch_cmd[@]}"
+  log_stem="${LOG_DIR}/rl-a10-baseline-${baseline}-%j"
+  helper_job_id="$(
+    self_submit_wrapped_job \
+      "rl-a10-${baseline}" \
+      "${log_stem}.out" \
+      "${log_stem}.err" \
+      "${SBATCH_PARTITION}" \
+      "${SBATCH_GRES}" \
+      "${SBATCH_CPUS}" \
+      "${SBATCH_MEM}" \
+      "${SBATCH_TIME}" \
+      "" \
+      "${wrapped_cmd}"
+  )"
   if self_parse_bool "${DRY_RUN}"; then
     job_id="dryrun-${baseline}"
     echo "[INFO] DRY_RUN=1; sbatch not executed for ${baseline}."
   else
-    submit_output="$("${sbatch_cmd[@]}")"
-    echo "${submit_output}"
-    job_id="$(awk '{print $4}' <<< "${submit_output}")"
+    job_id="${helper_job_id}"
+    echo "Submitted batch job ${job_id}"
   fi
   printf "%s\t%s\t%s\t%s\n" "${baseline}" "${job_id}" "${out_dir}" "${results_path}" >> "${MANIFEST}"
   echo "[INFO] baseline=${baseline} job_id=${job_id} output_dir=${out_dir}"
