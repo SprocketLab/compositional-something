@@ -154,8 +154,13 @@ the supported public surface.
 - `self/core/experience_traces.py`: proposal trace construction and
   compatibility exports for older trace imports.
 - `self/core/frontier.py`: frontier selection and proposal-quality summaries.
+- `self/core/model_bootstrap_cache.py`: process-local model/tokenizer
+  bootstrap cache containers, cache-key helpers, CPU state-dict cloning, and
+  hit/miss summaries used by packed local candidate workers.
 - `self/core/model_io.py`: tokenizer construction, special-token syncing,
-  added-token embedding initialization, and model loading/instantiation.
+  added-token embedding initialization, and model loading/instantiation. It
+  reexports bootstrap cache containers for old imports; new code should import
+  cache types from `model_bootstrap_cache.py`.
 - `self/core/models.py`: shared proposal, candidate work-item, candidate
   metrics, and JSON conversion containers.
 - `self/core/nonadaptive_bootstrap.py`: non-adaptive resume checkpoint
@@ -588,7 +593,9 @@ the supported public surface.
   tokenizer bootstrap cache by default, without caching model weights unless
   explicitly requested. Worker summaries include
   `model_bootstrap_cache_details` with tokenizer/model-state hit and miss
-  counters for debugging cache effectiveness.
+  counters for debugging cache effectiveness. Cache containers and pure
+  key/state-copy helpers live in `self/core/model_bootstrap_cache.py`;
+  `model_io.py` keeps compatibility reexports.
 - Add `--candidate-local-cache-base-state` when using packed local workers to
   extend the per-pack bootstrap cache with a CPU copy of the shared source
   checkpoint state after the first load. Later candidates instantiate fresh

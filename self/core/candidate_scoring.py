@@ -26,9 +26,9 @@ from self.core.candidate_rewards import (
     static_frontier_sizes,
 )
 from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
+from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposal_prompts import PromptBundle
-from self.core.model_io import ModelBootstrapCache
 from self.core.training import TrainingConfig
 
 

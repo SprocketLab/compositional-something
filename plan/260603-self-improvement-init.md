@@ -3616,3 +3616,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_analysis_artifacts.py` with manifest fixtures covering Slurm metadata, adaptive candidate metadata, and main-experiment-style output-root metadata.
 - Updated `self/README.md` to document the new analysis owner module.
 - Verification: `python -m py_compile self/analysis/adaptive_manifest_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_manifest_artifacts tests/test_analysis_artifacts.py -q` (`5 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 13:40:37 UTC
+
+- Split packed-local model bootstrap cache containers/helpers from `self/core/model_io.py` into `self/core/model_bootstrap_cache.py`.
+- The new module owns `TokenizerBootstrap`, `CachedModelState`, `ModelBootstrapCache`, tokenizer/cache-key helpers, and CPU state-dict cloning.
+- Kept `self/core/model_io.py` as the model/tokenizer loading owner and compatibility reexport surface for old cache imports.
+- Updated candidate scoring/training/worker-input modules to import `ModelBootstrapCache` from the new owner module.
+- Extended cache tests to pin old `model_io.py` aliases against the new owner.
+- Verification: `python -m py_compile self/core/model_bootstrap_cache.py self/core/model_io.py self/core/candidate_worker_inputs.py self/core/candidate_training_runtime.py self/core/candidate_scoring.py tests/test_model_io_bootstrap_cache.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_pack_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_model_bootstrap_cache tests/test_model_io_bootstrap_cache.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_pack_runtime.py tests/test_candidate_training_runtime.py -q` (`10 passed`); `git diff --check`.

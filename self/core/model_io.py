@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
+from self.core.model_bootstrap_cache import (
+    CachedModelState,
+    ModelBootstrapCache,
+    TokenizerBootstrap,
+    clone_state_dict_to_cpu,
+    model_state_cache_key,
+    token_initializers_key,
+)
 from self.core.recipes import (
     apply_recipe_runtime_settings,
     build_recipe_tokenizer,
@@ -23,61 +30,8 @@ from self.core.recipe_presets import (
 from self.core.tokenizers import build_fixed_char_tokenizer
 
 
-@dataclass
-class TokenizerBootstrap:
-    tokenizer: Any
-    added_token_initializers: Dict[int, int]
-
-
-@dataclass
-class CachedModelState:
-    config: Any
-    state_dict: Dict[str, torch.Tensor]
-
-
-@dataclass
-class ModelBootstrapCache:
-    """Per-process cache for repeated candidate checkpoint bootstrap.
-
-    The cache is intentionally process-local and only stores immutable bootstrap
-    inputs. A fresh model object is still instantiated for each candidate.
-    """
-
-    cache_base_state: bool = False
-    tokenizer_cache: Dict[Tuple[Any, ...], TokenizerBootstrap] = field(default_factory=dict)
-    model_state_cache: Dict[Tuple[Any, ...], CachedModelState] = field(default_factory=dict)
-    tokenizer_cache_hits: int = 0
-    tokenizer_cache_misses: int = 0
-    model_state_cache_hits: int = 0
-    model_state_cache_misses: int = 0
-
-    def stats(self) -> Dict[str, int]:
-        return {
-            "tokenizer_cache_entries": len(self.tokenizer_cache),
-            "model_state_cache_entries": len(self.model_state_cache),
-        }
-
-    def detailed_stats(self) -> Dict[str, int]:
-        return {
-            **self.stats(),
-            "cache_base_state": int(self.cache_base_state),
-            "tokenizer_cache_hits": self.tokenizer_cache_hits,
-            "tokenizer_cache_misses": self.tokenizer_cache_misses,
-            "model_state_cache_hits": self.model_state_cache_hits,
-            "model_state_cache_misses": self.model_state_cache_misses,
-        }
-
-
-def _token_initializers_key(token_initializers: Optional[Dict[str, str]]) -> Tuple[Tuple[str, str], ...]:
-    return tuple(sorted((str(key), str(value)) for key, value in (token_initializers or {}).items()))
-
-
 def _dtype_for_precision(*, bf16: bool, fp16: bool) -> torch.dtype:
     return torch.bfloat16 if bf16 else (torch.float16 if fp16 else torch.float32)
-
-
-def _clone_state_dict_to_cpu(model: AutoModelForCausalLM) -> Dict[str, torch.Tensor]:
-    return {name: tensor.detach().cpu().clone() for name, tensor in model.state_dict().items()}
 
 
 def lookup_single_token_id(tokenizer: AutoTokenizer, token_text: str) -> int:
@@ -214,7 +168,7 @@ def _tokenizer_bootstrap(
     tokenizer_mode: str,
     bootstrap_cache: Optional[ModelBootstrapCache],
 ) -> TokenizerBootstrap:
-    cache_key = (str(model_path), tokenizer_mode, _token_initializers_key(token_initializers))
+    cache_key = (str(model_path), tokenizer_mode, token_initializers_key(token_initializers))
     if bootstrap_cache is not None and cache_key in bootstrap_cache.tokenizer_cache:
         bootstrap_cache.tokenizer_cache_hits += 1
         return bootstrap_cache.tokenizer_cache[cache_key]
@@ -228,23 +182,6 @@ def _tokenizer_bootstrap(
     if bootstrap_cache is not None:
         bootstrap_cache.tokenizer_cache[cache_key] = bootstrap
     return bootstrap
-
-
-def _model_state_cache_key(
-    model_path: str,
-    *,
-    bf16: bool,
-    fp16: bool,
-    tokenizer_mode: str,
-    token_initializers: Optional[Dict[str, str]],
-) -> Tuple[Any, ...]:
-    return (
-        str(model_path),
-        bool(bf16),
-        bool(fp16),
-        tokenizer_mode,
-        _token_initializers_key(token_initializers),
-    )
 
 
 def _load_model_from_cached_state(
@@ -323,7 +260,7 @@ def instantiate_model_and_tokenizer(
             added_token_initializers=added_token_initializers,
         )
     else:
-        state_key = _model_state_cache_key(
+        state_key = model_state_cache_key(
             model_path,
             bf16=bf16,
             fp16=fp16,
@@ -351,6 +288,6 @@ def instantiate_model_and_tokenizer(
             if bootstrap_cache is not None and bootstrap_cache.cache_base_state:
                 bootstrap_cache.model_state_cache[state_key] = CachedModelState(
                     config=copy.deepcopy(model.config),
-                    state_dict=_clone_state_dict_to_cpu(model),
+                    state_dict=clone_state_dict_to_cpu(model),
                 )
     return model, tokenizer

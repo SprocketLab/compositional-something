@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import torch
 
-from self.core import model_io
+from self.core import model_bootstrap_cache, model_io
 
 
 class _FakeTokenizer:
@@ -45,6 +45,10 @@ class _FakeModel(torch.nn.Module):
 
 
 def test_model_bootstrap_cache_reuses_tokenizer_and_cached_base_state(monkeypatch):
+    assert model_io.ModelBootstrapCache is model_bootstrap_cache.ModelBootstrapCache
+    assert model_io.TokenizerBootstrap is model_bootstrap_cache.TokenizerBootstrap
+    assert model_io.CachedModelState is model_bootstrap_cache.CachedModelState
+
     calls = {"tokenizer": 0, "from_pretrained": 0, "from_config": 0}
 
     def fake_tokenizer_from_pretrained(model_path, trust_remote_code=True):

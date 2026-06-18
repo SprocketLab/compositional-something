@@ -11,7 +11,8 @@ import torch
 
 from self.core import worker_io
 from self.core.evaluation import evaluate_accuracy_with_breakdown, resolve_max_new_tokens
-from self.core.model_io import ModelBootstrapCache, instantiate_model_and_tokenizer
+from self.core.model_bootstrap_cache import ModelBootstrapCache
+from self.core.model_io import instantiate_model_and_tokenizer
 from self.core.training import (
     CausalLMDataCollator,
     TrainingConfig,
