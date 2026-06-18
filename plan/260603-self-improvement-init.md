@@ -3841,3 +3841,11 @@ Acceptance criteria for first pilot:
 - Added focused helper coverage for paths/arguments requiring shell quoting, and kept the existing alpha10 baseline dry-run launcher coverage.
 - Updated `self/README.md` with the new generic launcher helper responsibility and alpha10 baseline submitter boundary.
 - Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh`, `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch`, and `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_repo_wrap_launcher tests/test_self_common_launcher_helpers.py tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`8 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:24:40 UTC
+
+- Migrated `launchers/self/submit_figure2_recipe_aggressive.sh` from local `printf '%q '` wrap construction to the shared `self_wrap_repo_command` helper.
+- Preserved the Figure 2 recipe submitter's environment matrix, device-target resource resolution, dry-run path, job metadata, and direct `sbatch` submission behavior.
+- Added a fake-`sbatch` launcher test to cover the non-dry submission path and verify the wrapped command includes `PYTHONPATH=.`, forwarded environment values, and the canonical runner.
+- Updated `self/README.md` with the Figure 2 recipe submitter boundary.
+- Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_figure2_recipe_aggressive.sh`, `launchers/self/run_figure2_recipe_aggressive.sh`, and `launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_wrap tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.

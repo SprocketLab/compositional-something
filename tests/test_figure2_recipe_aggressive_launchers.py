@@ -111,6 +111,48 @@ def test_figure2_recipe_aggressive_submitter_dry_run_prints_submission(tmp_path)
     assert "[INFO] DRY_RUN=1; sbatch not executed." in stdout
 
 
+def test_figure2_recipe_aggressive_submitter_uses_shared_wrap_helper(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sbatch_log = tmp_path / "sbatch.log"
+    sbatch_stub = fake_bin / "sbatch"
+    sbatch_stub.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%q ' \"$@\" >> \"$SBATCH_LOG\"\n"
+        "printf '\\n' >> \"$SBATCH_LOG\"\n"
+        "echo '24680'\n",
+        encoding="utf-8",
+    )
+    sbatch_stub.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["SBATCH_LOG"] = str(sbatch_log)
+    env["OUT_ROOT"] = str(tmp_path / "figure2_recipe_submit")
+    env["TRAIN_BATCH_SIZE"] = "128"
+    env["DEVICE_TARGET"] = "mig_10gb"
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    sbatch_text = sbatch_log.read_text(encoding="utf-8")
+
+    assert "[INFO] Submitted fig2-rec-aggr -> 24680" in stdout
+    assert "--partition=mig" in sbatch_text
+    assert "--gres=gpu:1g.10gb:1" in sbatch_text
+    assert "--wrap=" in sbatch_text
+    assert "PYTHONPATH=." in sbatch_text
+    assert "TRAIN_BATCH_SIZE=128" in sbatch_text
+    assert "run_figure2_recipe_aggressive.sh" in sbatch_text
+
+
 def test_figure2_paper_retune_launcher_dry_run_prints_candidate_grid(tmp_path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"

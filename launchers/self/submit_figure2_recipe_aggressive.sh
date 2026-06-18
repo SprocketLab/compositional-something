@@ -131,7 +131,7 @@ if [[ -n "${SBATCH_CONSTRAINT}" ]]; then
   sbatch_args+=(--constraint="${SBATCH_CONSTRAINT}")
 fi
 
-sbatch_args+=(--wrap="$(printf '%q ' "${wrap_cmd[@]}")")
+sbatch_args+=(--wrap="$(self_wrap_repo_command "${wrap_cmd[@]}")")
 
 job_id="$(sbatch "${sbatch_args[@]}")"
 

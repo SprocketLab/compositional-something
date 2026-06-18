@@ -623,8 +623,8 @@ the supported public surface.
 - `launchers/self/run_figure2_recipe_aggressive.sh`,
   `launchers/self/submit_figure2_recipe_aggressive.sh`, and
   `launchers/self/run_figure2_paper_retune.sh` use the generic helper for
-  repo-root/Python setup, boolean parsing, and command printing across the
-  Figure 2 recipe workflow.
+  repo-root/Python setup, boolean parsing, command printing, and shared
+  repo-command wrapping across the Figure 2 recipe workflow.
 - `launchers/self/run_composition_error_sweep_self_improvement.sh`,
   `launchers/self/run_local_workshop_batch.sh`,
   `launchers/self/run_refocused_self_improvement_local.sh`,
@@ -892,8 +892,8 @@ new implementation code:
   command dispatch, before delegating to their Python experiment CLIs; the
   Figure 2 recipe
   runner/submitter/retune scripts share generic repo-root/Python/boolean,
-  context-printing, and command-printing helpers; the composition-error sweep
-  now invokes the
+  context-printing, command-printing, and repo-command wrapping helpers; the
+  composition-error sweep now invokes the
   canonical `self.experiments.composition_error_sweep` module while preserving
   the old top-level wrapper, and the local/refocused
   workshop batchers, run-length alpha10 baseline submitter, and self-improvement
