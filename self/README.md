@@ -112,8 +112,12 @@ the supported public surface.
 - `self/core/candidate_slurm_workers.py`: Slurm-array candidate-worker
   submission, dispatch manifests, polling, timeout cancellation, and
   post-array metric collection handoff.
-- `self/core/composition.py`: exact-pair target construction, composition
-  guards, and self-labeled pseudolabel generation for config/program proposals.
+- `self/core/composition.py`: exact-pair addition/run-length target
+  construction, composition guards, run-length example merging, and
+  compatibility reexports for pseudolabel helpers.
+- `self/core/composition_pseudolabels.py`: target regex selection plus
+  config/program self-labeled pseudolabel generation from component
+  predictions.
 - `self/core/controller_phases.py`: controller worker phase constants and
   payload containers.
 - `self/core/controller_phase_runtime.py`: in-process seed and round-model

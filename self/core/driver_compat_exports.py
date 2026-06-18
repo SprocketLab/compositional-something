@@ -33,11 +33,13 @@ from self.core.composition import (
     build_exact_pair_addition_dataset,
     build_exact_pair_dataset,
     build_exact_pair_run_length_dataset,
+    merge_run_length_examples,
+)
+from self.core.composition_pseudolabels import (
     compose_addition_pseudo_examples,
     compose_program_pseudo_examples,
     compose_pseudo_examples,
     compose_run_length_pseudo_examples,
-    merge_run_length_examples,
     target_pattern_for_task,
 )
 from self.core.controller_workers import (
