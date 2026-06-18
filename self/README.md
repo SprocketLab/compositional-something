@@ -1,8 +1,8 @@
 # Self-Improvement Code Layout
 
-Canonical implementation modules now live under package directories. The old
-top-level adaptive module names remain as compatibility wrappers for launchers,
-tests, notebooks, and older artifacts.
+Canonical implementation modules now live under package directories. Only
+top-level module names that are still referenced by tracked launchers, tests,
+notebooks, or current docs remain as compatibility wrappers.
 
 The current workshop/main-track task surface is addition, run-length, and
 multiplication. Older auxiliary classification task experiments are not part of
@@ -810,13 +810,8 @@ These top-level modules forward to the canonical locations and should not gain
 new implementation code:
 
 - `self/adaptive_candidate_training.py` -> `self/core/driver.py`
-- `self/adaptive_candidate_workers.py` -> `self/core/candidate_workers.py`
-- `self/adaptive_controller_phases.py` -> `self/core/controller_phases.py`
-- `self/adaptive_experience_traces.py` -> `self/core/experience_traces.py`
 - `self/adaptive_frontier.py` -> `self/core/frontier.py`
-- `self/adaptive_proposal_grpo.py` -> `self/core/proposal_grpo.py`
 - `self/adaptive_proposals.py` -> `self/core/proposals.py`
-- `self/adaptive_worker_io.py` -> `self/core/worker_io.py`
 - `self/adaptive_self_improvement.py` -> `self/experiments/adaptive_self_improvement.py`
 - `self/addition_recipe.py` -> `self/core/recipes.py`
 - `self/addition_recipe_diagnostic.py` -> `self/diagnostics/addition_recipe_diagnostic.py`
@@ -852,7 +847,6 @@ new implementation code:
 - `self/self_improvement_multiplication_cot_pseudo_addition.py` -> `self/legacy/multiplication_cot_pseudo_addition.py`
 - `self/multiplication_self_improvement.py` -> `self/legacy/multiplication_self_improvement.py`
 - `self/run_length_self_improvement.py` -> `self/legacy/run_length_self_improvement.py`
-- `self/slurm_utils.py` -> `self/core/slurm.py`
 - `self/summarize_seed_fit_grid.py` -> `self/analysis/summarize_seed_fit_grid.py`
 - `self/training_curve_notebook_utils.py` -> `self/analysis/training_curve_notebook_utils.py`
 

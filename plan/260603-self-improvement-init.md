@@ -4595,3 +4595,24 @@ Acceptance criteria for first pilot:
   `bash -n` over the archived weak-to-strong shell launchers; tracked grep for
   the deleted filename outside this plan log returned no matches; generated
   `__pycache__` directories were removed after verification.
+
+### Implementation Log: 2026-06-18 20:59:21 UTC
+
+- Created and pushed checkpoint tag
+  `pre-wrapper-cleanup-20260618-165850` at commit `2f0800d` before deleting
+  top-level compatibility wrappers.
+- Removed pure star-import wrappers that had no tracked references outside
+  `self/README.md`: `self/adaptive_candidate_workers.py`,
+  `self/adaptive_controller_phases.py`, `self/adaptive_experience_traces.py`,
+  `self/adaptive_proposal_grpo.py`, `self/adaptive_worker_io.py`, and
+  `self/slurm_utils.py`.
+- Kept test-covered compatibility wrappers such as `self/adaptive_frontier.py`
+  and `self/self_improvement_experiment.py` for this pass.
+- Verification: live tracked grep outside this plan log found no references to
+  the removed wrapper paths/imports; `~/.conda/envs/torch-env/bin/python -m
+  compileall -q self/core self/legacy self/experiments self/diagnostics
+  self/analysis self/tasks`; `PYTHONPATH=. ~/.conda/envs/torch-env/bin/python
+  -m pytest --basetemp=.pytest_tmp_wrapper_cleanup -q
+  tests/test_module_proxy.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py` (`48 passed`, `3`
+  existing multiprocessing fork warnings); `git diff --check`.
