@@ -394,8 +394,8 @@ tests, notebooks, and older artifacts.
   printing across the recipe recovery workflow.
 - `launchers/self/run_addition_tiny_seed_mig.sbatch` and
   `launchers/self/run_addition_seed_shared.sbatch` use the generic helper for
-  repo-root/Python setup, boolean parsing, and staged dry-run command printing
-  across the addition seed workflows.
+  repo-root/Python setup, boolean parsing, context printing, and staged
+  dry-run command printing across the addition seed workflows.
 - `launchers/self/submit_run_length_fixed_binary_mig.sh` uses the generic
   helper for repo-root/Python setup and per-job explicit Slurm resource
   argument construction across GPU and CPU jobs.
@@ -646,8 +646,9 @@ new implementation code:
   repo-root/Python/boolean/context-printing/stdout-or-stderr command-printing
   helpers; the rectangular tune submitter shares the same repo-root/Python setup
   and dry-run flag helper;
-  the addition tiny/shared seed runners share generic repo-root/Python/boolean
-  and staged dry-run command-printing helpers;
+  the addition tiny/shared seed runners share generic
+  repo-root/Python/boolean/context-printing and staged dry-run
+  command-printing helpers;
   the seed-fit grid runner/submitter share generic
   repo-root/Python/boolean/context-printing helpers and now have a dry-run
   verification path; the generic task

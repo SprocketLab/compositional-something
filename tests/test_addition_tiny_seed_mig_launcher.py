@@ -7,11 +7,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "launchers" / "self" / "run_addition_tiny_seed_mig.sbatch"
+SHARED_SEED_SCRIPT = ROOT / "launchers" / "self" / "run_addition_seed_shared.sbatch"
 
 
 def test_addition_tiny_seed_mig_launcher_has_valid_bash_syntax():
-    assert SCRIPT.exists()
-    subprocess.run(["bash", "-n", str(SCRIPT)], check=True)
+    for script in (SCRIPT, SHARED_SEED_SCRIPT):
+        assert script.exists()
+        subprocess.run(["bash", "-n", str(script)], check=True)
 
 
 def test_addition_tiny_seed_mig_launcher_uses_expected_seed_fit_pipeline():
@@ -61,3 +63,28 @@ def test_addition_tiny_seed_mig_launcher_dry_run_prints_expected_commands(tmp_pa
     assert "--init-from-scratch" in stdout
     assert "--tokenizer-mode fixed_char" in stdout
     assert "[INFO] Status: dry_run" in stdout
+
+
+def test_addition_shared_seed_launcher_dry_run_prints_expected_command(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "addition_shared_seed")
+    env["MODEL_NAME"] = "stub-model"
+    env["TRAIN_BATCH_SIZE"] = "16"
+
+    result = subprocess.run(
+        ["bash", str(SHARED_SEED_SCRIPT)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "Shared checkpoint path (after completion)" in stdout
+    assert "--model-name stub-model" in stdout
+    assert "--initial-train-per-digit 50000" in stdout
+    assert "--pseudo-label-mode none" in stdout
+    assert "--per-device-train-batch-size 16" in stdout
+    assert "[INFO] DRY_RUN=1; command not executed." in stdout

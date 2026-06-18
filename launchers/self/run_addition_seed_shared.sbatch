@@ -64,16 +64,17 @@ if [[ -n "${EXTRA_ARGS:-}" ]]; then
   CMD+=(${EXTRA_ARGS})
 fi
 
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Shared checkpoint path (after completion): ${OUT_ROOT}/seed_model"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Model: ${MODEL_NAME}"
-echo "[INFO] Seed: ${SEED}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Slurm job id: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Output root" "${OUT_ROOT}" \
+  "Shared checkpoint path (after completion)" "${OUT_ROOT}/seed_model" \
+  "Python" "${PYTHON_BIN}" \
+  "Model" "${MODEL_NAME}" \
+  "Seed" "${SEED}" \
+  "Dry run" "${DRY_RUN}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Slurm job id" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 nvidia-smi -L || true
 
 self_print_command_stdout "${CMD[@]}"

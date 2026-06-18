@@ -3130,3 +3130,11 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_seed_fit_experiment.sbatch` to route its repeated task/data/model context output through `self_print_context(...)` while preserving output directory creation, preflight behavior, launch command printing, and dry-run behavior.
 - Updated `self/README.md` to note that the seed-fit grid runner/submitter now shares context-printing helpers in addition to repo-root/Python/boolean and dry-run helper behavior.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_seed_fit_experiment.sbatch launchers/self/submit_seed_fit_grid.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_seedfit_context tests/test_seed_fit_launchers.py -q` (`3 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:30:22 UTC
+
+- Extended shared context-banner printing to the shared addition seed runner.
+- Updated `launchers/self/run_addition_seed_shared.sbatch` to route its repeated output/model/batch context output through `self_print_context(...)` while preserving CUDA probe behavior, seed-training command construction, dry-run behavior, and final seed-model symlink creation.
+- Added focused dry-run coverage for the shared seed launcher in `tests/test_addition_tiny_seed_mig_launcher.py` alongside the existing tiny-seed launcher checks.
+- Updated `self/README.md` to note that addition seed runners now share context-printing helpers in addition to repo-root/Python/boolean and staged dry-run command-printing helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_seed_shared.sbatch launchers/self/run_addition_tiny_seed_mig.sbatch`; `python -m py_compile tests/test_addition_tiny_seed_mig_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_seed_shared_context tests/test_addition_tiny_seed_mig_launcher.py -q` (`4 passed`); `git diff --check`.
