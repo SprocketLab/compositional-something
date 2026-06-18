@@ -237,7 +237,9 @@ the supported public surface.
   scripts, launchers, notebooks, and tests. Model IO, example/data IO,
   evaluation/generation helpers, training construction, summary helpers, task
   protocols, non-adaptive loop execution, and non-adaptive monkeypatch sync
-  policy have moved into focused `self/core/` modules.
+  policy have moved into focused `self/core/` modules. Its public compatibility
+  exports are grouped by owner, and the patchable names synced into the
+  non-adaptive loop are tested against that export surface.
 
 ## Current Tasks
 
@@ -629,7 +631,9 @@ new implementation code:
   old top-level scripts, but preserve the facade for old imports and
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
-  implementation modules no longer import through this facade.
+  implementation modules no longer import through this facade. The facade
+  keeps grouped `__all__` exports so legacy imports and patch points remain
+  auditable.
 - Experience trace example models, JSON parsing, and replay sampling now live
   in `self/core/experience_trace_models.py`; outcome trace construction and
   rendering live in `self/core/experience_outcome_traces.py`; proposal trace
