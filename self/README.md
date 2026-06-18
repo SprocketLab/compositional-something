@@ -296,8 +296,9 @@ tests, notebooks, and older artifacts.
   loading, attempt/proposal/candidate record flattening, trace loading,
   adaptive candidate per-size records, selected-checkpoint per-size timelines,
   and proposal-GRPO metric records.
-- `self/analysis/nonadaptive_artifacts.py`: non-adaptive result loading,
-  per-size accuracy row construction, and records-to-DataFrame conversion.
+- `self/analysis/nonadaptive_artifacts.py`: non-adaptive result-path
+  resolution, round loading, per-size accuracy row construction, and
+  records-to-DataFrame conversion.
 - `self/analysis/artifacts.py`: compatibility surface for notebook artifact
   loaders.
 - `self/analysis/training_curve_results.py`: result-path resolution, raw
@@ -323,7 +324,8 @@ tests, notebooks, and older artifacts.
 - `self/analysis/plot_appendix_baseline_heatmaps.py`: appendix baseline
   heatmap export CLI.
 - `self/analysis/plot_self_improvement_figure.py`: comparison-curve plotting
-  CLI for one or more self-improvement result files.
+  CLI for one or more self-improvement runs, routed through the stable
+  non-adaptive artifact loader.
 - `self/analysis/summarize_seed_fit_grid.py`: seed-fit grid summary and
   threshold-based config selection CLI.
 

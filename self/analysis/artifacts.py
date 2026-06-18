@@ -36,4 +36,5 @@ from self.analysis.nonadaptive_artifacts import (
     load_self_improvement_rounds,
     per_size_accuracy_records,
     records_to_dataframe,
+    resolve_self_improvement_results_path,
 )

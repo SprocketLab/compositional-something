@@ -16,7 +16,9 @@ from self.analysis.artifacts import (
     per_size_accuracy_records,
     read_json,
     read_jsonl,
+    resolve_self_improvement_results_path,
 )
+from self.analysis.plot_self_improvement_figure import load_records, resolve_results_path
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -197,19 +199,23 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
 def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
     assert load_self_improvement_rounds is nonadaptive_artifacts.load_self_improvement_rounds
     assert per_size_accuracy_records is nonadaptive_artifacts.per_size_accuracy_records
+    assert resolve_self_improvement_results_path is nonadaptive_artifacts.resolve_self_improvement_results_path
 
     assert read_json(tmp_path / "missing.json", {"default": True}) == {"default": True}
     assert read_jsonl(tmp_path / "missing.jsonl") == []
 
     run_dir = tmp_path / "classic"
+    expected_results_path = run_dir / "self_improvement_results.json"
     _write_json(
-        run_dir / "self_improvement_results.json",
+        expected_results_path,
         [
             {"round": 0, "per_size_accuracy": {"3": 0.9, "4": 0.8}},
             {"round": 1, "per_size_accuracy": {"5": 0.7}},
         ],
     )
 
+    assert resolve_self_improvement_results_path(run_dir) == expected_results_path
+    assert resolve_self_improvement_results_path(expected_results_path) == expected_results_path
     rounds = load_self_improvement_rounds(run_dir)
     assert rounds[1]["round"] == 1
     assert per_size_accuracy_records(rounds, run_name="classic") == [
@@ -217,6 +223,31 @@ def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
         {"round": 0, "size": 4, "accuracy": 0.8, "run_name": "classic"},
         {"round": 1, "size": 5, "accuracy": 0.7, "run_name": "classic"},
     ]
+
+
+def test_plot_self_improvement_figure_uses_stable_round_loader(tmp_path: Path):
+    run_dir = tmp_path / "classic"
+    results_path = run_dir / "self_improvement_results.json"
+    _write_json(
+        results_path,
+        [
+            {"round": 2, "eval_accuracy": 0.7},
+            {"round": 0, "eval_accuracy": 0.4},
+            {"round": 1, "eval_accuracy": 0.6},
+        ],
+    )
+
+    assert resolve_results_path(str(run_dir)) == results_path
+    assert resolve_results_path(str(results_path)) == results_path
+    assert [record["round"] for record in load_records(results_path)] == [0, 1, 2]
+
+    _write_json(tmp_path / "bad.json", {"round": 0})
+    try:
+        load_records(tmp_path / "bad.json")
+    except ValueError as exc:
+        assert "Expected list of round records" in str(exc)
+    else:
+        raise AssertionError("load_records should reject non-list payloads")
 
 
 def test_adaptive_selected_per_size_timeline_records_carries_forward(tmp_path: Path):

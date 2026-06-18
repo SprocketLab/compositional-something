@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
+
+from self.analysis.nonadaptive_artifacts import (
+    load_self_improvement_rounds,
+    resolve_self_improvement_results_path,
+)
 
 
 MetricSpec = Tuple[str, str]
@@ -89,20 +93,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
 
 def resolve_results_path(raw_path: str) -> Path:
-    path = Path(raw_path)
-    if path.is_dir():
-        path = path / "self_improvement_results.json"
+    path = resolve_self_improvement_results_path(raw_path)
     if not path.exists():
         raise FileNotFoundError(f"Could not find results file at {path}.")
     return path
 
 
 def load_records(path: Path) -> List[Dict[str, object]]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, list):
-        raise ValueError(f"Expected {path} to contain a list of round summaries.")
-    return sorted(payload, key=lambda item: int(item["round"]))
+    return sorted(load_self_improvement_rounds(path), key=lambda item: int(item["round"]))
 
 
 def infer_label(path: Path) -> str:

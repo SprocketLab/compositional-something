@@ -8,9 +8,13 @@ from typing import Any, Iterable, Mapping, Sequence
 from self.analysis.artifact_io import SELF_IMPROVEMENT_RESULTS_FILE, JsonDict, read_json
 
 
-def load_self_improvement_rounds(path_or_dir: Path | str) -> list[JsonDict]:
+def resolve_self_improvement_results_path(path_or_dir: Path | str) -> Path:
     resolved = Path(path_or_dir)
-    path = resolved / SELF_IMPROVEMENT_RESULTS_FILE if resolved.is_dir() else resolved
+    return resolved / SELF_IMPROVEMENT_RESULTS_FILE if resolved.is_dir() else resolved
+
+
+def load_self_improvement_rounds(path_or_dir: Path | str) -> list[JsonDict]:
+    path = resolve_self_improvement_results_path(path_or_dir)
     rows = read_json(path, []) or []
     if not isinstance(rows, list):
         raise ValueError(f"Expected list of round records in {path}.")

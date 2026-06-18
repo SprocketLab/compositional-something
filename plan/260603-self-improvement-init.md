@@ -3022,3 +3022,11 @@ Acceptance criteria for first pilot:
 - Added a compatibility assertion in `tests/test_addition_recipe_diagnostic.py` confirming old `self.addition_recipe` exports resolve to the canonical recipe helpers.
 - Updated `self/README.md` with the addition recipe wrapper mapping and recipe-helper ownership.
 - Verification: `python -m py_compile self/core/recipes.py self/addition_recipe.py self/diagnostics/addition_recipe_diagnostic.py tests/test_addition_recipe_diagnostic.py tests/test_legacy_addition_self_improvement.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_recipe tests/test_addition_recipe_diagnostic.py tests/test_legacy_addition_self_improvement.py -q` (`31 passed`); import sanity confirmed `self.addition_recipe.resolve_addition_recipe` and `self.addition_recipe.AdditionRecipePreset` are the canonical `self.core.recipes` objects. The temporary `.pytest_tmp_recipe` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 07:37:16 UTC
+
+- Added `resolve_self_improvement_results_path(...)` to `self/analysis/nonadaptive_artifacts.py` and reexported it through `self/analysis/artifacts.py` so notebooks and plotting helpers can resolve run directories without hard-coding `self_improvement_results.json`.
+- Updated `self/analysis/plot_self_improvement_figure.py` to use `resolve_self_improvement_results_path(...)` and `load_self_improvement_rounds(...)` instead of direct JSON loading, while preserving existing missing-file errors and sorted-round plotting behavior.
+- Added `tests/test_analysis_artifacts.py` coverage for the resolver, artifacts reexport identity, plot helper path resolution, sorted record loading, and non-list payload rejection.
+- Updated `self/README.md` to document non-adaptive result-path resolution and the plot CLI's use of the stable artifact loader.
+- Verification: `python -m py_compile self/analysis/nonadaptive_artifacts.py self/analysis/artifacts.py self/analysis/plot_self_improvement_figure.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_loader tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`). The temporary `.pytest_tmp_analysis_loader` directory was removed after verification.
