@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from self.core import worker_io
 from self.core.candidate_local_workers import write_json
+from self.core.candidate_worker_payloads import candidate_payload_from_work_item
 from self.core.data_io import ensure_dir, save_examples
 from self.core.proposals import PromptBundle, write_trace_jsonl
 
@@ -82,15 +83,7 @@ def prepare_candidate_worker_specs(
             "current_per_size_accuracy": {str(size): score for size, score in current_per_size_accuracy.items()},
             "init_final_accuracy": init_final_accuracy,
             "seed": args.seed + attempt_index * 1009 + item.index,
-            "candidate": {
-                "index": item.index,
-                "row_id": item.row_id,
-                "proposal": item.proposal.to_json_dict(),
-                "completion": item.completion,
-                "raw_output": item.raw_output,
-                "proposal_prediction": item.proposal_prediction,
-                "pseudo_diagnostics": item.pseudo_diagnostics,
-            },
+            "candidate": candidate_payload_from_work_item(item),
         }
         write_json(spec_path, payload)
         spec_paths.append(spec_path)

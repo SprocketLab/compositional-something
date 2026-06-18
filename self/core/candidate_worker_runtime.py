@@ -13,16 +13,11 @@ from typing import Any, Callable, Dict, MutableMapping, Optional, Sequence
 import torch
 from transformers import set_seed
 
+from self.core.candidate_worker_payloads import candidate_payload_to_work_item
 from self.core.data_io import load_examples
 from self.core.experience_traces import outcome_trace_from_json, proposal_trace_from_json
 from self.core.model_io import ModelBootstrapCache
-from self.core.models import (
-    CandidateMetrics,
-    CandidateWorkItem,
-    ExactPairDataset,
-    float_or_nan,
-    proposal_from_payload,
-)
+from self.core.models import CandidateMetrics, CandidateWorkItem, float_or_nan
 from self.core.proposals import PromptBundle
 
 
@@ -131,17 +126,9 @@ def _load_shared_inputs(
 
 def _candidate_item_from_payload(payload: JsonDict, pseudo_examples: Sequence[Any]) -> CandidateWorkItem:
     candidate_payload = dict(payload["candidate"])
-    proposal = proposal_from_payload(dict(candidate_payload["proposal"]))
-    return CandidateWorkItem(
-        index=int(candidate_payload["index"]),
-        row_id=candidate_payload.get("row_id"),
-        proposal=proposal,
-        completion=str(candidate_payload.get("completion", "")),
-        raw_output=candidate_payload.get("raw_output"),
-        composed=ExactPairDataset(examples=[], component_map={}, keys=set(), diagnostics={}),
+    return candidate_payload_to_work_item(
+        payload=candidate_payload,
         pseudo_examples=pseudo_examples,
-        pseudo_diagnostics=dict(candidate_payload.get("pseudo_diagnostics") or {}),
-        proposal_prediction=dict(candidate_payload.get("proposal_prediction") or {}),
     )
 
 

@@ -9,66 +9,23 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from self.core import candidate_workers, worker_io
+from self.core.candidate_worker_payloads import (
+    work_item_from_worker_payload,
+    work_item_to_worker_payload,
+)
 from self.core.experience_traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import (
     CandidateMetrics,
     CandidateWorkItem,
-    ExactPairDataset,
     candidate_metrics_from_json,
-    proposal_from_payload,
 )
 from self.core.proposals import PromptBundle
-from self.core.data_io import load_examples, sanitize_json_value
 from self.core.training import TrainingConfig
 
 
 JsonDict = Dict[str, Any]
 ScoreCandidateFn = Callable[..., CandidateMetrics]
 CollectMetricsFn = Callable[..., List[CandidateMetrics]]
-
-
-def work_item_to_worker_payload(
-    *,
-    item: CandidateWorkItem,
-    round_dir: Path,
-) -> JsonDict:
-    candidate_dir = round_dir / "candidates" / f"candidate_{item.index:02d}"
-    return sanitize_json_value(
-        {
-            "index": item.index,
-            "row_id": item.row_id,
-            "proposal": item.proposal.to_json_dict(),
-            "completion": item.completion,
-            "raw_output": item.raw_output,
-            "proposal_prediction": item.proposal_prediction,
-            "pseudo_diagnostics": item.pseudo_diagnostics,
-            "pseudo_examples_path": str(candidate_dir / "pseudo_examples.jsonl"),
-            "pseudo_count": len(item.pseudo_examples),
-            "composed_keys": [worker_io.json_ready_key(key) for key in sorted(item.composed.keys, key=repr)],
-            "composed_count": len(item.composed.examples),
-        }
-    )
-
-
-def work_item_from_worker_payload(
-    *,
-    payload: Mapping[str, Any],
-    task: Any,
-) -> CandidateWorkItem:
-    pseudo_path = Path(str(payload["pseudo_examples_path"]))
-    pseudo_examples = load_examples(pseudo_path, task.deserialize_example)
-    composed_keys = {worker_io.key_from_json(key) for key in payload.get("composed_keys", [])}
-    return CandidateWorkItem(
-        index=int(payload["index"]),
-        row_id=payload.get("row_id"),
-        proposal=proposal_from_payload(dict(payload["proposal"])),
-        completion=str(payload.get("completion", "")),
-        raw_output=payload.get("raw_output"),
-        composed=ExactPairDataset(examples=[], component_map={}, keys=composed_keys, diagnostics={}),
-        pseudo_examples=pseudo_examples,
-        pseudo_diagnostics=dict(payload.get("pseudo_diagnostics") or {}),
-        proposal_prediction=dict(payload.get("proposal_prediction") or {}),
-    )
 
 
 def candidate_failure_metrics(
