@@ -564,7 +564,9 @@ the supported public surface.
   `launchers/self/submit_multiplication_rectangular_square_probe_mig.sh`, and
   `launchers/self/submit_multiplication_rectangular_square_seed_resweep_mig.sh`
   use the generic helper for repo-root/Python setup, boolean parsing, and
-  dry-run command printing.
+  dry-run command printing. The square probe submitter uses the shared
+  sbatch-script submission helper for its seed job and dependent diagnostic
+  job.
 - `launchers/self/run_multiplication_rectangular_seed_mig.sbatch`,
   `launchers/self/run_multiplication_rectangular_self_improvement_mig.sbatch`,
   `launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh`, and

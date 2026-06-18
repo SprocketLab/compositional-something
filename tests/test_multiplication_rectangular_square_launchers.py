@@ -91,8 +91,14 @@ def test_multiplication_square_probe_wrapper_dry_run_emits_seed_and_diagnostic(t
     )
 
     stdout = result.stdout
+    combined = result.stdout + result.stderr
     assert "[INFO] seed_job_id=dryrun_seed" in stdout
     assert "[INFO] diagnostic_job_id=dryrun_diag" in stdout
+    assert "--job-name mult-rect-square-seed" in combined
+    assert "--job-name mult-rect-square-diag" in combined
+    assert "--dependency afterok:dryrun_seed" in combined
+    assert r"--export ALL\,OUT_ROOT=" in combined
+    assert r"\,SEED_MODEL=" in combined
     assert "multiplication_rectangular_square_probe_" not in stdout
     assert "[INFO] Seed summary:" in stdout
     assert "[INFO] Diagnostic summary:" in stdout
