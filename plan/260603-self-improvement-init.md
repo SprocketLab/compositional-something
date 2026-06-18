@@ -4279,3 +4279,35 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`97 passed`, `3`
   existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:31:17 UTC
+
+- Factored common lazy-compatibility export mechanics into
+  `self/core/lazy_exports.py`.
+- Moved the driver compatibility owner map into
+  `self/core/driver_compat_targets.py`, leaving
+  `self/core/driver_compat_exports.py` as a thin public lazy facade over
+  `self/core/driver_compat_manifest.py` plus the target map.
+- Moved the legacy `self.self_improvement_core` owner map into
+  `self/core/nonadaptive_facade_targets.py`, leaving
+  `self/core/nonadaptive_facade_exports.py` focused on grouped export names and
+  lazy facade behavior.
+- Preserved import-light behavior for both public compatibility surfaces: the
+  new target-map modules contain only strings and do not import task adapters,
+  the non-adaptive loop, training, Torch, or Transformers.
+- Verification: `python -m py_compile self/core/lazy_exports.py
+  self/core/driver_compat_targets.py self/core/driver_compat_exports.py
+  self/core/nonadaptive_facade_targets.py self/core/nonadaptive_facade_exports.py
+  self/self_improvement_core.py tests/test_driver_lazy_imports.py`;
+  base-Python smoke confirmed importing all lazy facade/target modules leaves
+  task, non-adaptive-loop, training, Torch, and Transformers modules unloaded;
+  target-map completeness checks reported no missing driver or non-adaptive
+  compatibility targets; `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_lazy_export_targets tests/test_driver_lazy_imports.py
+  tests/test_nonadaptive_compat.py tests/test_training_data.py
+  tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py
+  tests/test_nonadaptive_seed_round_zero.py tests/test_proposal_generation.py
+  tests/test_adaptive_proposals_and_sandbox.py tests/test_composition_pseudolabels.py
+  tests/test_proposal_grpo_traces.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`112 passed`, `7`
+  existing multiprocessing fork warnings).

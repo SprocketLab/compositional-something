@@ -48,10 +48,15 @@ the supported public surface.
 - `self/core/driver_compat_manifest.py`: lightweight manifest of the driver
   compatibility names, kept separate so the driver can expose `dir()`/`__all__`
   without importing the full legacy surface eagerly.
+- `self/core/driver_compat_targets.py`: canonical-owner target map for driver
+  compatibility exports. Update this when moving an old driver-reexported name
+  to a new focused module.
 - `self/core/driver_public_api.py`: mechanical installer for public driver
   delegates that forward through `driver_wiring.py` with the live driver module
   as the binding surface, keeping `driver.py` small without breaking old
   monkeypatch points.
+- `self/core/lazy_exports.py`: shared lazy compatibility resolver, validation,
+  and `dir()` helpers used by import-light legacy facades.
 - `self/core/module_proxy.py`: shared compatibility helper for old module
   paths that should proxy canonical modules while forwarding monkeypatch-style
   attribute writes.
@@ -318,6 +323,9 @@ the supported public surface.
 - `self/core/nonadaptive_facade_exports.py`: explicit legacy export manifest
   and lazy resolver for `self.self_improvement_core`, grouping compatibility
   names by canonical owner while keeping old-path import/listing lightweight.
+- `self/core/nonadaptive_facade_targets.py`: canonical-owner target map for
+  legacy `self.self_improvement_core` exports. Update this when moving an old
+  facade-exported name to a new focused module.
 - `self/core/task_protocols.py`: shared task/example protocols and type
   aliases used by task-agnostic self-improvement code.
 - `self/core/task_registry.py`: adaptive task-name lookup for concrete task

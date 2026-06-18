@@ -7,151 +7,34 @@ available here without importing the full runtime stack during module import.
 
 from __future__ import annotations
 
-import importlib
 from typing import Any
 
 from self.core.driver_compat_manifest import COMPAT_EXPORT_NAMES
+from self.core.driver_compat_targets import DRIVER_COMPAT_EXPORT_TARGETS
+from self.core.lazy_exports import (
+    lazy_export_dir,
+    resolve_lazy_export,
+    validate_lazy_export_targets,
+)
 
-
-_EXPORT_TARGETS: dict[str, tuple[str, str]] = {
-    "AdditionExample": ("core.addition_pipeline", "AdditionExample"),
-    "AdditionTask": ("self.tasks.addition", "AdditionTask"),
-    "AutoModelForCausalLM": ("transformers", "AutoModelForCausalLM"),
-    "AutoTokenizer": ("transformers", "AutoTokenizer"),
-    "CANDIDATE_EXECUTION_MODES": ("self.core.args", "CANDIDATE_EXECUTION_MODES"),
-    "CONDITION_CHOICES": ("self.core.args", "CONDITION_CHOICES"),
-    "CONTROLLER_EXECUTION_MODES": ("self.core.args", "CONTROLLER_EXECUTION_MODES"),
-    "CandidateMetrics": ("self.core.models", "CandidateMetrics"),
-    "CandidateWorkItem": ("self.core.models", "CandidateWorkItem"),
-    "CheckpointManager": ("self.core.checkpoints", "CheckpointManager"),
-    "ConfigProposal": ("self.core.proposal_config_schema", "ConfigProposal"),
-    "DEFAULT_CONFIG_SEARCH_SPACES": ("self.core.proposal_config_schema", "DEFAULT_CONFIG_SEARCH_SPACES"),
-    "ExecutableProposal": ("self.core.models", "ExecutableProposal"),
-    "ExactPairDataset": ("self.core.models", "ExactPairDataset"),
-    "OUTCOME_TRACE_TARGET_MODES": ("self.core.args", "OUTCOME_TRACE_TARGET_MODES"),
-    "OutcomeTraceExample": ("self.core.experience_trace_models", "OutcomeTraceExample"),
-    "ProposalTraceExample": ("self.core.experience_trace_models", "ProposalTraceExample"),
-    "RUN_LENGTH_TARGET_RUN_STATE": ("self.tasks.bit_parsing", "RUN_LENGTH_TARGET_RUN_STATE"),
-    "RunLengthExample": ("self.tasks.run_length_data", "RunLengthExample"),
-    "RunLengthTask": ("self.tasks.run_length", "RunLengthTask"),
-    "TASK_CHOICES": ("self.core.args", "TASK_CHOICES"),
-    "TrainingConfig": ("self.core.training", "TrainingConfig"),
-    "_extract_python_code": ("self.core.proposal_executable_validation", "_extract_python_code"),
-    "_raw_output": ("self.core.proposal_config_validation", "_raw_output"),
-    "_repair_program_with_model": ("self.core.proposal_executable_validation", "_repair_program_with_model"),
-    "_row_payload": ("self.core.proposal_executable_validation", "_row_payload"),
-    "_row_repair_output": ("self.core.proposal_executable_validation", "_row_repair_output"),
-    "attach_pseudo_labels": ("self.core.candidate_data", "attach_pseudo_labels"),
-    "bucket_by_digits": ("core.addition_pipeline", "bucket_by_digits"),
-    "bucket_run_length_by_bits": ("self.tasks.run_length_data", "bucket_run_length_by_bits"),
-    "build_candidate_proposal_trace_example": (
-        "self.core.experience_traces",
-        "build_candidate_proposal_trace_example",
-    ),
-    "build_composed_pseudo_map": ("core.addition_pipeline", "build_composed_pseudo_map"),
-    "build_exact_pair_addition_dataset": ("self.core.composition", "build_exact_pair_addition_dataset"),
-    "build_exact_pair_dataset": ("self.core.composition", "build_exact_pair_dataset"),
-    "build_exact_pair_run_length_dataset": ("self.core.composition", "build_exact_pair_run_length_dataset"),
-    "build_generation_encodings": ("self.core.evaluation", "build_generation_encodings"),
-    "build_outcome_trace_example": ("self.core.experience_outcome_traces", "build_outcome_trace_example"),
-    "build_post_task_proposal_rehearsal_examples": (
-        "self.core.experience_trace_models",
-        "build_post_task_proposal_rehearsal_examples",
-    ),
-    "build_proposal_grpo_traces": ("self.core.proposal_grpo_traces", "build_proposal_grpo_traces"),
-    "cleanup_replaced_model_checkpoint": ("self.core.checkpoints", "cleanup_replaced_model_checkpoint"),
-    "cleanup_unselected_models": ("self.core.checkpoints", "cleanup_unselected_models"),
-    "clone_run_length_with_override": ("self.tasks.run_length_data", "clone_run_length_with_override"),
-    "component_prediction_examples_for_task": (
-        "self.core.proposal_prompt_metadata",
-        "component_prediction_examples_for_task",
-    ),
-    "compose_addition_pseudo_examples": ("self.core.composition_pseudolabels", "compose_addition_pseudo_examples"),
-    "compose_examples": ("core.addition_pipeline", "compose_examples"),
-    "compose_program_pseudo_examples": (
-        "self.core.composition_program_pseudolabels",
-        "compose_program_pseudo_examples",
-    ),
-    "compose_pseudo_examples": ("self.core.composition_pseudolabels", "compose_pseudo_examples"),
-    "compose_run_length_pseudo_examples": (
-        "self.core.composition_pseudolabels",
-        "compose_run_length_pseudo_examples",
-    ),
-    "compute_run_stats": ("self.tasks.run_length_logic", "compute_run_stats"),
-    "controller_worker_failure_path": ("self.core.controller_workers", "controller_worker_failure_path"),
-    "controller_worker_output_path": ("self.core.controller_workers", "controller_worker_output_path"),
-    "controller_worker_time_limit_for_phase": (
-        "self.core.controller_workers",
-        "controller_worker_time_limit_for_phase",
-    ),
-    "evaluate_model": ("self.core.candidate_training_runtime", "evaluate_model"),
-    "example_key": ("core.addition_pipeline", "example_key"),
-    "examples_by_key": ("self.core.candidate_data", "examples_by_key"),
-    "execute_program_cases": ("self.core.program_sandbox", "execute_program_cases"),
-    "extract_json_object": ("self.core.proposal_config_schema", "extract_json_object"),
-    "format_run_length_run_state": ("self.tasks.run_length_logic", "format_run_length_run_state"),
-    "generate_prediction_map": ("self.core.evaluation", "generate_prediction_map"),
-    "has_component_boundary_carry": ("core.addition_pipeline", "has_component_boundary_carry"),
-    "instantiate_model_and_tokenizer": ("self.core.model_io", "instantiate_model_and_tokenizer"),
-    "load_examples": ("self.core.data_io", "load_examples"),
-    "load_or_generate_proposal_rows": ("self.core.proposal_generation", "load_or_generate_proposal_rows"),
-    "mean_accuracy_for_sizes": ("self.core.candidate_rewards", "mean_accuracy_for_sizes"),
-    "merge_run_length_examples": ("self.core.composition", "merge_run_length_examples"),
-    "merge_run_state": ("self.tasks.run_length_logic", "merge_run_state"),
-    "normalize_bit_target_mode": ("self.tasks.bit_common", "normalize_bit_target_mode"),
-    "normalized_config_completion": ("self.core.proposal_config_schema", "normalized_config_completion"),
-    "outcome_trace_from_json": ("self.core.experience_trace_models", "outcome_trace_from_json"),
-    "parse_config_proposal": ("self.core.proposal_config_schema", "parse_config_proposal"),
-    "parse_run_length_prediction": ("self.tasks.bit_parsing", "parse_run_length_prediction"),
-    "parse_run_length_run_state_prediction": (
-        "self.tasks.bit_parsing",
-        "parse_run_length_run_state_prediction",
-    ),
-    "program_validation_cases": ("self.core.proposal_prompt_metadata", "program_validation_cases"),
-    "proposal_from_payload": ("self.core.models", "proposal_from_payload"),
-    "proposal_grpo_advantages": ("self.core.proposal_grpo_traces", "proposal_grpo_advantages"),
-    "proposal_grpo_reward": ("self.core.proposal_grpo_traces", "proposal_grpo_reward"),
-    "proposal_output_schema": ("self.core.proposal_config_schema", "proposal_output_schema"),
-    "proposal_payload_for_schema": ("self.core.proposal_config_schema", "proposal_payload_for_schema"),
-    "proposal_trace_from_json": ("self.core.experience_trace_models", "proposal_trace_from_json"),
-    "proposal_trace_metadata": ("self.core.experience_traces", "proposal_trace_metadata"),
-    "render_program_repair_prompt": ("self.core.proposal_prompts", "render_program_repair_prompt"),
-    "resolve_max_new_tokens": ("self.core.evaluation", "resolve_max_new_tokens"),
-    "run_length_key": ("self.tasks.run_length_data", "run_length_key"),
-    "sample_outcome_trace_replay": ("self.core.experience_trace_models", "sample_outcome_trace_replay"),
-    "sample_proposal_trace_replay": ("self.core.experience_trace_models", "sample_proposal_trace_replay"),
-    "set_seed": ("transformers", "set_seed"),
-    "source_sizes_from_examples": ("self.core.run_setup", "source_sizes_from_examples"),
-    "static_frontier_sizes": ("self.core.candidate_rewards", "static_frontier_sizes"),
-    "submit_controller_worker": ("self.core.controller_workers", "submit_controller_worker"),
-    "target_format_for_task": ("self.core.proposal_prompt_metadata", "target_format_for_task"),
-    "target_pattern_for_task": ("self.core.composition_program_pseudolabels", "target_pattern_for_task"),
-    "train_checkpoint": ("self.core.candidate_training_runtime", "train_checkpoint"),
-    "validate_config_prediction": ("self.core.proposal_config_schema", "validate_config_prediction"),
-    "validate_config_rows": ("self.core.proposal_config_validation", "validate_config_rows"),
-    "validate_executable_rows": ("self.core.proposal_executable_validation", "validate_executable_rows"),
-    "wait_for_controller_worker": ("self.core.controller_workers", "wait_for_controller_worker"),
-}
-
-
-_MISSING_EXPORT_TARGETS = set(COMPAT_EXPORT_NAMES) - set(_EXPORT_TARGETS)
-if _MISSING_EXPORT_TARGETS:
-    missing = ", ".join(sorted(_MISSING_EXPORT_TARGETS))
-    raise RuntimeError(f"Missing lazy driver compatibility targets: {missing}")
+validate_lazy_export_targets(
+    export_names=COMPAT_EXPORT_NAMES,
+    targets=DRIVER_COMPAT_EXPORT_TARGETS,
+    label="driver compatibility",
+)
 
 
 def __getattr__(name: str) -> Any:
-    target = _EXPORT_TARGETS.get(name)
-    if target is None:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    module_name, attr_name = target
-    value = getattr(importlib.import_module(module_name), attr_name)
-    globals()[name] = value
-    return value
+    return resolve_lazy_export(
+        name,
+        module_name=__name__,
+        targets=DRIVER_COMPAT_EXPORT_TARGETS,
+        module_globals=globals(),
+    )
 
 
 def __dir__() -> list[str]:
-    return sorted(set(globals()) | set(COMPAT_EXPORT_NAMES))
+    return lazy_export_dir(globals(), COMPAT_EXPORT_NAMES)
 
 
 __all__ = list(COMPAT_EXPORT_NAMES)
