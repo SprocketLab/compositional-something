@@ -3123,3 +3123,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_task_self_improvement.sbatch` to route its repeated task/module/budget/model context output through `self_print_context(...)` while preserving output directory creation, preflight behavior, launch command printing, and dry-run behavior.
 - Updated `self/README.md` to note that the generic task self-improvement budget-grid runner/submitter now shares context-printing helpers in addition to repo-root/Python/boolean and dry-run helper behavior.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_task_self_improvement.sbatch launchers/self/submit_budget_grid_self_improvement.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_task_context tests/test_task_self_improvement_launchers.py -q` (`3 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:27:56 UTC
+
+- Extended shared context-banner printing to the generic seed-fit runner.
+- Updated `launchers/self/run_seed_fit_experiment.sbatch` to route its repeated task/data/model context output through `self_print_context(...)` while preserving output directory creation, preflight behavior, launch command printing, and dry-run behavior.
+- Updated `self/README.md` to note that the seed-fit grid runner/submitter now shares context-printing helpers in addition to repo-root/Python/boolean and dry-run helper behavior.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_seed_fit_experiment.sbatch launchers/self/submit_seed_fit_grid.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_seedfit_context tests/test_seed_fit_launchers.py -q` (`3 passed`); `git diff --check`.

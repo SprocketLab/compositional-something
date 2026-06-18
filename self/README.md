@@ -419,8 +419,8 @@ tests, notebooks, and older artifacts.
   command printing before delegating to the rectangular tune CLI.
 - `launchers/self/run_seed_fit_experiment.sbatch` and
   `launchers/self/submit_seed_fit_grid.sh` use the generic helper for
-  repo-root/Python setup where needed, boolean parsing, and seed-fit dry-run
-  verification.
+  repo-root/Python setup where needed, boolean parsing, context printing, and
+  seed-fit dry-run verification.
 - `launchers/self/run_task_self_improvement.sbatch` and
   `launchers/self/submit_budget_grid_self_improvement.sh` use the generic
   helper for repo-root/Python setup where needed, boolean parsing, context
@@ -648,8 +648,9 @@ new implementation code:
   and dry-run flag helper;
   the addition tiny/shared seed runners share generic repo-root/Python/boolean
   and staged dry-run command-printing helpers;
-  the seed-fit grid runner/submitter share generic repo-root/Python/boolean
-  helpers and now have a dry-run verification path; the generic task
+  the seed-fit grid runner/submitter share generic
+  repo-root/Python/boolean/context-printing helpers and now have a dry-run
+  verification path; the generic task
   self-improvement budget-grid runner/submitter share the same helper pattern,
   including context printing;
   the small Figure 2/3 submitter wrappers share the helper path, including
