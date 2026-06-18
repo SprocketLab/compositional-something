@@ -19,6 +19,11 @@ from self.core.candidate_local_workers import (
     write_json,
     write_local_candidate_failure,
 )
+from self.core.candidate_slurm_workers import (
+    submit_candidate_array as _submit_candidate_array,
+    train_candidates_slurm_array_from_specs,
+    wait_for_candidate_array as _wait_for_candidate_array,
+)
 from self.core.proposals import PromptBundle, write_trace_jsonl
 from self.core.slurm import cancel_job, slurm_job_active, submit_sbatch
 
@@ -195,19 +200,17 @@ def train_candidates_slurm_array(
         init_final_accuracy=init_final_accuracy,
         attempt_index=attempt_index,
     )
-    job_id = submit_candidate_array(args=args, round_dir=round_dir, spec_paths=spec_paths)
-    print(
-        f"[INFO] Submitted candidate worker array {job_id} with {len(spec_paths)} tasks "
-        f"(max_parallel={args.candidate_array_max_parallel or 'unlimited'}).",
-        flush=True,
-    )
-    wait_for_candidate_array(args=args, round_dir=round_dir, work_items=work_items, job_id=job_id)
-    return collect_metrics_fn(
+    return train_candidates_slurm_array_from_specs(
+        args=args,
         round_dir=round_dir,
         work_items=work_items,
+        spec_paths=spec_paths,
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
+        collect_metrics_fn=collect_metrics_fn,
+        submit_candidate_array_fn=submit_candidate_array,
+        wait_for_candidate_array_fn=wait_for_candidate_array,
     )
 
 
@@ -269,36 +272,14 @@ def submit_candidate_array(
     round_dir: Path,
     spec_paths: Sequence[Path],
 ) -> str:
-    script = args.candidate_array_sbatch_script
-    job_dir = round_dir / "candidate_jobs"
-    logs_dir = job_dir / "logs"
-    ensure_dir(logs_dir)
-    throttle = f"%{args.candidate_array_max_parallel}" if args.candidate_array_max_parallel > 0 else ""
-    array_spec = f"0-{len(spec_paths) - 1}{throttle}"
-    submission = submit_sbatch(
-        script=script,
-        job_name=f"adaptive-cand-{round_dir.name}",
-        output_path=logs_dir / "candidate-%A_%a.out",
-        error_path=logs_dir / "candidate-%A_%a.err",
-        time_limit=str(args.candidate_array_time_limit),
-        exports={
-            "CANDIDATE_SPEC_DIR": round_dir / "candidate_jobs" / "specs",
-            "PYTHON_BIN": sys.executable,
-            "ROOT_DIR": Path.cwd(),
-        },
-        array_spec=array_spec,
+    return _submit_candidate_array(
+        args=args,
+        round_dir=round_dir,
+        spec_paths=spec_paths,
+        submit_sbatch_fn=submit_sbatch,
+        executable=sys.executable,
+        cwd_fn=Path.cwd,
     )
-    write_json(
-        job_dir / "slurm_dispatch.json",
-        {
-            "job_id": submission.job_id,
-            "array_spec": array_spec,
-            "command": list(submission.command),
-            "stdout": submission.stdout,
-            "stderr": submission.stderr,
-        },
-    )
-    return submission.job_id
 
 
 def wait_for_candidate_array(
@@ -308,34 +289,13 @@ def wait_for_candidate_array(
     work_items: Sequence[Any],
     job_id: str,
 ) -> None:
-    start = time.monotonic()
-    last_reported_done = -1
-    while True:
-        done_count = 0
-        for item in work_items:
-            if candidate_metric_path(round_dir, item).exists() or candidate_worker_failure_path(round_dir, item).exists():
-                done_count += 1
-        if done_count == len(work_items):
-            return
-        if done_count != last_reported_done:
-            print(
-                f"[INFO] Candidate worker array {job_id}: {done_count}/{len(work_items)} workers finished.",
-                flush=True,
-            )
-            last_reported_done = done_count
-        if args.candidate_array_timeout_seconds > 0.0:
-            elapsed = time.monotonic() - start
-            if elapsed >= args.candidate_array_timeout_seconds:
-                cancel_job(job_id)
-                write_json(
-                    round_dir / "candidate_jobs" / "slurm_timeout.json",
-                    {
-                        "job_id": job_id,
-                        "elapsed_seconds": elapsed,
-                        "timeout_seconds": args.candidate_array_timeout_seconds,
-                    },
-                )
-                return
-        if not slurm_job_active(job_id):
-            return
-        time.sleep(float(args.candidate_array_poll_seconds))
+    return _wait_for_candidate_array(
+        args=args,
+        round_dir=round_dir,
+        work_items=work_items,
+        job_id=job_id,
+        cancel_job_fn=cancel_job,
+        slurm_job_active_fn=slurm_job_active,
+        monotonic_fn=time.monotonic,
+        sleep_fn=time.sleep,
+    )

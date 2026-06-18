@@ -53,11 +53,14 @@ tests, notebooks, and older artifacts.
   generation, packed local-worker execution, and worker-failure artifact
   writing.
 - `self/core/candidate_workers.py`: candidate worker spec/pack-spec
-  preparation, Slurm-array dispatch, and compatibility wrappers for local
+  preparation plus compatibility wrappers/reexports for local and Slurm-array
   candidate-worker dispatch.
 - `self/core/candidate_local_workers.py`: local and packed-local
   candidate-worker process scheduling, local dispatch manifests, timeout
   handling, and local worker failure artifact writing.
+- `self/core/candidate_slurm_workers.py`: Slurm-array candidate-worker
+  submission, dispatch manifests, polling, timeout cancellation, and
+  post-array metric collection handoff.
 - `self/core/composition.py`: exact-pair target construction, composition
   guards, and self-labeled pseudolabel generation for config/program proposals.
 - `self/core/controller_phases.py`: controller worker phase constants and
