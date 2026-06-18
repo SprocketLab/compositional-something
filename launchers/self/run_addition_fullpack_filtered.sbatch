@@ -73,19 +73,20 @@ if [[ -n "${EXTRA_ARGS:-}" ]]; then
   COMMON_ARGS+=(${EXTRA_ARGS})
 fi
 
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Model: ${MODEL_NAME}"
-echo "[INFO] Tokenizer mode: ${TOKENIZER_MODE}"
-echo "[INFO] Seed model link: ${SEED_MODEL_LINK}"
-echo "[INFO] Seed model target: ${SEED_MODEL_TARGET}"
-echo "[INFO] Seed: ${SEED}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Baseline selector: ${ONLY_BASELINE:-all}"
-echo "[INFO] Slurm job id: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Output root" "${OUT_ROOT}" \
+  "Python" "${PYTHON_BIN}" \
+  "Model" "${MODEL_NAME}" \
+  "Tokenizer mode" "${TOKENIZER_MODE}" \
+  "Seed model link" "${SEED_MODEL_LINK}" \
+  "Seed model target" "${SEED_MODEL_TARGET}" \
+  "Seed" "${SEED}" \
+  "Dry run" "${DRY_RUN}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Baseline selector" "${ONLY_BASELINE:-all}" \
+  "Slurm job id" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 if [[ "${MODEL_NAME}" == "${SEED_MODEL_LINK}" ]]; then
   mkdir -p "$(dirname "${SEED_MODEL_LINK}")"
   if self_parse_bool "${DRY_RUN}"; then

@@ -19,9 +19,10 @@ BASELINES=(
   compose_corrupt
 )
 
-echo "[INFO] Job script: ${JOB_SCRIPT}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Job script" "${JOB_SCRIPT}" \
+  "Output root" "${OUT_ROOT}" \
+  "Dry run" "${DRY_RUN}"
 
 for baseline in "${BASELINES[@]}"; do
   out_dir="${OUT_ROOT}/addition/${baseline}"

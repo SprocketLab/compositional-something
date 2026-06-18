@@ -3109,3 +3109,10 @@ Acceptance criteria for first pilot:
 - Updated the adaptive pilot compile check to point at the explicit legacy run-length bit-string helper and updated the guarded diagnostic launcher test import accordingly.
 - Updated `self/README.md` and redacted the stale wrapper mention from this log so tracked docs no longer direct readers to a public auxiliary bit-task entry point.
 - Verification: `python -m py_compile self/legacy/bit_task_self_improvement.py self/legacy/run_length_self_improvement.py self/run_length_self_improvement.py tests/test_guarded_plain_output_bit_diagnostic_launchers.py`; `bash -n launchers/self/run_adaptive_self_improvement_ailab.sbatch launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; tracked grep confirms no old vote-style task references and no stale public auxiliary-wrapper path references; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_aux_cleanup tests/test_guarded_plain_output_bit_diagnostic_launchers.py tests/test_self_improvement_launchers.py -q` (`8 passed`).
+
+### Implementation Log: 2026-06-18 08:22:51 UTC
+
+- Extended shared context-banner printing to the addition fullpack-filtered runner and submitter.
+- Updated `launchers/self/run_addition_fullpack_filtered.sbatch` and `launchers/self/submit_addition_fullpack_filtered_mig.sh` to route their repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving seed-link setup, preflight behavior, per-baseline status output, Slurm submission, and dry-run behavior.
+- Updated `self/README.md` to note that the addition fullpack-filtered launcher pair now shares context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fullpack_filtered.sbatch launchers/self/submit_addition_fullpack_filtered_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_fullpack_context tests/test_addition_fullpack_filtered_launcher.py -q` (`5 passed`); `git diff --check`.

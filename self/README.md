@@ -382,8 +382,8 @@ tests, notebooks, and older artifacts.
   printing.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
-  helper for repo-root/Python setup, boolean parsing, and dry-run command
-  printing.
+  helper for repo-root/Python setup, boolean parsing, context printing, and
+  dry-run command printing.
 - `launchers/self/run_addition_their_recipe_diagnostic.sh` uses the generic
   helper for repo-root/Python setup, boolean parsing, and dry-run command
   printing before delegating to the addition recipe diagnostic CLI.
@@ -629,7 +629,8 @@ new implementation code:
   fullpack and more-data sweep context banners routed through
   `self_print_context`; the addition
   fullpack-filtered runner/submitter share generic
-  repo-root/Python/boolean/command-printing helpers; the addition recipe
+  repo-root/Python/boolean/context-printing/command-printing helpers; the
+  addition recipe
   diagnostic launcher and recipe focused/fullpack/recovery workflow share the
   same helper path, with focused/fullpack/recovery context banners routed
   through `self_print_context`; the run-length fixed-binary submitter uses the
