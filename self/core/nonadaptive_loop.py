@@ -43,6 +43,11 @@ from self.core.model_io import (
     sync_model_special_token_ids,
 )
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
+from self.core.nonadaptive_state import (
+    persist_nonadaptive_metadata,
+    prepare_nonadaptive_run_state,
+    write_nonadaptive_config_args,
+)
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -100,57 +105,47 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     composed_min_size = setup.composed_min_size
     reset_each_round = setup.reset_each_round
 
-    original_output_dir = Path(args.output_dir)
-    if reset_each_round:
-        base_output_dir = original_output_dir / "reset_each_round"
-        ensure_dir(original_output_dir)
-        print(
-            f"[INFO] reset_in_each_round enabled; writing artifacts to {base_output_dir}",
-            flush=True,
-        )
-    else:
-        base_output_dir = original_output_dir
-    ensure_dir(base_output_dir)
-
-    data_dir = base_output_dir / "data"
-    ensure_dir(data_dir)
-    metadata_path = data_dir / "metadata.json"
-    results_path = base_output_dir / "self_improvement_results.json"
-    resume_requested = args.resume or args.resume_from_round is not None
-
-    metadata: JsonDict = {}
-    if metadata_path.exists():
-        with metadata_path.open("r", encoding="utf-8") as handle:
-            metadata = json.load(handle)
-    existing_summaries = load_summary_records(results_path) if resume_requested else {}
+    run_state = prepare_nonadaptive_run_state(
+        args,
+        reset_each_round=reset_each_round,
+        json_module=json,
+        ensure_dir_fn=ensure_dir,
+        load_summary_records_fn=load_summary_records,
+    )
+    paths = run_state.paths
+    base_output_dir = paths.base_output_dir
+    metadata_path = paths.metadata_path
+    results_path = paths.results_path
+    resume_requested = run_state.resume_requested
+    metadata = run_state.metadata
+    existing_summaries = run_state.existing_summaries
 
     set_seed(args.seed)
     rng = random.Random(args.seed)
 
     def persist_metadata() -> None:
-        metadata["rng_state"] = encode_rng_state(rng.getstate())
-        with metadata_path.open("w", encoding="utf-8") as handle:
-            json.dump(sanitize_json_value(metadata), handle, indent=2)
+        persist_nonadaptive_metadata(
+            metadata,
+            metadata_path,
+            rng.getstate(),
+            json_module=json,
+            encode_rng_state_fn=encode_rng_state,
+            sanitize_json_value_fn=sanitize_json_value,
+        )
 
     if metadata and "rng_state" in metadata:
         rng.setstate(decode_rng_state(metadata["rng_state"]))
 
-    base_train_path = data_dir / "initial_train.jsonl"
-    base_val_path = data_dir / "initial_validation.jsonl"
-    base_test_path = data_dir / "initial_test.jsonl"
-    composed_pool_path = data_dir / "composed_pool.jsonl"
-    component_map_path = data_dir / "composed_component_map.json"
-    eval_path = data_dir / "evaluation.jsonl"
-    composed_eval_path = data_dir / "composed_evaluation.jsonl"
-    composed_eval_component_map_path = data_dir / "composed_evaluation_component_map.json"
-
-    def stored_value(*keys: str) -> Any:
-        for key in keys:
-            if key in metadata:
-                return metadata[key]
-        return None
-
-    new_run = not resume_requested or not base_train_path.exists()
+    base_train_path = paths.base_train_path
+    base_val_path = paths.base_val_path
+    base_test_path = paths.base_test_path
+    composed_pool_path = paths.composed_pool_path
+    component_map_path = paths.component_map_path
+    eval_path = paths.eval_path
+    composed_eval_path = paths.composed_eval_path
+    composed_eval_component_map_path = paths.composed_eval_component_map_path
+    stored_value = run_state.stored_value
+    new_run = run_state.new_run
 
     if new_run:
         print(f"[INFO] Generating {task.name} datasets from scratch.", flush=True)
@@ -243,8 +238,12 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         metadata["last_composed_refresh"] = "initial_dynamic" if dynamic_composed else "static_initial"
         persist_metadata()
 
-        with (base_output_dir / "config_args.json").open("w", encoding="utf-8") as handle:
-            json.dump(sanitize_json_value(vars(args)), handle, indent=2)
+        write_nonadaptive_config_args(
+            args,
+            base_output_dir,
+            json_module=json,
+            sanitize_json_value_fn=sanitize_json_value,
+        )
     else:
         print(f"[INFO] Loading {task.name} datasets from disk.", flush=True)
         if not metadata:
