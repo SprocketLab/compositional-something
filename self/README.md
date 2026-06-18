@@ -264,11 +264,14 @@ tests, notebooks, and older artifacts.
 
 ## Current Analysis
 
-- `self/analysis/artifacts.py`: stable JSON/JSONL loaders for notebooks,
-  adaptive-run discovery, attempt/proposal/candidate record flattening, trace
-  loading, adaptive candidate per-size records, selected-checkpoint per-size
-  timelines, proposal-GRPO metric records, and non-adaptive per-size accuracy
-  records.
+- `self/analysis/artifact_io.py`: shared JSON/JSONL readers and artifact
+  filename constants for analysis loaders.
+- `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
+  loading, attempt/proposal/candidate record flattening, trace loading,
+  adaptive candidate per-size records, selected-checkpoint per-size timelines,
+  and proposal-GRPO metric records.
+- `self/analysis/artifacts.py`: compatibility surface for notebook artifact
+  loaders plus non-adaptive per-size accuracy records.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   training-curve parsing, per-size heatmaps, and paper-style curve plots.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for
@@ -583,8 +586,9 @@ new implementation code:
   setup;
   and adaptive candidate-training defaults can be loaded from
   `launchers/self/config/adaptive_candidate_*.env`.
-- Use `self/analysis/artifacts.py` for new notebooks and migrate older
-  notebooks away from direct raw JSON path parsing when they are edited.
+- Use `self/analysis/adaptive_artifacts.py` for new adaptive notebooks and
+  keep `self/analysis/artifacts.py` as the compatibility surface for older
+  notebooks while migrating direct raw JSON parsing when files are edited.
 - Keep source/artifact hygiene conservative: source notebooks and report
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.

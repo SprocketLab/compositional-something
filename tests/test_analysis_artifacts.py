@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from self.analysis import adaptive_artifacts
 from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_per_size_records,
@@ -29,6 +30,9 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp_path: Path):
+    assert adaptive_attempt_records is adaptive_artifacts.adaptive_attempt_records
+    assert load_adaptive_run is adaptive_artifacts.load_adaptive_run
+
     run_dir = tmp_path / "root" / "addition-config"
     attempt_dir = run_dir / "attempt_0001"
     _write_json(
