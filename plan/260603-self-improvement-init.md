@@ -3983,3 +3983,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_run_length_fixed_binary_launchers.py` to pin the canonical module import, fixed-binary submitter command, and legacy wrapper dry-run behavior.
 - Updated `self/README.md` with the new experiment owner and compatibility-wrapper boundary.
 - Verification: `python -m py_compile self/experiments/run_length_alpha10_seed_beam.py launchers/self/run_run_length_alpha10_seed_beam_mig.py tests/test_run_length_fixed_binary_launchers.py`; `bash -n launchers/self/submit_run_length_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_beam_move tests/test_run_length_fixed_binary_launchers.py -q` (`3 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:44:22 UTC
+
+- Added `launchers/self/config/run_length_fixed_binary.env` as the explicit default config for the fixed-binary run-length submitter's paper-default, alpha-10 template, and beam settings.
+- Updated `launchers/self/submit_run_length_fixed_binary_mig.sh` to source the tracked default config first and then optionally source a partial `RUN_LENGTH_FIXED_BINARY_CONFIG` override file, preserving environment overrides and default behavior.
+- Replaced hard-coded paper/template/beam command knobs and Slurm resource values in the submitter with named config variables while keeping the existing manifest shape and dry-run flow.
+- Extended `tests/test_run_length_fixed_binary_launchers.py` with dry-run coverage for partial config overrides reaching paper, alpha-10 template, and beam commands.
+- Updated `self/README.md` with the new fixed-binary run-length config boundary.
+- Verification: `bash -n launchers/self/submit_run_length_fixed_binary_mig.sh launchers/self/config/run_length_fixed_binary.env`; `python -m py_compile tests/test_run_length_fixed_binary_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_fixed_binary_config tests/test_run_length_fixed_binary_launchers.py tests/test_self_common_launcher_helpers.py -q` (`7 passed`); `git diff --check`.

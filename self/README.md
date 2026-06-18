@@ -607,7 +607,10 @@ the supported public surface.
   argument construction across GPU and CPU jobs. It now launches the alpha-10
   seed-beam controller through `self.experiments.run_length_alpha10_seed_beam`;
   `launchers/self/run_run_length_alpha10_seed_beam_mig.py` remains a thin
-  compatibility wrapper for older direct invocations.
+  compatibility wrapper for older direct invocations. Paper-default, alpha-10
+  template, and beam defaults live in
+  `launchers/self/config/run_length_fixed_binary.env`, with
+  `RUN_LENGTH_FIXED_BINARY_CONFIG` available for partial overrides.
 - `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh` and
   `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch` use the
   generic helper for repo-root/Python setup and dry-run command printing. The

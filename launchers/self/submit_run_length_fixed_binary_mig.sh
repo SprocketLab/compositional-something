@@ -11,57 +11,59 @@ OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/run_length_fixed_binary_${TS}}"
 LOG_DIR="${LOG_DIR:-${ROOT_DIR}/artifacts/logs}"
 DRY_RUN="${DRY_RUN:-0}"
 
-RUN_LENGTH_SEED_MODEL="${RUN_LENGTH_SEED_MODEL:-${ROOT_DIR}/artifacts/models/run_length_recipe_seed_best}"
-ALPHA10_SEED_MODEL="${ALPHA10_SEED_MODEL:-${ROOT_DIR}/artifacts/runs/run_length_multisymbol_pair_alpha10_seed50k_steps15k_20260423_123229/seed/model}"
-CONTROLLER_PARTITION="${CONTROLLER_PARTITION:-cpu}"
+RUN_LENGTH_FIXED_BINARY_DEFAULT_CONFIG="${SCRIPT_DIR}/config/run_length_fixed_binary.env"
+self_source_config_file "${RUN_LENGTH_FIXED_BINARY_DEFAULT_CONFIG}" "run-length fixed-binary default config"
+if [[ -n "${RUN_LENGTH_FIXED_BINARY_CONFIG:-}" ]]; then
+  self_source_config_file "${RUN_LENGTH_FIXED_BINARY_CONFIG}" "run-length fixed-binary override config"
+fi
 
 mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 
 PAPER_ROOT="${OUT_ROOT}/paper_default"
-PAPER_CMD="cd ${ROOT_DIR} && env PYTHON_BIN=${PYTHON_BIN} OUT_ROOT=${PAPER_ROOT} STAGE=pilot TASKS=run_length RUN_LENGTH_SEED_MODEL=${RUN_LENGTH_SEED_MODEL} RUN_LENGTH_NUM_EXPAND_ROUNDS=8 RUN_LENGTH_EXPAND_NUM_BITS=4 RUN_LENGTH_EXPAND_TRAIN_PER_BIT=1200 TRAIN_BATCH_SIZE=128 EVAL_BATCH_SIZE=128 BIT_COMPOSITION_PATH_MODE=fixed_binary RUN_PILOT_GATE=0 DRY_RUN=0 bash ${ROOT_DIR}/launchers/self/run_figure2_recipe_aggressive.sh"
+PAPER_CMD="cd ${ROOT_DIR} && env PYTHON_BIN=${PYTHON_BIN} OUT_ROOT=${PAPER_ROOT} STAGE=${RUN_LENGTH_FIXED_BINARY_PAPER_STAGE} TASKS=${RUN_LENGTH_FIXED_BINARY_PAPER_TASKS} RUN_LENGTH_SEED_MODEL=${RUN_LENGTH_SEED_MODEL} RUN_LENGTH_NUM_EXPAND_ROUNDS=${RUN_LENGTH_FIXED_BINARY_PAPER_EXPAND_ROUNDS} RUN_LENGTH_EXPAND_NUM_BITS=${RUN_LENGTH_FIXED_BINARY_PAPER_EXPAND_NUM_BITS} RUN_LENGTH_EXPAND_TRAIN_PER_BIT=${RUN_LENGTH_FIXED_BINARY_PAPER_EXPAND_TRAIN_PER_BIT} TRAIN_BATCH_SIZE=${RUN_LENGTH_FIXED_BINARY_PAPER_TRAIN_BATCH_SIZE} EVAL_BATCH_SIZE=${RUN_LENGTH_FIXED_BINARY_PAPER_EVAL_BATCH_SIZE} BIT_COMPOSITION_PATH_MODE=${RUN_LENGTH_FIXED_BINARY_PAPER_COMPOSITION_PATH_MODE} RUN_PILOT_GATE=${RUN_LENGTH_FIXED_BINARY_PAPER_RUN_PILOT_GATE} DRY_RUN=0 bash ${ROOT_DIR}/launchers/self/run_figure2_recipe_aggressive.sh"
 PAPER_JOB_ID="$(
   self_submit_wrapped_job \
-    "rl-fb-paper" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_JOB_NAME}" \
     "${LOG_DIR}/rl-fb-paper-%j.out" \
     "${LOG_DIR}/rl-fb-paper-%j.err" \
-    "mig" \
-    "gpu:1g.10gb:1" \
-    "1" \
-    "64G" \
-    "48:00:00" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_PARTITION}" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_GRES}" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_CPUS}" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_MEM}" \
+    "${RUN_LENGTH_FIXED_BINARY_PAPER_TIME}" \
     "" \
     "${PAPER_CMD}"
 )"
 
 ALPHA_ROOT="${OUT_ROOT}/alpha10_guarded"
-TEMPLATE_OUT="${ALPHA_ROOT}/template/run_length/pilot/guarded_compose"
-TEMPLATE_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} -m self.run_length_self_improvement --output-dir ${TEMPLATE_OUT} --model-name ${ALPHA10_SEED_MODEL} --format-version legacy --target-mode symbol_run_pair --compose-arity exact2 --bit-composition-path-mode fixed_binary --recipe algorithmic_self_improve_v1 --treat-seed-as-round-zero --symbol-alphabet-size 10 --initial-min-bits 6 --initial-max-bits 10 --initial-train-per-bit 50000 --initial-eval-per-bit 100 --frontier-min-bits 12 --num-expand-rounds 7 --expand-num-bits 9 --expand-train-per-bit 2000 --eval-per-bit 100 --composed-eval-per-bit 100 --pseudo-label-mode compose --guarded-compose-rule run_length_no_boundary_continue --bucket-train-batches-by-bits --bf16 --per-device-train-batch-size 256 --per-device-eval-batch-size 256 --seed 42 --save-model-policy all_rounds --self-improve-warmup-steps 500 --resume --stop-after-round 0"
+TEMPLATE_OUT="${ALPHA_ROOT}/${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_REL}"
+TEMPLATE_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} -m self.run_length_self_improvement --output-dir ${TEMPLATE_OUT} --model-name ${ALPHA10_SEED_MODEL} --format-version legacy --target-mode ${RUN_LENGTH_FIXED_BINARY_ALPHA_TARGET_MODE} --compose-arity ${RUN_LENGTH_FIXED_BINARY_ALPHA_COMPOSE_ARITY} --bit-composition-path-mode ${RUN_LENGTH_FIXED_BINARY_ALPHA_COMPOSITION_PATH_MODE} --recipe ${RUN_LENGTH_FIXED_BINARY_ALPHA_RECIPE} --treat-seed-as-round-zero --symbol-alphabet-size ${RUN_LENGTH_FIXED_BINARY_ALPHA_SYMBOL_ALPHABET_SIZE} --initial-min-bits ${RUN_LENGTH_FIXED_BINARY_ALPHA_INITIAL_MIN_BITS} --initial-max-bits ${RUN_LENGTH_FIXED_BINARY_ALPHA_INITIAL_MAX_BITS} --initial-train-per-bit ${RUN_LENGTH_FIXED_BINARY_ALPHA_INITIAL_TRAIN_PER_BIT} --initial-eval-per-bit ${RUN_LENGTH_FIXED_BINARY_ALPHA_INITIAL_EVAL_PER_BIT} --frontier-min-bits ${RUN_LENGTH_FIXED_BINARY_ALPHA_FRONTIER_MIN_BITS} --num-expand-rounds ${RUN_LENGTH_FIXED_BINARY_ALPHA_NUM_EXPAND_ROUNDS} --expand-num-bits ${RUN_LENGTH_FIXED_BINARY_ALPHA_EXPAND_NUM_BITS} --expand-train-per-bit ${RUN_LENGTH_FIXED_BINARY_ALPHA_EXPAND_TRAIN_PER_BIT} --eval-per-bit ${RUN_LENGTH_FIXED_BINARY_ALPHA_EVAL_PER_BIT} --composed-eval-per-bit ${RUN_LENGTH_FIXED_BINARY_ALPHA_COMPOSED_EVAL_PER_BIT} --pseudo-label-mode ${RUN_LENGTH_FIXED_BINARY_ALPHA_PSEUDO_LABEL_MODE} --guarded-compose-rule ${RUN_LENGTH_FIXED_BINARY_ALPHA_GUARDED_COMPOSE_RULE} --bucket-train-batches-by-bits --bf16 --per-device-train-batch-size ${RUN_LENGTH_FIXED_BINARY_ALPHA_TRAIN_BATCH_SIZE} --per-device-eval-batch-size ${RUN_LENGTH_FIXED_BINARY_ALPHA_EVAL_BATCH_SIZE} --seed ${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_SEED} --save-model-policy all_rounds --self-improve-warmup-steps ${RUN_LENGTH_FIXED_BINARY_ALPHA_WARMUP_STEPS} --resume --stop-after-round 0"
 TEMPLATE_JOB_ID="$(
   self_submit_wrapped_job \
-    "rl-fb-a10-template" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_JOB_NAME}" \
     "${LOG_DIR}/rl-fb-a10-template-%j.out" \
     "${LOG_DIR}/rl-fb-a10-template-%j.err" \
-    "mig" \
-    "gpu:1g.10gb:1" \
-    "1" \
-    "64G" \
-    "12:00:00" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_PARTITION}" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_GRES}" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_CPUS}" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_MEM}" \
+    "${RUN_LENGTH_FIXED_BINARY_ALPHA_TEMPLATE_TIME}" \
     "" \
     "${TEMPLATE_CMD}"
 )"
 
 BEAM_ROOT="${ALPHA_ROOT}/beam"
-BEAM_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} -m self.experiments.run_length_alpha10_seed_beam --template-run ${TEMPLATE_OUT} --seed-model ${ALPHA10_SEED_MODEL} --out-root ${BEAM_ROOT} --max-round 7 --round-warmup-steps 500 --train-batch-size 256 --eval-batch-size 256 --expand-train-per-bit 2000 --bit-composition-path-mode fixed_binary"
+BEAM_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} -m self.experiments.run_length_alpha10_seed_beam --template-run ${TEMPLATE_OUT} --seed-model ${ALPHA10_SEED_MODEL} --out-root ${BEAM_ROOT} --max-round ${RUN_LENGTH_FIXED_BINARY_BEAM_MAX_ROUND} --round-warmup-steps ${RUN_LENGTH_FIXED_BINARY_BEAM_WARMUP_STEPS} --train-batch-size ${RUN_LENGTH_FIXED_BINARY_BEAM_TRAIN_BATCH_SIZE} --eval-batch-size ${RUN_LENGTH_FIXED_BINARY_BEAM_EVAL_BATCH_SIZE} --expand-train-per-bit ${RUN_LENGTH_FIXED_BINARY_BEAM_EXPAND_TRAIN_PER_BIT} --bit-composition-path-mode ${RUN_LENGTH_FIXED_BINARY_BEAM_COMPOSITION_PATH_MODE} --baseline ${RUN_LENGTH_FIXED_BINARY_ALPHA_BASELINE}"
 BEAM_JOB_ID="$(
   self_submit_wrapped_job \
-    "rl-fb-a10-beam" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_JOB_NAME}" \
     "${LOG_DIR}/rl-fb-a10-beam-%j.out" \
     "${LOG_DIR}/rl-fb-a10-beam-%j.err" \
-    "${CONTROLLER_PARTITION}" \
-    "" \
-    "1" \
-    "8G" \
-    "36:00:00" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_PARTITION}" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_GRES}" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_CPUS}" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_MEM}" \
+    "${RUN_LENGTH_FIXED_BINARY_BEAM_TIME}" \
     "afterok:${TEMPLATE_JOB_ID}" \
     "${BEAM_CMD}"
 )"
