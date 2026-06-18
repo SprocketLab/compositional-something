@@ -270,8 +270,10 @@ tests, notebooks, and older artifacts.
   loading, attempt/proposal/candidate record flattening, trace loading,
   adaptive candidate per-size records, selected-checkpoint per-size timelines,
   and proposal-GRPO metric records.
+- `self/analysis/nonadaptive_artifacts.py`: non-adaptive result loading,
+  per-size accuracy row construction, and records-to-DataFrame conversion.
 - `self/analysis/artifacts.py`: compatibility surface for notebook artifact
-  loaders plus non-adaptive per-size accuracy records.
+  loaders.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   training-curve parsing, per-size heatmaps, and paper-style curve plots.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for

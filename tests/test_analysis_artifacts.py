@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from self.analysis import adaptive_artifacts
+from self.analysis import adaptive_artifacts, nonadaptive_artifacts
 from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_per_size_records,
@@ -195,6 +195,9 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
 
 
 def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
+    assert load_self_improvement_rounds is nonadaptive_artifacts.load_self_improvement_rounds
+    assert per_size_accuracy_records is nonadaptive_artifacts.per_size_accuracy_records
+
     assert read_json(tmp_path / "missing.json", {"default": True}) == {"default": True}
     assert read_jsonl(tmp_path / "missing.jsonl") == []
 

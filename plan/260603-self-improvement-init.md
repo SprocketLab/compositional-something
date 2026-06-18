@@ -2848,3 +2848,12 @@ Acceptance criteria for first pilot:
 - Added compatibility assertions in `tests/test_analysis_artifacts.py` so adaptive helpers imported from `self.analysis.artifacts` remain identical to the canonical `self.analysis.adaptive_artifacts` functions.
 - Updated `self/README.md` with the new analysis module ownership.
 - Verification: `python -m py_compile self/analysis/artifact_io.py self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`7 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 05:27:58 UTC
+
+- Split non-adaptive analysis result helpers from `self/analysis/artifacts.py` into `self/analysis/nonadaptive_artifacts.py`.
+- The new module owns `load_self_improvement_rounds(...)`, `per_size_accuracy_records(...)`, and `records_to_dataframe(...)`.
+- Kept the old `self.analysis.artifacts` imports as compatibility reexports, reducing that file to a thin notebook-facing import surface.
+- Added compatibility assertions in `tests/test_analysis_artifacts.py` so non-adaptive helpers imported from `self.analysis.artifacts` remain identical to the canonical `self.analysis.nonadaptive_artifacts` functions.
+- Updated `self/README.md` with the new non-adaptive analysis module ownership.
+- Verification: `python -m py_compile self/analysis/artifact_io.py self/analysis/adaptive_artifacts.py self/analysis/nonadaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`7 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
