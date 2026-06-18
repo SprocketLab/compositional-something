@@ -71,6 +71,38 @@ self_add_sbatch_explicit_resources() {
   fi
 }
 
+self_submit_wrapped_job() {
+  local job_name="$1"
+  local stdout_log="$2"
+  local stderr_log="$3"
+  local partition="$4"
+  local gres="$5"
+  local cpus="$6"
+  local mem="$7"
+  local time_limit="$8"
+  local dependency="${9:-}"
+  shift 9 || true
+  local wrap_cmd="$*"
+  local -a sbatch_cmd=(
+    sbatch
+    --parsable
+    --job-name "${job_name}"
+    --output "${stdout_log}"
+    --error "${stderr_log}"
+  )
+  self_add_sbatch_explicit_resources sbatch_cmd "${partition}" "${gres}" "${cpus}" "${mem}" "${time_limit}"
+  if [[ -n "${dependency}" ]]; then
+    sbatch_cmd+=(--dependency "${dependency}")
+  fi
+  sbatch_cmd+=(--wrap "${wrap_cmd}")
+  self_print_command "${sbatch_cmd[@]}"
+  if self_parse_bool "${DRY_RUN:-0}"; then
+    echo "dryrun-${job_name}"
+  else
+    "${sbatch_cmd[@]}" | cut -d';' -f1
+  fi
+}
+
 self_print_command() {
   printf '[INFO] Command:' >&2
   printf ' %q' "$@" >&2

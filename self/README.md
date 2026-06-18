@@ -364,8 +364,9 @@ tests, notebooks, and older artifacts.
 - `launchers/self/lib/self_common.sh`: generic launcher helpers for repo-root
   resolution, Python resolution, Slurm resource defaults, Slurm resource
   argument construction for default and per-job explicit resource blocks, and
-  command printing to stdout or stderr. It also owns small shell utilities such
-  as boolean parsing for launcher flags.
+  wrapped-job submission/dry-run handling. It also owns command printing to
+  stdout or stderr and small shell utilities such as boolean parsing for
+  launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive config-file sourcing, worker context logging,

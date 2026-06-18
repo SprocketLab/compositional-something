@@ -3231,3 +3231,10 @@ Acceptance criteria for first pilot:
 - Added `adaptive_prompt_records(...)`, `adaptive_candidate_train_mix_records(...)`, and `adaptive_trace_records(...)`, and reexported them through `self/analysis/artifacts.py` for the existing notebook compatibility import surface.
 - Updated `self/README.md` to document prompt/train-mix/trace flattening as part of the adaptive analysis utilities.
 - Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_artifacts tests/test_analysis_artifacts.py -q` (`4 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:26:41 UTC
+
+- Consolidated repeated wrapped Slurm-job submission boilerplate into `self_submit_wrapped_job(...)` in `launchers/self/lib/self_common.sh`.
+- Updated `launchers/self/submit_run_length_fixed_binary_mig.sh` to use the shared helper for its paper-default, alpha10 template, and alpha10 beam jobs while preserving dry-run job IDs, dependency forwarding, explicit resource requests, and manifest output.
+- Updated `self/README.md` to document wrapped-job submission/dry-run handling as a shared launcher helper.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_run_length_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rl_fixed_binary_launcher tests/test_run_length_fixed_binary_launchers.py -q` (`3 passed`); `git diff --check`.
