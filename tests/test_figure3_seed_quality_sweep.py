@@ -123,6 +123,7 @@ def test_seed_quality_private_helpers_reexport_common_owner():
     assert figure3_seed_quality_sweep._metric_from_seed_payload is figure3_common.metric_from_seed_payload
     assert figure3_seed_quality_sweep._final_row is figure3_common.final_row
     assert figure3_seed_quality_sweep._max_at_90 is figure3_common.max_at_90
+    assert figure3_seed_quality_sweep._write_csv is figure3_common.write_csv
 
 
 def test_submit_figure3_seed_quality_wrapper_dry_run_prints_expected_counts(tmp_path: Path):

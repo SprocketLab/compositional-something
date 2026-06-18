@@ -21,6 +21,8 @@ from self.figure3_real_seed_data_ablation import (
     missing_bands,
     select_seed_bands,
 )
+from self.experiments import figure3_common
+from self.experiments import figure3_real_seed_data_ablation
 
 
 WRAPPER = ROOT / "launchers" / "self" / "submit_figure3_real_seed_data_ablation_mig.sh"
@@ -140,6 +142,10 @@ def test_addition_seed_selection_prefers_monotone_low_medium_pair(tmp_path: Path
     assert selected["addition"]["low"]["train_count"] == 800
     assert selected["addition"]["medium"]["train_count"] == 850
     assert selected["addition"]["low"]["train_count"] < selected["addition"]["medium"]["train_count"]
+
+
+def test_real_ablation_private_csv_helper_reexports_common_owner():
+    assert figure3_real_seed_data_ablation._write_csv is figure3_common.write_csv
 
 
 def test_submit_wrapper_dry_run_prints_expected_counts(tmp_path: Path):

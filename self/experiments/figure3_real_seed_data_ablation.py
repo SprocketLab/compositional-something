@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from pathlib import Path
@@ -16,6 +15,7 @@ from self.experiments.figure3_common import (
     max_at_90 as _max_at_90,
     metric_from_seed_payload as _metric_from_seed_payload,
     submit_sbatch_job as _submit_sbatch_job,
+    write_csv as _write_csv,
 )
 
 
@@ -460,18 +460,6 @@ def submit_run_length_si_jobs(
         if job_id:
             print(f"[INFO] Submitted {job_name} job_id={job_id}", flush=True)
     return submitted
-
-
-def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fieldnames = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def collect_summary(*, selection_path: Path, output_path: Path) -> Dict[str, Any]:

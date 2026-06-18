@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from pathlib import Path
@@ -26,6 +25,7 @@ from self.experiments.figure3_common import (
     run_command as _run_command,
     slurm_config as _slurm_config,
     submit_sbatch_job as _submit_sbatch_job,
+    write_csv as _write_csv,
 )
 
 DEFAULT_RUN_LENGTH_HIGH_SEED_MODEL = (
@@ -528,12 +528,7 @@ def collect_summary(*, selection_path: Path, output_path: Path) -> Dict[str, Any
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     for name, rows in (("seed_summary.csv", seed_rows), ("self_improvement_summary.csv", si_rows)):
-        csv_path = output_path.parent / name
-        if rows:
-            with csv_path.open("w", encoding="utf-8", newline="") as handle:
-                writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-                writer.writeheader()
-                writer.writerows(rows)
+        _write_csv(output_path.parent / name, rows)
 
     payload = {
         "seed_summary": seed_rows,

@@ -3867,3 +3867,11 @@ Acceptance criteria for first pilot:
 - Added a compatibility test pinning the old seed-quality helper aliases to the new common owner.
 - Updated `self/README.md` with the Figure 3 common helper ownership boundary.
 - Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py self/figure3_seed_quality_sweep.py self/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_common tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py tests/test_module_proxy.py -q` (`18 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:42:35 UTC
+
+- Extended `self/experiments/figure3_common.py` with shared CSV artifact writing for Figure 3 summaries.
+- Updated both Figure 3 scripts to use the common `write_csv` helper, removing their direct `csv.DictWriter` ownership while preserving `_write_csv` as a compatibility alias where it existed.
+- Added alias tests for the seed-quality and real-seed ablation helper surfaces.
+- Updated `self/README.md` so the Figure 3 common module documents JSON/CSV artifact ownership.
+- Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_csv tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`13 passed`).

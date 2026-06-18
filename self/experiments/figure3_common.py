@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import shlex
 import subprocess
@@ -23,6 +24,17 @@ MIG_TIME = "48:00:00"
 def json_dump(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        path.write_text("", encoding="utf-8")
+        return
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def slurm_config() -> Dict[str, str]:
