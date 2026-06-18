@@ -3245,3 +3245,10 @@ Acceptance criteria for first pilot:
 - Added `tests/test_main_experiments_launcher.py` with bash syntax coverage and a dry-run manifest check for the main experiment submitter.
 - Updated `self/README.md` to note that the main-experiment submitter now shares wrapped-job submission in addition to adaptive repo-root/Python/resource helper setup.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/lib/adaptive_common.sh launchers/self/submit_main_experiments_ailab.sh`; `python -m py_compile tests/test_main_experiments_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_main_experiments_launcher tests/test_main_experiments_launcher.py -q` (`2 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:33:38 UTC
+
+- Added `self_submit_sbatch_command(...)` to `launchers/self/lib/self_common.sh` for submitters that call an sbatch script directly instead of wrapping an inline shell command.
+- Updated `launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh` to use the shared helper while preserving staged dry-run output, sbatch export construction, job-state polling, and model-selection flow.
+- Updated `self/README.md` to document script-job submission/dry-run handling in the shared launcher helper and the rectangular seed-sweep submitter.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh launchers/self/run_multiplication_rectangular_seed_mig.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rect_seed_submit tests/test_multiplication_rectangular_seed_launchers.py -q` (`5 passed`); `git diff --check`.

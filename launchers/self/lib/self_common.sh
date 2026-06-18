@@ -103,6 +103,17 @@ self_submit_wrapped_job() {
   fi
 }
 
+self_submit_sbatch_command() {
+  local dry_run_job_id="$1"
+  shift
+  self_print_prefixed_command "Submit" "$@"
+  if self_parse_bool "${DRY_RUN:-0}"; then
+    echo "${dry_run_job_id}"
+  else
+    "$@"
+  fi
+}
+
 self_print_command() {
   printf '[INFO] Command:' >&2
   printf ' %q' "$@" >&2

@@ -44,10 +44,6 @@ lr_tag() {
   echo "${1}" | sed 's/-/m/g; s/\./p/g; s/+//g'
 }
 
-print_submit() {
-  self_print_prefixed_command "Submit" "$@"
-}
-
 submit_job() {
   local out_dir="$1"
   local lr="$2"
@@ -63,13 +59,7 @@ submit_job() {
     "${LAUNCHER}"
   )
 
-  print_submit "${cmd[@]}"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "dryrun"
-    return 0
-  fi
-
-  "${cmd[@]}"
+  self_submit_sbatch_command "dryrun" "${cmd[@]}"
 }
 
 job_state() {

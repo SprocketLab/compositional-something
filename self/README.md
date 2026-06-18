@@ -364,9 +364,9 @@ tests, notebooks, and older artifacts.
 - `launchers/self/lib/self_common.sh`: generic launcher helpers for repo-root
   resolution, Python resolution, Slurm resource defaults, Slurm resource
   argument construction for default and per-job explicit resource blocks, and
-  wrapped-job submission/dry-run handling. It also owns command printing to
-  stdout or stderr and small shell utilities such as boolean parsing for
-  launcher flags.
+  wrapped-job or script-job submission/dry-run handling. It also owns command
+  printing to stdout or stderr and small shell utilities such as boolean
+  parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive config-file sourcing, worker context logging,
@@ -435,6 +435,7 @@ tests, notebooks, and older artifacts.
   `launchers/self/submit_multiplication_rectangular_fullpack_mig.sh` use the
   generic helper for repo-root/Python setup, boolean parsing, and stdout/stderr
   command-printing helpers while preserving their existing dry-run streams.
+  The seed-sweep submitter also uses the shared sbatch-script submission helper.
 - `launchers/self/submit_multiplication_rectangular_tune_mig.sh` uses the
   generic helper for repo-root/Python setup, boolean parsing, and stdout
   command printing before delegating to the rectangular tune CLI.
