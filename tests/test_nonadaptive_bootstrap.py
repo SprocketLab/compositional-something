@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
+from self.nonadaptive.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 
 
 @dataclass(frozen=True)

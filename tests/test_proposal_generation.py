@@ -4,17 +4,16 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import (
-    attempt_prompt_runtime,
-    driver_compat_exports,
-    driver_default_bindings,
+from self.adaptive.attempts import attempt_prompt_runtime
+from self.adaptive.proposals import (
     proposal_executable_validation,
     proposal_generation,
     proposal_prompt_metadata,
     proposal_prompts,
     proposal_runtime,
 )
-from self.core.proposals import PromptBundle
+from self.adaptive.run import driver_compat_exports, driver_default_bindings
+from self.adaptive.proposals.proposals import PromptBundle
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from self.core.nonadaptive_metadata_runtime import prepare_nonadaptive_metadata_runtime
+from self.nonadaptive.nonadaptive_metadata_runtime import prepare_nonadaptive_metadata_runtime
 
 
 class _FakeRng:

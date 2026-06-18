@@ -1,6 +1,6 @@
-from self.core import attempt_loop_models
-from self.core.attempt_candidate_runtime import CandidateAttemptDeps
-from self.core.attempt_loop_runtime import AttemptLoopDeps, AttemptLoopResult
+from self.adaptive.attempts import attempt_loop_models
+from self.adaptive.attempts.attempt_candidate_runtime import CandidateAttemptDeps
+from self.adaptive.attempts.attempt_loop_runtime import AttemptLoopDeps, AttemptLoopResult
 
 
 def test_attempt_runtime_paths_reexport_shared_models() -> None:

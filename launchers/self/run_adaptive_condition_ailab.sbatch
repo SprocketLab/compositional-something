@@ -71,8 +71,8 @@ adaptive_print_torch_probe
 if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
   echo "[INFO] Compile check"
   "${PYTHON_BIN}" -m py_compile \
-    self/core/proposals.py \
-    self/core/program_sandbox.py \
+    self/adaptive/proposals/proposals.py \
+    self/adaptive/sandbox/program_sandbox.py \
     self/adaptive_self_improvement.py
 fi
 

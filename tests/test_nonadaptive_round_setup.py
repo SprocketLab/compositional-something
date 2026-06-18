@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from self.core.nonadaptive_round_setup import (
+from self.nonadaptive.nonadaptive_round_setup import (
     prepare_nonadaptive_round_plan,
     prepare_nonadaptive_round_training_data,
 )

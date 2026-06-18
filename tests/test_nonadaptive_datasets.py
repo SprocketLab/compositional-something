@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 
 from self.core.data_io import save_examples
-from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
-from self.core.nonadaptive_schedule import NonAdaptiveSizeSchedule
-from self.core.nonadaptive_state import prepare_nonadaptive_run_state
+from self.nonadaptive.nonadaptive_datasets import prepare_nonadaptive_datasets
+from self.nonadaptive.nonadaptive_schedule import NonAdaptiveSizeSchedule
+from self.nonadaptive.nonadaptive_state import prepare_nonadaptive_run_state
 
 
 @dataclass(frozen=True)

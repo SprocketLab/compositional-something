@@ -4,13 +4,13 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core.candidate_training_mix import (
+from self.adaptive.candidates.candidate_training_mix import (
     build_candidate_training_mix,
     write_candidate_training_mix_artifacts,
 )
-from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive.traces.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateWorkItem, ExactPairDataset
-from self.core.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposals.proposals import ConfigProposal, PromptBundle
 
 
 class _Task:

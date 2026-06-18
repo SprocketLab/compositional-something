@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
+from self.nonadaptive.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.recipes import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
 
 

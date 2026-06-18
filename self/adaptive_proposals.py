@@ -1,3 +1,3 @@
-"""Compatibility wrapper for :mod:`self.core.proposals`."""
+"""Compatibility wrapper for :mod:`self.adaptive.proposals.proposals`."""
 
-from self.core.proposals import *  # noqa: F401,F403
+from self.adaptive.proposals.proposals import *  # noqa: F401,F403

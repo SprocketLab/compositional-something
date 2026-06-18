@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core.nonadaptive_results import record_nonadaptive_round_summary
+from self.nonadaptive.nonadaptive_results import record_nonadaptive_round_summary
 from self.core.summaries import SliceMetric
 
 

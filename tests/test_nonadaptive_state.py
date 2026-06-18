@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from self.core.data_io import encode_rng_state
-from self.core.nonadaptive_state import (
+from self.nonadaptive.nonadaptive_state import (
     NonAdaptiveArtifactPaths,
     NonAdaptiveRunState,
     persist_nonadaptive_metadata,

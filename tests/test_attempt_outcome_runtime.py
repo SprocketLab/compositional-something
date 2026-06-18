@@ -4,18 +4,18 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Sequence
 
-from self.core import (
+from self.adaptive.attempts import (
     attempt_no_selection_runtime,
     attempt_outcome_models,
     attempt_outcome_runtime,
     attempt_selected_runtime,
 )
-from self.core.attempt_outcome_runtime import AttemptOutcomeDeps, handle_attempt_outcome
+from self.adaptive.attempts.attempt_outcome_runtime import AttemptOutcomeDeps, handle_attempt_outcome
 from self.core.data_io import save_examples, write_json
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.core.proposal_config_schema import ConfigProposal
-from self.core.proposal_io import write_trace_jsonl
-from self.core.proposal_prompts import PromptBundle
+from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.proposals.proposal_io import write_trace_jsonl
+from self.adaptive.proposals.proposal_prompts import PromptBundle
 
 
 @dataclass(frozen=True)

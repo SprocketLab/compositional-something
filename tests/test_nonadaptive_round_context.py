@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core.nonadaptive_round_context import (
+from self.nonadaptive.nonadaptive_round_context import (
     build_nonadaptive_round_runtime_bundle,
     build_nonadaptive_round_runtime_kwargs,
 )

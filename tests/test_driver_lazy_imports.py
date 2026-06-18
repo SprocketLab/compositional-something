@@ -17,12 +17,12 @@ def test_driver_facade_does_not_import_heavy_bindings_for_public_api_listing() -
         import json
         import sys
 
-        driver = importlib.import_module("self.core.driver")
+        driver = importlib.import_module("self.adaptive.run.driver")
         wrapper = importlib.import_module("self.adaptive_candidate_training")
         print(json.dumps({
-            "driver_default_bindings_loaded": "self.core.driver_default_bindings" in sys.modules,
-            "driver_wiring_loaded": "self.core.driver_wiring" in sys.modules,
-            "run_orchestration_loaded": "self.core.run_orchestration" in sys.modules,
+            "driver_default_bindings_loaded": "self.adaptive.run.driver_default_bindings" in sys.modules,
+            "driver_wiring_loaded": "self.adaptive.run.driver_wiring" in sys.modules,
+            "run_orchestration_loaded": "self.adaptive.run.run_orchestration" in sys.modules,
             "driver_has_build_parser": "build_parser" in dir(driver),
             "wrapper_exports_build_parser": "build_parser" in wrapper.__all__,
             "wrapper_exports_run": "run" in wrapper.__all__,
@@ -56,7 +56,7 @@ def test_driver_compat_exports_are_lazy_for_listing() -> None:
         import json
         import sys
 
-        exports = importlib.import_module("self.core.driver_compat_exports")
+        exports = importlib.import_module("self.adaptive.run.driver_compat_exports")
         print(json.dumps({
             "has_config_proposal": "ConfigProposal" in dir(exports),
             "has_set_seed": "set_seed" in exports.__all__,
@@ -96,11 +96,11 @@ def test_nonadaptive_facade_is_lazy_for_listing() -> None:
         import sys
 
         facade = importlib.import_module("self.self_improvement_core")
-        exports = importlib.import_module("self.core.nonadaptive_facade_exports")
+        exports = importlib.import_module("self.nonadaptive.nonadaptive_facade_exports")
         print(json.dumps({
             "facade_exports_training_config": "TrainingConfig" in facade.__all__,
             "exports_has_training_config": "TrainingConfig" in dir(exports),
-            "nonadaptive_loop_loaded": "self.core.nonadaptive_loop" in sys.modules,
+            "nonadaptive_loop_loaded": "self.nonadaptive.nonadaptive_loop" in sys.modules,
             "training_loaded": "self.core.training" in sys.modules,
             "torch_loaded": "torch" in sys.modules,
             "transformers_loaded": "transformers" in sys.modules,
@@ -134,13 +134,13 @@ def test_adaptive_runtime_contract_modules_do_not_import_training_stack() -> Non
         import sys
 
         modules = [
-            "self.core.proposal_prompt_metadata",
-            "self.core.proposal_prompts",
-            "self.core.round_model_dispatch_runtime",
-            "self.core.seed_dispatch_runtime",
-            "self.core.run_initialization_runtime",
-            "self.core.attempt_candidate_runtime",
-            "self.core.attempt_loop_runtime",
+            "self.adaptive.proposals.proposal_prompt_metadata",
+            "self.adaptive.proposals.proposal_prompts",
+            "self.adaptive.run.round_model_dispatch_runtime",
+            "self.adaptive.run.seed_dispatch_runtime",
+            "self.adaptive.run.run_initialization_runtime",
+            "self.adaptive.attempts.attempt_candidate_runtime",
+            "self.adaptive.attempts.attempt_loop_runtime",
         ]
         for module_name in modules:
             importlib.import_module(module_name)

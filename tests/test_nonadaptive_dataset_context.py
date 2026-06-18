@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from self.core.nonadaptive_dataset_context import prepare_nonadaptive_dataset_context
+from self.nonadaptive.nonadaptive_dataset_context import prepare_nonadaptive_dataset_context
 
 
 class _Task:

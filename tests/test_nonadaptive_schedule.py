@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.nonadaptive_schedule import build_nonadaptive_size_schedule, normalize_frontier_min_size
+from self.nonadaptive.nonadaptive_schedule import build_nonadaptive_size_schedule, normalize_frontier_min_size
 
 
 def test_legacy_size_schedule_without_frontier():

@@ -1,4 +1,4 @@
-from self.core import program_sandbox, program_sandbox_cases, program_sandbox_models
+from self.adaptive.sandbox import program_sandbox, program_sandbox_cases, program_sandbox_models
 
 
 def test_program_sandbox_model_reexports() -> None:

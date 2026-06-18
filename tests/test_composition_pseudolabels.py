@@ -1,4 +1,5 @@
-from self.core import composition, composition_program_pseudolabels, composition_pseudolabels, driver_compat_exports
+from self.core import composition, composition_program_pseudolabels, composition_pseudolabels
+from self.adaptive.run import driver_compat_exports
 
 
 def test_composition_pseudolabel_compat_reexports() -> None:

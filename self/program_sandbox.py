@@ -1,3 +1,3 @@
-"""Compatibility wrapper for :mod:`self.core.program_sandbox`."""
+"""Compatibility wrapper for :mod:`self.adaptive.sandbox.program_sandbox`."""
 
-from self.core.program_sandbox import *  # noqa: F401,F403
+from self.adaptive.sandbox.program_sandbox import *  # noqa: F401,F403

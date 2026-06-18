@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
+from self.nonadaptive.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 
 
 def _args(**overrides):

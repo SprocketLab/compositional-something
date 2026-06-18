@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
+from self.nonadaptive.nonadaptive_evaluation import evaluate_nonadaptive_round
 
 
 class _Task:

@@ -6,14 +6,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.candidate_rewards import (
+from self.adaptive.candidates.candidate_rewards import (
     build_no_pseudo_candidate_metrics,
     build_trained_candidate_metrics,
     mean_accuracy_for_sizes,
     static_frontier_sizes,
 )
 from self.core.models import CandidateWorkItem, ExactPairDataset
-from self.core.proposals import ConfigProposal
+from self.adaptive.proposals.proposals import ConfigProposal
 
 
 def _args(**overrides):

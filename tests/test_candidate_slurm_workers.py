@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import candidate_workers
-from self.core.candidate_slurm_workers import train_candidates_slurm_array_from_specs, wait_for_candidate_array
+from self.adaptive.candidates import candidate_workers
+from self.adaptive.candidates.candidate_slurm_workers import train_candidates_slurm_array_from_specs, wait_for_candidate_array
 
 
 def _args(**overrides):

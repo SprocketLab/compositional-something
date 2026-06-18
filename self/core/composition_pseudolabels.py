@@ -12,7 +12,7 @@ from self.core.composition_program_pseudolabels import (
     target_pattern_for_task,
 )
 from self.core.models import ExecutableProposal
-from self.core.proposal_config_schema import ConfigProposal
+from self.adaptive.proposals.proposal_config_schema import ConfigProposal
 from self.tasks.bit_common import (
     normalize_bit_target_mode,
 )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from self.core import args as adaptive_args
-from self.core import args_normalization
+from self.adaptive.run import args as adaptive_args
+from self.adaptive.run import args_normalization
 
 
 def test_args_normalization_owner_reexport() -> None:

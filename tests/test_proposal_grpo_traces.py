@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from self.core import driver_compat_exports, proposal_grpo, proposal_grpo_traces
+from self.adaptive.run import driver_compat_exports
+from self.adaptive.proposals import proposal_grpo, proposal_grpo_traces
 
 
 def test_proposal_grpo_trace_owner_reexports() -> None:

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.nonadaptive_training import train_nonadaptive_round_model
+from self.nonadaptive.nonadaptive_training import train_nonadaptive_round_model
 
 
 class _Model:

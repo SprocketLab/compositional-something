@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import (
+from self.adaptive.candidates import (
     candidate_dispatch_deps,
     candidate_dispatch_entrypoints,
     candidate_dispatch_runtime,
@@ -13,7 +13,7 @@ from self.core import (
     candidate_workers,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.core.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposals.proposals import ConfigProposal, PromptBundle
 
 
 def _work_item(index: int) -> CandidateWorkItem:

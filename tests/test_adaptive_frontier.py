@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from self import adaptive_frontier
-from self.core import frontier
-from self.core.frontier_candidates import build_frontier_candidates
-from self.core.frontier_models import FrontierCandidate, FrontierSelection
+from self.adaptive.frontier import frontier
+from self.adaptive.frontier.frontier_candidates import build_frontier_candidates
+from self.adaptive.frontier.frontier_models import FrontierCandidate, FrontierSelection
 
 
-proposal_quality_metrics = adaptive_frontier.proposal_quality_metrics
-select_frontier = adaptive_frontier.select_frontier
+proposal_quality_metrics = frontier.proposal_quality_metrics
+select_frontier = frontier.select_frontier
 
 
 def test_frontier_compatibility_reexports_match_canonical_modules():
     assert frontier.FrontierCandidate is FrontierCandidate
     assert frontier.FrontierSelection is FrontierSelection
     assert frontier.build_frontier_candidates is build_frontier_candidates
-    assert adaptive_frontier.FrontierCandidate is FrontierCandidate
-    assert adaptive_frontier.build_frontier_candidates is build_frontier_candidates
 
 
 def test_select_frontier_prefers_low_accuracy_slice_size():

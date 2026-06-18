@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from self import adaptive_self_improvement
-from self.core import proposal_pilot_runtime
+from self.adaptive.proposals import proposal_pilot_runtime
 
 
 def test_adaptive_pilot_private_helpers_delegate_to_core_runtime():

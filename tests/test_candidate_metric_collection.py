@@ -3,13 +3,14 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from self.core import candidate_execution, candidate_metric_collection, worker_io
-from self.core.candidate_metric_collection import (
+from self.core import worker_io
+from self.adaptive.candidates import candidate_execution, candidate_metric_collection
+from self.adaptive.candidates.candidate_metric_collection import (
     candidate_failure_metrics,
     collect_candidate_array_metrics,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.core.proposals import ConfigProposal
+from self.adaptive.proposals.proposals import ConfigProposal
 
 
 def _work_item(index: int = 0) -> CandidateWorkItem:

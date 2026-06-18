@@ -32,6 +32,6 @@ echo "[INFO] Candidate worker spec: ${SPEC_PATH}"
 echo "[INFO] Array task ID: ${SLURM_ARRAY_TASK_ID}"
 adaptive_print_worker_context "Adaptive candidate worker"
 
-"${PYTHON_BIN}" -m self.core.driver \
+"${PYTHON_BIN}" -m self.adaptive.run.driver \
   --run-candidate-worker \
   --candidate-worker-spec "${SPEC_PATH}"

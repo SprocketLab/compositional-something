@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
-from self.core.nonadaptive_schedule import NonAdaptiveSizeSchedule
+from self.nonadaptive.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
+from self.nonadaptive.nonadaptive_schedule import NonAdaptiveSizeSchedule
 
 
 @dataclass(frozen=True)

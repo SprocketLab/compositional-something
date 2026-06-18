@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from self.core import nonadaptive_facade_exports
-from self.core.nonadaptive_compat import NONADAPTIVE_PATCHABLE_NAMES, sync_nonadaptive_loop_globals
+from self.nonadaptive import nonadaptive_facade_exports
+from self.nonadaptive.nonadaptive_compat import NONADAPTIVE_PATCHABLE_NAMES, sync_nonadaptive_loop_globals
 from self import self_improvement_core as core_facade
 
 

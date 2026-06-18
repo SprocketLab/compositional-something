@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core.nonadaptive_round_loop import run_nonadaptive_round_loop
+from self.nonadaptive.nonadaptive_round_loop import run_nonadaptive_round_loop
 
 
 def test_run_nonadaptive_round_loop_forwards_deps_and_stops_early(tmp_path: Path):

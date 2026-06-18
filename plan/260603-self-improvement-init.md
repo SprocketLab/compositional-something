@@ -4616,3 +4616,36 @@ Acceptance criteria for first pilot:
   tests/test_module_proxy.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py` (`48 passed`, `3`
   existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 21:19:32 UTC
+
+- Created and pushed checkpoint tag
+  `pre-self-package-refactor-20260618-171519` at commit `22fe3e5` before the
+  larger package reorganization.
+- Split the flat `self/core` namespace into human-facing subsystem packages:
+  `self/adaptive/run`, `self/adaptive/attempts`,
+  `self/adaptive/candidates`, `self/adaptive/proposals`,
+  `self/adaptive/traces`, `self/adaptive/frontier`,
+  `self/adaptive/controller`, `self/adaptive/sandbox`, and
+  `self/nonadaptive`.
+- Reduced `self/core` from 127 Python files to shared utilities only. It now
+  holds composition, data/model IO, evaluation, shared dataclasses, recipe
+  helpers, Slurm helpers, tokenizers, training utilities, task protocols,
+  summaries, lazy export helpers, and module proxy helpers.
+- Updated tracked implementation and tests to import from the new subsystem
+  owners. Adaptive tests no longer import implementation behavior through
+  top-level CLI wrappers such as `self.adaptive_candidate_training`,
+  `self.adaptive_proposals`, `self.adaptive_frontier`, or
+  `self.program_sandbox`.
+- Replaced the stale file-by-file core inventory in `self/README.md` with a
+  compact package map and documented the tests-vs-CLI boundary.
+- Verification: import-sensitive adaptive tests (`38 passed`, `4` existing
+  multiprocessing fork warnings); adaptive candidate/worker tests (`79
+  passed`, `3` existing multiprocessing fork warnings); nonadaptive tests (`58
+  passed`); launcher/CLI-facing tests (`53 passed`; touched launcher subset
+  rerun after compile-list refresh with `30 passed`); live tracked grep found no
+  stale `self.core.*` references to moved adaptive/nonadaptive modules;
+  `~/.conda/envs/torch-env/bin/python -m compileall -q self tests`; `bash -n`
+  for the touched adaptive Slurm launchers; `python -m
+  self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
+  --help`; `git diff --check`.

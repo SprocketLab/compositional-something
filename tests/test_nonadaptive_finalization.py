@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from self.core.nonadaptive_finalization import finalize_nonadaptive_run
+from self.nonadaptive.nonadaptive_finalization import finalize_nonadaptive_run
 
 
 def test_finalize_nonadaptive_run_cleans_checkpoints_and_reports_results(tmp_path: Path):

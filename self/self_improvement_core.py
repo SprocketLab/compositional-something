@@ -6,12 +6,12 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from self.core import nonadaptive_facade_exports as _facade_exports
-from self.core.nonadaptive_compat import (
+from self.nonadaptive import nonadaptive_facade_exports as _facade_exports
+from self.nonadaptive.nonadaptive_compat import (
     NONADAPTIVE_PATCHABLE_NAMES,
     sync_nonadaptive_loop_globals,
 )
-from self.core.nonadaptive_facade_exports import NONADAPTIVE_FACADE_EXPORT_NAMES
+from self.nonadaptive.nonadaptive_facade_exports import NONADAPTIVE_FACADE_EXPORT_NAMES
 
 __all__ = list(NONADAPTIVE_FACADE_EXPORT_NAMES)
 
@@ -40,7 +40,7 @@ def _ensure_patchable_defaults() -> None:
 
 
 def run_self_improvement(args: Any, task: "SelfImprovementTask") -> None:
-    from self.core import nonadaptive_loop as _nonadaptive_loop
+    from self.nonadaptive import nonadaptive_loop as _nonadaptive_loop
 
     _ensure_patchable_defaults()
     sync_nonadaptive_loop_globals(

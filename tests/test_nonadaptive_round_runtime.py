@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import nonadaptive_round_models
-from self.core.nonadaptive_round_runtime import (
+from self.nonadaptive import nonadaptive_round_models
+from self.nonadaptive.nonadaptive_round_runtime import (
     NonAdaptiveRoundRuntimeContext,
     NonAdaptiveRoundRuntimeResult,
     NonAdaptiveRoundRuntimeState,
