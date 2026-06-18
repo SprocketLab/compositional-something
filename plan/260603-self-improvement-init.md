@@ -3161,3 +3161,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_addition_their_recipe_diagnostic.sh` to route its repo/Python/output/device/dry-run context output through `self_print_context(...)` while preserving diagnostic command construction, optional train/eval/max-step forwarding, and dry-run behavior.
 - Updated `self/README.md` to note that the addition recipe diagnostic launcher now shares context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_their_recipe_diagnostic.sh`; `python -m py_compile tests/test_addition_their_recipe_diagnostic_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_recipe_diag_context tests/test_addition_their_recipe_diagnostic_launcher.py -q` (`2 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:43:16 UTC
+
+- Extended shared context-banner printing to the exact-digits fixed-binary addition submitter.
+- Updated `launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh` to route its root/model/log/Slurm/schedule context output through `self_print_context(...)` while preserving the fullpack command construction, dry-run output, Slurm resource helper use, and manifest format.
+- Updated `self/README.md` to note that the exact-digits addition submitter now routes its schedule banner through the shared context printer in addition to common MIG resource helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_exact_digits_context tests/test_addition_exact_digits_fixed_binary_launcher.py -q` (`2 passed`); `git diff --check`.

@@ -83,14 +83,15 @@ submit_baseline() {
   echo "[INFO] results=${results_path}"
 }
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Run root: ${RUN_ROOT}"
-echo "[INFO] Seed model: ${SEED_MODEL}"
-echo "[INFO] Launcher: ${FULLPACK_LAUNCHER}"
-echo "[INFO] Logs: ${LOG_DIR}"
-echo "[INFO] Manifest: ${MANIFEST}"
-echo "[INFO] Slurm: partition=${SBATCH_PARTITION} gres=${SBATCH_GRES} cpus=${SBATCH_CPUS} mem=${SBATCH_MEM} time=${SBATCH_TIME}"
-echo "[INFO] Schedule: exact_digits composition_path=${ADDITION_COMPOSITION_PATH_MODE} rounds=${NUM_EXPAND_ROUNDS} expand_num_digits=${EXPAND_NUM_DIGITS} seed_replay_train_per_digit=${SEED_REPLAY_TRAIN_PER_DIGIT} expand_train_per_digit=${EXPAND_TRAIN_PER_DIGIT}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Run root" "${RUN_ROOT}" \
+  "Seed model" "${SEED_MODEL}" \
+  "Launcher" "${FULLPACK_LAUNCHER}" \
+  "Logs" "${LOG_DIR}" \
+  "Manifest" "${MANIFEST}" \
+  "Slurm" "partition=${SBATCH_PARTITION} gres=${SBATCH_GRES} cpus=${SBATCH_CPUS} mem=${SBATCH_MEM} time=${SBATCH_TIME}" \
+  "Schedule" "exact_digits composition_path=${ADDITION_COMPOSITION_PATH_MODE} rounds=${NUM_EXPAND_ROUNDS} expand_num_digits=${EXPAND_NUM_DIGITS} seed_replay_train_per_digit=${SEED_REPLAY_TRAIN_PER_DIGIT} expand_train_per_digit=${EXPAND_TRAIN_PER_DIGIT}"
 
 for baseline in "${BASELINES[@]}"; do
   submit_baseline "${baseline}"
