@@ -3,8 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/self_common.sh"
+source "${SCRIPT_DIR}/lib/figure2_recipe_common.sh"
 
 self_cd_repo_root
+
+FIGURE2_TASK_CONFIG="${FIGURE2_TASK_CONFIG:-${ROOT_DIR}/launchers/self/config/figure2_run_length.env}"
+self_source_config_files "${FIGURE2_TASK_CONFIG}" "Figure 2 task config"
 
 PAPER_SCHEDULE_ENV="${PAPER_SCHEDULE_ENV:-${ROOT_DIR}/artifacts/paper/paper_schedule_selection.env}"
 if [[ -f "${PAPER_SCHEDULE_ENV}" ]]; then
@@ -23,7 +27,6 @@ TASKS="${TASKS:-run_length}"
 BASELINES="${BASELINES:-short_only direct compose compose_corrupt}"
 SEED="${SEED:-42}"
 SCRATCH_MODEL_NAME="${SCRATCH_MODEL_NAME:-${ROOT_DIR}/meta/models/tiny_gpt2_8l_384d}"
-RUN_LENGTH_SEED_MODEL="${RUN_LENGTH_SEED_MODEL:-${ROOT_DIR}/artifacts/models/run_length_recipe_seed_best}"
 RUN_FULLPACK_ONLY_IF_HEALTHY="${RUN_FULLPACK_ONLY_IF_HEALTHY:-1}"
 RUN_PILOT_GATE="${RUN_PILOT_GATE:-1}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -54,26 +57,6 @@ read -r -a BASELINE_LIST <<< "${BASELINES}"
 
 mkdir -p "${OUT_ROOT}"
 
-task_module() {
-  case "$1" in
-    run_length) echo "self.run_length_self_improvement" ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-archived_results_path() {
-  case "$1" in
-    run_length) echo "${ROOT_DIR}/artifacts/runs/self_improvement_refocus_20260416_bitpatched2/run_length/compose/self_improvement_results.json" ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
 append_common_batch_overrides() {
   local -n ref="$1"
   if [[ -n "${TRAIN_BATCH_SIZE}" ]]; then
@@ -82,104 +65,6 @@ append_common_batch_overrides() {
   if [[ -n "${EVAL_BATCH_SIZE}" ]]; then
     ref+=(--per-device-eval-batch-size "${EVAL_BATCH_SIZE}")
   fi
-}
-
-resolve_seed_model_for_task() {
-  case "$1" in
-    run_length) echo "${RUN_LENGTH_SEED_MODEL}" ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-default_expand_num_bits_for_task() {
-  case "$1" in
-    run_length) echo "4" ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-resolve_expand_train_per_bit_for_task() {
-  case "$1" in
-    run_length)
-      if [[ -n "${RUN_LENGTH_EXPAND_TRAIN_PER_BIT}" ]]; then
-        echo "${RUN_LENGTH_EXPAND_TRAIN_PER_BIT}"
-      else
-        echo "${EXPAND_TRAIN_PER_BIT}"
-      fi
-      ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-resolve_num_expand_rounds_for_task() {
-  case "$1" in
-    run_length)
-      echo "${RUN_LENGTH_NUM_EXPAND_ROUNDS:-${NUM_EXPAND_ROUNDS}}"
-      ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-resolve_expand_num_bits_for_task() {
-  case "$1" in
-    run_length)
-      if [[ -n "${RUN_LENGTH_EXPAND_NUM_BITS}" ]]; then
-        echo "${RUN_LENGTH_EXPAND_NUM_BITS}"
-      elif [[ -n "${EXPAND_NUM_BITS}" ]]; then
-        echo "${EXPAND_NUM_BITS}"
-      else
-        default_expand_num_bits_for_task run_length
-      fi
-      ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-resolve_bit_composition_path_mode_for_task() {
-  case "$1" in
-    run_length)
-      if [[ -n "${RUN_LENGTH_BIT_COMPOSITION_PATH_MODE}" ]]; then
-        echo "${RUN_LENGTH_BIT_COMPOSITION_PATH_MODE}"
-      else
-        echo "${BIT_COMPOSITION_PATH_MODE}"
-      fi
-      ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
-}
-
-resolve_target_mode_for_task() {
-  case "$1" in
-    run_length)
-      if [[ -n "${RUN_LENGTH_TARGET_MODE}" ]]; then
-        echo "${RUN_LENGTH_TARGET_MODE}"
-      else
-        echo "${TARGET_MODE}"
-      fi
-      ;;
-    *)
-      echo "Unsupported task: $1" >&2
-      return 1
-      ;;
-  esac
 }
 
 run_cmd() {
@@ -222,7 +107,7 @@ check_pilot_gate() {
   local task="$1"
   local pilot_path="${OUT_ROOT}/${task}/pilot/compose/self_improvement_results.json"
   local archived_path
-  archived_path="$(archived_results_path "${task}")"
+  archived_path="$(figure2_archived_results_path "${task}")"
   if self_parse_bool "${DRY_RUN}"; then
     return 0
   fi
@@ -286,7 +171,7 @@ run_seed_fit_task() {
     --initial-max-size 16
     --initial-train-per-size "${INITIAL_TRAIN_PER_BIT}"
     --initial-eval-per-size "${INITIAL_EVAL_PER_BIT}"
-    --target-mode "$(resolve_target_mode_for_task "${task}")"
+    --target-mode "$(figure2_resolve_target_mode_for_task "${task}")"
     --target-accuracy-threshold 0.99
     --init-from-scratch
     --recipe algorithmic_self_improve_v1
@@ -311,13 +196,13 @@ run_compose_pilot_task() {
   local expand_num_bits
   local expand_train_per_bit
   local bit_composition_path_mode
-  module="$(task_module "${task}")"
-  num_expand_rounds="$(resolve_num_expand_rounds_for_task "${task}")"
-  expand_num_bits="$(resolve_expand_num_bits_for_task "${task}")"
-  expand_train_per_bit="$(resolve_expand_train_per_bit_for_task "${task}")"
-  bit_composition_path_mode="$(resolve_bit_composition_path_mode_for_task "${task}")"
+  module="$(figure2_task_module "${task}")"
+  num_expand_rounds="$(figure2_resolve_num_expand_rounds_for_task "${task}")"
+  expand_num_bits="$(figure2_resolve_expand_num_bits_for_task "${task}")"
+  expand_train_per_bit="$(figure2_resolve_expand_train_per_bit_for_task "${task}")"
+  bit_composition_path_mode="$(figure2_resolve_bit_composition_path_mode_for_task "${task}")"
   if [[ ! -d "${seed_model}" ]]; then
-    seed_model="$(resolve_seed_model_for_task "${task}")"
+    seed_model="$(figure2_resolve_seed_model_for_task "${task}")"
   fi
   if ! self_parse_bool "${DRY_RUN}" && [[ ! -d "${seed_model}" ]]; then
     echo "[ERROR] Missing seed model for ${task}: ${seed_model}" >&2
@@ -328,7 +213,7 @@ run_compose_pilot_task() {
     --model-name "${seed_model}"
     --output-dir "${out_dir}"
     --format-version legacy
-    --target-mode "$(resolve_target_mode_for_task "${task}")"
+    --target-mode "$(figure2_resolve_target_mode_for_task "${task}")"
     --initial-min-bits 8
     --initial-max-bits 16
     --initial-train-per-bit "${INITIAL_TRAIN_PER_BIT}"
@@ -365,13 +250,13 @@ run_fullpack_task() {
   local expand_num_bits
   local expand_train_per_bit
   local bit_composition_path_mode
-  module="$(task_module "${task}")"
-  num_expand_rounds="$(resolve_num_expand_rounds_for_task "${task}")"
-  expand_num_bits="$(resolve_expand_num_bits_for_task "${task}")"
-  expand_train_per_bit="$(resolve_expand_train_per_bit_for_task "${task}")"
-  bit_composition_path_mode="$(resolve_bit_composition_path_mode_for_task "${task}")"
+  module="$(figure2_task_module "${task}")"
+  num_expand_rounds="$(figure2_resolve_num_expand_rounds_for_task "${task}")"
+  expand_num_bits="$(figure2_resolve_expand_num_bits_for_task "${task}")"
+  expand_train_per_bit="$(figure2_resolve_expand_train_per_bit_for_task "${task}")"
+  bit_composition_path_mode="$(figure2_resolve_bit_composition_path_mode_for_task "${task}")"
   if [[ ! -d "${seed_model}" ]]; then
-    seed_model="$(resolve_seed_model_for_task "${task}")"
+    seed_model="$(figure2_resolve_seed_model_for_task "${task}")"
   fi
   if [[ "${RUN_FULLPACK_ONLY_IF_HEALTHY}" == "1" ]]; then
     check_pilot_gate "${task}"
@@ -384,7 +269,7 @@ run_fullpack_task() {
       --model-name "${seed_model}"
       --output-dir "${out_dir}"
       --format-version legacy
-      --target-mode "$(resolve_target_mode_for_task "${task}")"
+      --target-mode "$(figure2_resolve_target_mode_for_task "${task}")"
       --initial-min-bits 8
       --initial-max-bits 16
       --initial-train-per-bit "${INITIAL_TRAIN_PER_BIT}"
@@ -516,7 +401,7 @@ self_print_context \
   "Default target mode" "${TARGET_MODE}" \
   "Figure style" "${FIGURE_STYLE}"
 for task in "${TASK_LIST[@]}"; do
-  echo "[INFO] Task schedule ${task}: seed_model=$(resolve_seed_model_for_task "${task}") num_expand_rounds=$(resolve_num_expand_rounds_for_task "${task}") expand_num_bits=$(resolve_expand_num_bits_for_task "${task}") expand_train_per_bit=$(resolve_expand_train_per_bit_for_task "${task}") bit_composition_path_mode=$(resolve_bit_composition_path_mode_for_task "${task}") target_mode=$(resolve_target_mode_for_task "${task}")"
+  echo "[INFO] Task schedule ${task}: seed_model=$(figure2_resolve_seed_model_for_task "${task}") num_expand_rounds=$(figure2_resolve_num_expand_rounds_for_task "${task}") expand_num_bits=$(figure2_resolve_expand_num_bits_for_task "${task}") expand_train_per_bit=$(figure2_resolve_expand_train_per_bit_for_task "${task}") bit_composition_path_mode=$(figure2_resolve_bit_composition_path_mode_for_task "${task}") target_mode=$(figure2_resolve_target_mode_for_task "${task}")"
 done
 
 case "${STAGE}" in

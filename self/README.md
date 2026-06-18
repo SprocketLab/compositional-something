@@ -634,6 +634,10 @@ the supported public surface.
   repo-root/Python setup, boolean parsing, command printing, shared
   repo-command wrapping, and wrapped-job submission across the Figure 2 recipe
   workflow.
+- `launchers/self/lib/figure2_recipe_common.sh` and
+  `launchers/self/config/figure2_run_length.env` own Figure 2 recipe task
+  metadata and run-length defaults that were previously embedded in
+  `run_figure2_recipe_aggressive.sh`.
 - `launchers/self/run_composition_error_sweep_self_improvement.sh`,
   `launchers/self/run_local_workshop_batch.sh`,
   `launchers/self/run_refocused_self_improvement_local.sh`,
@@ -902,7 +906,8 @@ new implementation code:
   Figure 2 recipe
   runner/submitter/retune scripts share generic repo-root/Python/boolean,
   context-printing, command-printing, repo-command wrapping, and wrapped-job
-  submission helpers; the
+  submission helpers, and the recipe runner now loads task metadata from an
+  explicit config/helper pair; the
   composition-error sweep now invokes the
   canonical `self.experiments.composition_error_sweep` module while preserving
   the old top-level wrapper, and the local/refocused

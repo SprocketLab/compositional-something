@@ -9,10 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "launchers" / "self" / "run_figure2_recipe_aggressive.sh"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_figure2_recipe_aggressive.sh"
 RETUNE = ROOT / "launchers" / "self" / "run_figure2_paper_retune.sh"
+FIGURE2_HELPER = ROOT / "launchers" / "self" / "lib" / "figure2_recipe_common.sh"
+FIGURE2_RUN_LENGTH_CONFIG = ROOT / "launchers" / "self" / "config" / "figure2_run_length.env"
 
 
 def test_figure2_recipe_aggressive_launchers_have_valid_bash_syntax():
-    for launcher in (RUNNER, SUBMITTER, RETUNE):
+    for launcher in (RUNNER, SUBMITTER, RETUNE, FIGURE2_HELPER, FIGURE2_RUN_LENGTH_CONFIG):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
 
@@ -48,6 +50,41 @@ def test_figure2_recipe_aggressive_runner_dry_run_prints_recipe_schedule(tmp_pat
     assert "--bucket-train-batches-by-bits" in stdout
     assert "--bucket-train-batches-by-size" in stdout
     assert "--pseudo-label-mode compose" in stdout
+
+
+def test_figure2_recipe_aggressive_runner_can_source_task_config(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "figure2_recipe")
+    env["PAPER_SCHEDULE_ENV"] = str(tmp_path / "missing_paper_schedule.env")
+    env["FIGURE2_TASK_CONFIG"] = str(tmp_path / "figure2_task.env")
+    Path(env["FIGURE2_TASK_CONFIG"]).write_text(
+        "\n".join(
+            [
+                "FIGURE2_RUN_LENGTH_MODULE=self.run_length_self_improvement",
+                "FIGURE2_RUN_LENGTH_SEED_MODEL_DEFAULT=/tmp/custom_run_length_seed",
+                "FIGURE2_RUN_LENGTH_ARCHIVED_RESULTS_PATH=/tmp/custom_archived_results.json",
+                "FIGURE2_RUN_LENGTH_DEFAULT_EXPAND_NUM_BITS=7",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(RUNNER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "Loaded Figure 2 task config" in stdout
+    assert "seed_model=/tmp/custom_run_length_seed" in stdout
+    assert "expand_num_bits=7" in stdout
+    assert "--expand-num-bits 7" in stdout
 
 
 def test_figure2_recipe_aggressive_runner_can_source_paper_schedule_env(tmp_path):

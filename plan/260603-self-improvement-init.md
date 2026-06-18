@@ -3909,3 +3909,11 @@ Acceptance criteria for first pilot:
 - Added alias tests for the seed-quality and real-seed ablation CLI helper surfaces.
 - Updated `self/README.md` to document the new Figure 3 CLI helper boundary.
 - Verification: `python -m py_compile self/experiments/figure3_cli.py self/experiments/figure3_commands.py self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_cli tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:06:48 UTC
+
+- Added `launchers/self/config/figure2_run_length.env` as the explicit Figure 2 recipe task-default file for the run-length module, default seed model, archived comparison results, and default expansion size.
+- Added `launchers/self/lib/figure2_recipe_common.sh` to own Figure 2 recipe task lookup and environment-aware run-length schedule resolution.
+- Migrated `launchers/self/run_figure2_recipe_aggressive.sh` off its local task-default case blocks and onto the shared helper/config while preserving existing environment overrides, dry-run command output, gates, and stage/baseline behavior.
+- Added launcher coverage for custom `FIGURE2_TASK_CONFIG` sourcing and updated `self/README.md` with the new Figure 2 task-config/helper boundary.
+- Verification: `bash -n launchers/self/run_figure2_recipe_aggressive.sh launchers/self/lib/figure2_recipe_common.sh launchers/self/config/figure2_run_length.env launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_recipe_config tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`10 passed`); `git diff --check`.
