@@ -105,6 +105,49 @@ def test_addition_fixedwidth_mixed_submitter_dry_run_runs_three_branches(tmp_pat
     assert "--addition-composition-path-mode random" in stdout
 
 
+def test_addition_fixedwidth_mixed_submitter_uses_shared_sbatch_wrapping(tmp_path: Path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sbatch_log = tmp_path / "sbatch.log"
+    sbatch_stub = fake_bin / "sbatch"
+    sbatch_stub.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%q ' \"$@\" >> \"$SBATCH_LOG\"\n"
+        "printf '\\n' >> \"$SBATCH_LOG\"\n"
+        "echo '12345;cluster'\n",
+        encoding="utf-8",
+    )
+    sbatch_stub.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["SBATCH_LOG"] = str(sbatch_log)
+    env["RUN_ROOT"] = str(tmp_path / "mixed_submit")
+
+    result = subprocess.run(
+        ["bash", str(MIXED_SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    manifest_text = (tmp_path / "mixed_submit" / "submission_manifest.txt").read_text(encoding="utf-8")
+    sbatch_text = sbatch_log.read_text(encoding="utf-8")
+
+    assert "seed_job=12345" in manifest_text
+    assert "fullpack_output=" in manifest_text
+    assert "original_composition_output=" in manifest_text
+    assert stdout.count("Submitted baseline job 12345") == 4
+    assert stdout.count("Submitted original-composition baseline job 12345") == 3
+    assert "--dependency afterok:12345" in sbatch_text
+    assert "--wrap" in sbatch_text
+    assert "ADDITION_COMPOSITION_PATH_MODE=fixed_binary" in sbatch_text
+    assert "ADDITION_COMPOSITION_PATH_MODE=random" in sbatch_text
+
+
 def test_addition_fixedwidth_moredata_submitter_dry_run_emits_stage1_grid(tmp_path: Path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"

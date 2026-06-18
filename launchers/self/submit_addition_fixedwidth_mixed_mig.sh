@@ -90,8 +90,12 @@ if self_parse_bool "${DRY_RUN}"; then
 fi
 
 seed_job="$(
-  sbatch --parsable \
-    --export="ALL,OUT_ROOT=${SEED_OUT_ROOT},TRAIN_PER_DIGIT=${TRAIN_PER_DIGIT},MAX_STEPS=${MAX_STEPS},LR=${LR},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE},SEED=${SEED},SAVE_MODEL=1,PYTHONUNBUFFERED=1" \
+  self_submit_sbatch_script \
+    "dryrun-add-fw-seed" \
+    "add-fw-seed" \
+    "artifacts/logs/add-fw-seed-%j.out" \
+    "artifacts/logs/add-fw-seed-%j.err" \
+    "ALL,OUT_ROOT=${SEED_OUT_ROOT},TRAIN_PER_DIGIT=${TRAIN_PER_DIGIT},MAX_STEPS=${MAX_STEPS},LR=${LR},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE},SEED=${SEED},SAVE_MODEL=1,PYTHONUNBUFFERED=1" \
     "${SEED_LAUNCHER}"
 )"
 
@@ -101,21 +105,35 @@ echo "[INFO]   output dir: ${SEED_OUT_ROOT}"
 echo "[INFO]   logs: artifacts/logs/add-fw-seed-${seed_job}.out / artifacts/logs/add-fw-seed-${seed_job}.err"
 
 for baseline in "${BASELINES[@]}"; do
+  wrapped_cmd="$(
+    self_wrap_env_command \
+      "${FULLPACK_LAUNCHER}" \
+      "OUT_ROOT=${FULLPACK_OUT_ROOT}" \
+      "SEED_MODEL=${SEED_MODEL}" \
+      "BASELINE=${baseline}" \
+      "NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS}" \
+      "EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS}" \
+      "SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT}" \
+      "EXPAND_TRAIN_PER_DIGIT=${EXPAND_TRAIN_PER_DIGIT}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE}" \
+      "ADDITION_COMPOSITION_PATH_MODE=fixed_binary" \
+      "SEED=${SEED}" \
+      "PYTHONUNBUFFERED=1"
+  )"
   job="$(
-    sbatch --parsable \
-      --job-name="add-fw-${baseline}" \
-      --output="artifacts/logs/add-fw-${baseline}-%j.out" \
-      --error="artifacts/logs/add-fw-${baseline}-%j.err" \
-      --nodes=1 \
-      --ntasks=1 \
-      --cpus-per-task=1 \
-      --mem=64G \
-      --gres=gpu:1g.10gb:1 \
-      --partition=mig \
-      --time=48:00:00 \
-      --dependency="afterok:${seed_job}" \
-      --export="ALL,OUT_ROOT=${FULLPACK_OUT_ROOT},SEED_MODEL=${SEED_MODEL},BASELINE=${baseline},NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS},EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS},SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT},EXPAND_TRAIN_PER_DIGIT=${EXPAND_TRAIN_PER_DIGIT},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE},ADDITION_COMPOSITION_PATH_MODE=fixed_binary,SEED=${SEED},PYTHONUNBUFFERED=1" \
-      --wrap "bash '${FULLPACK_LAUNCHER}'"
+    self_submit_wrapped_job \
+      "add-fw-${baseline}" \
+      "artifacts/logs/add-fw-${baseline}-%j.out" \
+      "artifacts/logs/add-fw-${baseline}-%j.err" \
+      "mig" \
+      "gpu:1g.10gb:1" \
+      "1" \
+      "64G" \
+      "48:00:00" \
+      "afterok:${seed_job}" \
+      "${wrapped_cmd}"
   )"
   echo
   echo "[INFO] Submitted baseline job ${job}: ${baseline}"
@@ -126,21 +144,35 @@ done
 
 ORIGINAL_FULLPACK_OUT_ROOT="${RUN_ROOT}/fullpack_original_composition"
 for baseline in "${ORIGINAL_COMPOSITION_BASELINES[@]}"; do
+  wrapped_cmd="$(
+    self_wrap_env_command \
+      "${FULLPACK_LAUNCHER}" \
+      "OUT_ROOT=${ORIGINAL_FULLPACK_OUT_ROOT}" \
+      "SEED_MODEL=${SEED_MODEL}" \
+      "BASELINE=${baseline}" \
+      "NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS}" \
+      "EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS}" \
+      "SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT}" \
+      "EXPAND_TRAIN_PER_DIGIT=${EXPAND_TRAIN_PER_DIGIT}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE}" \
+      "ADDITION_COMPOSITION_PATH_MODE=random" \
+      "SEED=${SEED}" \
+      "PYTHONUNBUFFERED=1"
+  )"
   job="$(
-    sbatch --parsable \
-      --job-name="add-fw-rand-${baseline}" \
-      --output="artifacts/logs/add-fw-rand-${baseline}-%j.out" \
-      --error="artifacts/logs/add-fw-rand-${baseline}-%j.err" \
-      --nodes=1 \
-      --ntasks=1 \
-      --cpus-per-task=1 \
-      --mem=64G \
-      --gres=gpu:1g.10gb:1 \
-      --partition=mig \
-      --time=48:00:00 \
-      --dependency="afterok:${seed_job}" \
-      --export="ALL,OUT_ROOT=${ORIGINAL_FULLPACK_OUT_ROOT},SEED_MODEL=${SEED_MODEL},BASELINE=${baseline},NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS},EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS},SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT},EXPAND_TRAIN_PER_DIGIT=${EXPAND_TRAIN_PER_DIGIT},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE},ADDITION_COMPOSITION_PATH_MODE=random,SEED=${SEED},PYTHONUNBUFFERED=1" \
-      --wrap "bash '${FULLPACK_LAUNCHER}'"
+    self_submit_wrapped_job \
+      "add-fw-rand-${baseline}" \
+      "artifacts/logs/add-fw-rand-${baseline}-%j.out" \
+      "artifacts/logs/add-fw-rand-${baseline}-%j.err" \
+      "mig" \
+      "gpu:1g.10gb:1" \
+      "1" \
+      "64G" \
+      "48:00:00" \
+      "afterok:${seed_job}" \
+      "${wrapped_cmd}"
   )"
   echo
   echo "[INFO] Submitted original-composition baseline job ${job}: ${baseline}"

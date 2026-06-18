@@ -3825,3 +3825,11 @@ Acceptance criteria for first pilot:
 - Migrated `submit_addition_exact_digits_fixed_binary_mig.sh` and `submit_addition_fixedwidth_moredata_mig.sh` off local `q()` helpers and hand-built wrapped `sbatch` command arrays while preserving their matrices, manifests, dry-run output, and resource defaults.
 - Updated `self/README.md` to document the new generic launcher helper responsibilities and the addition sweep submitter ownership boundary.
 - Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh`, and `launchers/self/submit_addition_fixedwidth_moredata_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_launcher_helpers tests/test_addition_exact_digits_fixed_binary_launcher.py tests/test_addition_fixedwidth_moredata_launcher.py -q` (`7 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:14:40 UTC
+
+- Migrated the non-dry Slurm path in `launchers/self/submit_addition_fixedwidth_mixed_mig.sh` to the shared sbatch-script helper for the seed job and the shared env-wrapped command builder plus wrapped-job submitter for fixed-binary and original-composition fullpack jobs.
+- Preserved the existing dry-run path, branch matrix, `submission_manifest.txt` fields, job names, resource requests, dependency structure, and log paths.
+- Added a fake-`sbatch` launcher test so the non-dry helper path is exercised without submitting jobs.
+- Updated `self/README.md` with the mixed-submit ownership boundary.
+- Verification: per-file `bash -n` on the touched launcher/helper files; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mixed_launcher_helpers tests/test_addition_fixedwidth_moredata_launcher.py tests/test_addition_exact_digits_fixed_binary_launcher.py -q` (`8 passed`); `git diff --check`.
