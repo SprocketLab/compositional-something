@@ -4362,3 +4362,25 @@ Acceptance criteria for first pilot:
   tests/test_multiplication_rectangular_seed_launchers.py
   tests/test_multiplication_rectangular_self_improvement_launchers.py
   tests/test_self_common_launcher_helpers.py -q` (`35 passed`).
+
+### Implementation Log: 2026-06-18 19:49:46 UTC
+
+- Added `self/launcher_manifests.py` as the importable owner for adaptive
+  candidate-training and adaptive condition-pilot submission-manifest JSON
+  construction.
+- Replaced the embedded Python here-doc manifest writers in
+  `submit_adaptive_candidate_training_ailab.sh` and
+  `submit_adaptive_condition_pilots_ailab.sh` with
+  `python -m self.launcher_manifests ...`.
+- Preserved the existing manifest schemas, job keys, integer conversions,
+  `frontier_diagnostics_path` empty-string handling, and dry-run behavior.
+- Added focused manifest-builder/CLI tests while keeping existing launcher
+  dry-run tests as end-to-end coverage for the submitter wiring.
+- Verification: `python -m py_compile self/launcher_manifests.py
+  tests/test_launcher_manifests.py`; `bash -n
+  launchers/self/submit_adaptive_candidate_training_ailab.sh
+  launchers/self/submit_adaptive_condition_pilots_ailab.sh`;
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_adaptive_manifest_helpers
+  tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py
+  tests/test_adaptive_condition_launcher.py -q` (`10 passed`).

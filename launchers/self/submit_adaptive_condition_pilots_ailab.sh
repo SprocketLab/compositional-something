@@ -123,63 +123,25 @@ RUN_LENGTH_PROGRAM_JOB_ID="$(
 )"
 
 MANIFEST="${OUT_ROOT}/submission_manifest.json"
-"${PYTHON_BIN}" - <<'PY' "${MANIFEST}" "${OUT_ROOT}" "${SBATCH_PARTITION}" "${SBATCH_GRES}" "${SBATCH_TIME}" "${SBATCH_CPUS}" "${SBATCH_MEM}" "${FRONTIER_POLICY}" "${FRONTIER_MIN_COUNT}" "${FRONTIER_MAX_ACCURACY}" "${FRONTIER_MAX_WIDTH}" "${FRONTIER_PREFER_LARGER_WEIGHT}" "${ENFORCE_SELECTED_FRONTIER}" "${FRONTIER_DIAGNOSTICS_PATH:-}" "${ADDITION_CONFIG_JOB_ID}" "${ADDITION_PROGRAM_JOB_ID}" "${RUN_LENGTH_CONFIG_JOB_ID}" "${RUN_LENGTH_PROGRAM_JOB_ID}"
-import json
-import sys
-from pathlib import Path
-
-manifest = Path(sys.argv[1])
-out_root = sys.argv[2]
-payload = {
-    "out_root": out_root,
-    "slurm": {
-        "partition": sys.argv[3],
-        "gres": sys.argv[4],
-        "time": sys.argv[5],
-        "cpus_per_task": sys.argv[6],
-        "mem": sys.argv[7],
-        "frontier_policy": sys.argv[8],
-        "frontier_min_count": sys.argv[9],
-        "frontier_max_accuracy": sys.argv[10],
-        "frontier_max_width": sys.argv[11],
-        "frontier_prefer_larger_weight": sys.argv[12],
-        "enforce_selected_frontier": sys.argv[13],
-        "frontier_diagnostics_path": sys.argv[14] or None,
-    },
-    "jobs": {
-        "addition_config": {
-            "job_id": sys.argv[15],
-            "task": "addition",
-            "condition": "config",
-            "output_dir": f"{out_root}/addition-config",
-        },
-        "addition_program": {
-            "job_id": sys.argv[16],
-            "task": "addition",
-            "condition": "program",
-            "output_dir": f"{out_root}/addition-program",
-        },
-        "run_length_config": {
-            "job_id": sys.argv[17],
-            "task": "run_length",
-            "condition": "config",
-            "output_dir": f"{out_root}/run-length-config",
-        },
-        "run_length_program": {
-            "job_id": sys.argv[18],
-            "task": "run_length",
-            "condition": "program",
-            "output_dir": f"{out_root}/run-length-program",
-        },
-    },
-    "scope_note": (
-        "These are split adaptive proposal/preflight condition jobs. "
-        "They do not yet run temporary LoRA self-edit training/evaluation loops."
-    ),
-}
-manifest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-print(json.dumps(payload, indent=2), flush=True)
-PY
+"${PYTHON_BIN}" -m self.launcher_manifests adaptive-condition \
+  --manifest "${MANIFEST}" \
+  --out-root "${OUT_ROOT}" \
+  --partition "${SBATCH_PARTITION}" \
+  --gres "${SBATCH_GRES}" \
+  --time-limit "${SBATCH_TIME}" \
+  --cpus-per-task "${SBATCH_CPUS}" \
+  --mem "${SBATCH_MEM}" \
+  --frontier-policy "${FRONTIER_POLICY}" \
+  --frontier-min-count "${FRONTIER_MIN_COUNT}" \
+  --frontier-max-accuracy "${FRONTIER_MAX_ACCURACY}" \
+  --frontier-max-width "${FRONTIER_MAX_WIDTH}" \
+  --frontier-prefer-larger-weight "${FRONTIER_PREFER_LARGER_WEIGHT}" \
+  --enforce-selected-frontier "${ENFORCE_SELECTED_FRONTIER}" \
+  --frontier-diagnostics-path "${FRONTIER_DIAGNOSTICS_PATH:-}" \
+  --addition-config-job-id "${ADDITION_CONFIG_JOB_ID}" \
+  --addition-program-job-id "${ADDITION_PROGRAM_JOB_ID}" \
+  --run-length-config-job-id "${RUN_LENGTH_CONFIG_JOB_ID}" \
+  --run-length-program-job-id "${RUN_LENGTH_PROGRAM_JOB_ID}"
 
 echo "[INFO] Submitted split adaptive condition jobs."
 echo "[INFO] Manifest: ${MANIFEST}"

@@ -80,46 +80,16 @@ for task in ${TASKS}; do
 done
 
 MANIFEST="${OUT_ROOT}/submission_manifest.json"
-"${PYTHON_BIN}" - <<'PY' "${MANIFEST}" "${OUT_ROOT}" "${TASKS}" "${CONDITIONS}" "${OUTCOME_TRACE_TARGET_MODES}" "${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}" "${NUM_CANDIDATES_LIST}" "${ADAPTIVE_CONFIG_EXPORT}" "${MANIFEST_ARGS[@]}"
-import json
-import sys
-from pathlib import Path
-
-manifest = Path(sys.argv[1])
-out_root = sys.argv[2]
-tasks = sys.argv[3].split()
-conditions = sys.argv[4].split()
-outcome_modes = sys.argv[5].split()
-zero_variance_modes = sys.argv[6].split()
-num_candidates_list = [int(value) for value in sys.argv[7].split()]
-adaptive_config_files = sys.argv[8]
-items = sys.argv[9:]
-jobs = {}
-for index in range(0, len(items), 7):
-    task, condition, outcome_mode, zero_variance, num_candidates, job_id, output_dir = items[index : index + 7]
-    jobs[f"{task}-{condition}-{outcome_mode}-n{num_candidates}-grpo-{zero_variance}"] = {
-        "task": task,
-        "condition": condition,
-        "outcome_trace_target_mode": outcome_mode,
-        "proposal_grpo_zero_variance": zero_variance,
-        "num_candidates": int(num_candidates),
-        "job_id": job_id,
-        "output_dir": output_dir,
-        "status": "submitted",
-    }
-payload = {
-    "out_root": out_root,
-    "tasks": tasks,
-    "conditions": conditions,
-    "outcome_trace_target_modes": outcome_modes,
-    "proposal_grpo_zero_variance_modes": zero_variance_modes,
-    "num_candidates_list": num_candidates_list,
-    "adaptive_config_files": adaptive_config_files,
-    "jobs": jobs,
-}
-manifest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-print(json.dumps(payload, indent=2), flush=True)
-PY
+"${PYTHON_BIN}" -m self.launcher_manifests adaptive-candidate \
+  --manifest "${MANIFEST}" \
+  --out-root "${OUT_ROOT}" \
+  --tasks "${TASKS}" \
+  --conditions "${CONDITIONS}" \
+  --outcome-trace-target-modes "${OUTCOME_TRACE_TARGET_MODES}" \
+  --proposal-grpo-zero-variance-modes "${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}" \
+  --num-candidates-list "${NUM_CANDIDATES_LIST}" \
+  --adaptive-config-files "${ADAPTIVE_CONFIG_EXPORT}" \
+  --job-fields "${MANIFEST_ARGS[@]}"
 
 echo "[INFO] Submitted adaptive candidate-training jobs."
 echo "[INFO] Manifest: ${MANIFEST}"

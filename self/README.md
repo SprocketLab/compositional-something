@@ -593,6 +593,9 @@ the supported public surface.
   candidate and condition-pilot submitters use the shared sbatch-script
   submission helper, while the main-experiment submitter uses the shared
   wrapped-job submission helper.
+- `self/launcher_manifests.py`: importable submission-manifest builders and
+  CLI used by adaptive submitters, keeping `submission_manifest.json` schemas
+  out of shell here-docs while preserving the old JSON shape.
 - `launchers/self/config/adaptive_candidate_*.env`: default-only config files
   for adaptive candidate-training runs. Source them through
   `ADAPTIVE_CONFIG_FILE` or colon-separated `ADAPTIVE_CONFIG_FILES`; explicit
@@ -990,6 +993,8 @@ new implementation code:
   workshop batchers, run-length alpha10 baseline submitter, and self-improvement
   MIG runners also share the generic helper path, with alpha10 baseline
   commands using the shared repo-command wrapper before wrapped-job submission,
+  and adaptive candidate/condition submission manifests are written through
+  `python -m self.launcher_manifests` rather than shell-embedded Python,
   leaving the current
   `launchers/self/*.{sh,sbatch}` inventory without duplicated repo-root/Python
   setup;
