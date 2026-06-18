@@ -3217,3 +3217,10 @@ Acceptance criteria for first pilot:
 - Moved the `ProposalGrpoDispatchDeps` construction and proposal-GRPO local-vs-Slurm dispatch wrapper out of `self/core/driver_wiring.py`; `driver_wiring.py` now imports the bridge function while continuing to expose the same name for `self.core.driver` compatibility wrappers.
 - Updated `self/README.md` to document `self/core/driver_proposal_grpo_wiring.py` as the focused owner for proposal-GRPO update dispatch bridges.
 - Verification: `python -m py_compile self/core/driver.py self/core/driver_wiring.py self/core/driver_proposal_grpo_wiring.py self/core/proposal_grpo_dispatch.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_proposal_grpo tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`40 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:17:17 UTC
+
+- Continued shrinking the adaptive driver wiring layer by extracting driver-to-run-orchestration binding construction into `self/core/driver_run_wiring.py`.
+- Moved `AdaptiveRunDeps` construction and the full adaptive run wrapper out of `self/core/driver_wiring.py`; `driver_wiring.py` now reexports the run bridge while staying focused on compatibility aggregation and CLI entrypoint wiring.
+- Updated `self/README.md` to document `self/core/driver_run_wiring.py` as the focused owner for adaptive run orchestration bridges.
+- Verification: `python -m py_compile self/core/driver.py self/core/driver_wiring.py self/core/driver_run_wiring.py self/core/run_orchestration.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_run_wiring tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`40 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
