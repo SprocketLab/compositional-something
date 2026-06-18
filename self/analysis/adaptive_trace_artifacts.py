@@ -51,6 +51,13 @@ def adaptive_prompt_records(run: AdaptiveRunArtifacts | Path | str) -> list[Json
     return rows
 
 
+def _coerce_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def adaptive_selected_per_size_timeline_records(
     run: AdaptiveRunArtifacts | Path | str,
     *,
@@ -86,12 +93,20 @@ def adaptive_selected_per_size_timeline_records(
         }
         if selected is not None:
             base.update(_proposal_fields(selected))
+        target_size = _coerce_int(base.get("proposal_target"))
+        base["target_size"] = target_size
         for size, accuracy in sorted(current_accuracy.items(), key=lambda item: int(item[0])):
+            size_value = int(size)
             rows.append(
                 {
                     **base,
-                    "size": int(size),
+                    "size": size_value,
                     "accuracy": accuracy,
+                    "is_target_size": (
+                        selected_this_attempt
+                        and target_size is not None
+                        and size_value == target_size
+                    ),
                 }
             )
 

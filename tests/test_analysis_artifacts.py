@@ -21,6 +21,7 @@ from self.analysis.artifacts import (
     adaptive_submission_job_records,
     adaptive_trace_records,
     adaptive_trace_rows,
+    adaptive_validity_summary_records,
     discover_adaptive_runs,
     discover_submission_manifests,
     iter_candidate_dirs,
@@ -54,6 +55,7 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert load_adaptive_run is adaptive_artifacts.load_adaptive_run
     assert load_adaptive_candidates is adaptive_candidate_artifacts.load_adaptive_candidates
     assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates
+    assert adaptive_validity_summary_records is adaptive_artifacts.adaptive_validity_summary_records
     assert adaptive_candidate_artifact_records is adaptive_candidate_artifacts.adaptive_candidate_artifact_records
     assert adaptive_artifacts.adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
     assert adaptive_artifacts.adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
@@ -207,6 +209,30 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert proposal_rows[0]["proposal_left"] == 3
     assert proposal_rows[0]["proposal_target"] == 10
     assert proposal_rows[1]["validation_category"] == "parse_error"
+    validity_rows = adaptive_validity_summary_records(run)
+    assert validity_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "no_selection": False,
+            "proposal_count": 2,
+            "valid_proposal_count": 1,
+            "invalid_proposal_count": 1,
+            "valid_rate": 0.5,
+            "selected_id": "model_candidate_0",
+            "validation_category_counts": {"parse_error": 1, "valid": 1},
+            "validation_parse_error_count": 1,
+            "validation_valid_count": 1,
+        }
+    ]
 
     prompt_rows = adaptive_prompt_records(run)
     assert prompt_rows == [
@@ -459,6 +485,8 @@ def test_adaptive_selected_per_size_timeline_records_carries_forward(tmp_path: P
             row["checkpoint_source"],
             row["selected_id"],
             row.get("proposal_target"),
+            row.get("target_size"),
+            row["is_target_size"],
             row["size"],
             row["accuracy"],
             row["checkpoint_final_accuracy"],
@@ -466,12 +494,12 @@ def test_adaptive_selected_per_size_timeline_records_carries_forward(tmp_path: P
         for row in rows
     ]
     assert compact == [
-        (0, 0, False, "seed", None, None, 9, 0.5, 0.4),
-        (0, 0, False, "seed", None, None, 10, 0.1, 0.4),
-        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 10, 0.8, 0.52),
-        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 11, 0.2, 0.52),
-        (2, 1, False, "carried_forward", None, None, 10, 0.8, 0.52),
-        (2, 1, False, "carried_forward", None, None, 11, 0.2, 0.52),
+        (0, 0, False, "seed", None, None, None, False, 9, 0.5, 0.4),
+        (0, 0, False, "seed", None, None, None, False, 10, 0.1, 0.4),
+        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 10, True, 10, 0.8, 0.52),
+        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 10, False, 11, 0.2, 0.52),
+        (2, 1, False, "carried_forward", None, None, None, False, 10, 0.8, 0.52),
+        (2, 1, False, "carried_forward", None, None, None, False, 11, 0.2, 0.52),
     ]
 
 

@@ -457,14 +457,16 @@ the supported public surface.
   selected-id handling, and proposal-field flattening helpers used by both
   run-level and candidate-level adaptive loaders.
 - `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
-  loading, attempt-row flattening, proposal-row flattening, and compatibility
-  reexports for candidate and trace artifact helpers.
+  loading, attempt-row flattening, proposal-row flattening, per-attempt
+  proposal-validity summaries, and compatibility reexports for candidate and
+  trace artifact helpers.
 - `self/analysis/adaptive_candidate_artifacts.py`: adaptive candidate
   artifact loading and candidate/train-mix/per-size row flattening for
   per-candidate metrics, train-mix summaries, and worker-failure files.
 - `self/analysis/adaptive_trace_artifacts.py`: adaptive prompt records,
-  selected-checkpoint per-size timelines, proposal-GRPO metric records, and
-  trace JSONL flattening for notebooks.
+  selected-checkpoint per-size timelines with selected-target markers for
+  heatmaps, proposal-GRPO metric records, and trace JSONL flattening for
+  notebooks.
 - `self/analysis/adaptive_manifest_artifacts.py`: adaptive
   `submission_manifest.json` discovery, loading, and job-row flattening so
   notebooks can recover submitted condition metadata without hard-coding raw
@@ -928,13 +930,16 @@ new implementation code:
   setup;
   and adaptive candidate-training defaults can be loaded from
   `launchers/self/config/adaptive_candidate_*.env`.
-- Use `self/analysis/adaptive_artifacts.py` and
-  `self/analysis/adaptive_candidate_artifacts.py` for new adaptive notebooks,
-  and keep `self/analysis/artifacts.py` as the compatibility surface for older
-  notebooks while migrating direct raw JSON parsing when files are edited. The
-  candidate loader exposes helpers for per-candidate metrics, train-mix
-  summaries, and worker-failure files, so notebooks should not glob
-  `attempt_*/candidates/candidate_*` directly.
+- Use `self/analysis/adaptive_artifacts.py`,
+  `self/analysis/adaptive_candidate_artifacts.py`, and
+  `self/analysis/adaptive_trace_artifacts.py` for new adaptive notebooks, and
+  keep `self/analysis/artifacts.py` as the compatibility surface for older
+  notebooks while migrating direct raw JSON parsing when files are edited.
+  The adaptive loaders expose per-attempt valid-rate summaries,
+  selected-target heatmap markers, per-candidate metrics, train-mix summaries,
+  and worker-failure files, so notebooks should not glob
+  `attempt_*` or `attempt_*/candidates/candidate_*` directly for these common
+  views.
 - Keep source/artifact hygiene conservative: source notebooks and report
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.

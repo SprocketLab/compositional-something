@@ -3957,3 +3957,11 @@ Acceptance criteria for first pilot:
 - Preserved the default direct, unfiltered-compose, and guarded-compose jobs, command flags, manifest format, dry-run output shape, and wrapped-job submission path while allowing alternate rows through `RUN_LENGTH_ALPHA10_BASELINE_CONFIG`.
 - Added dry-run coverage for custom alpha10 baseline row config sourcing and updated `self/README.md` with the new config boundary.
 - Verification: `bash -n launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh launchers/self/config/run_length_alpha10_baseline_pack.env`; `python -m py_compile tests/test_guarded_plain_output_bit_diagnostic_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_alpha10_config tests/test_guarded_plain_output_bit_diagnostic_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:28:55 UTC
+
+- Extended `self/analysis/adaptive_artifacts.py` with `adaptive_validity_summary_records(...)`, a stable per-attempt valid-rate/category-count loader for adaptive proposal analysis notebooks.
+- Extended `adaptive_selected_per_size_timeline_records(...)` in `self/analysis/adaptive_trace_artifacts.py` with `target_size` and `is_target_size` fields so heatmaps can mark selected target digits/lengths without re-parsing proposal JSON.
+- Reexported the new validity summary helper through `self/analysis/artifacts.py` and pinned both additions in `tests/test_analysis_artifacts.py`.
+- Updated `self/README.md` so new adaptive notebooks use the analysis loaders for valid-rate evolution, selected-target heatmap markers, candidate metrics, train-mix summaries, and worker-failure files instead of direct raw JSON globbing.
+- Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/adaptive_trace_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_artifacts tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`11 passed`); `git diff --check`.

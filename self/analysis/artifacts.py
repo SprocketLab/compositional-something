@@ -16,6 +16,7 @@ from self.analysis.adaptive_artifacts import (
     AdaptiveRunArtifacts,
     adaptive_attempt_records,
     adaptive_proposal_records,
+    adaptive_validity_summary_records,
     discover_adaptive_runs,
     is_adaptive_run_dir,
     iter_attempt_dirs,

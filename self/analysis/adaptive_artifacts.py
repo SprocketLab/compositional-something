@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
+import re
 
 from self.analysis.adaptive_artifact_common import (
     ADAPTIVE_CANDIDATE_FAILURE_FILE,
@@ -117,6 +119,49 @@ def adaptive_attempt_records(run: AdaptiveRunArtifacts | Path | str) -> list[Jso
             "proposal_trace_buffer_size": summary.get("proposal_trace_buffer_size"),
             "outcome_trace_buffer_size": summary.get("outcome_trace_buffer_size"),
         }
+        rows.append(row)
+    return rows
+
+
+def _validation_count_key(category: str) -> str:
+    normalized = re.sub(r"[^0-9A-Za-z]+", "_", category.strip().lower()).strip("_")
+    return f"validation_{normalized or 'unknown'}_count"
+
+
+def adaptive_validity_summary_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    """Return per-attempt proposal validity summaries for analysis notebooks."""
+
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        proposal_count = len(attempt.proposal_results)
+        valid_count = sum(
+            1 for proposal in attempt.proposal_results if bool(proposal.get("valid"))
+        )
+        invalid_count = proposal_count - valid_count
+        categories = Counter(
+            str(
+                proposal.get("validation_category")
+                or ("valid" if bool(proposal.get("valid")) else "unknown")
+            )
+            for proposal in attempt.proposal_results
+        )
+        row: JsonDict = {
+            **context,
+            "attempt_dir": str(attempt.path),
+            "attempt": attempt.attempt,
+            "selected_round": attempt.attempt_summary.get("selected_round"),
+            "no_selection": bool(attempt.attempt_summary.get("no_selection", False)),
+            "proposal_count": proposal_count,
+            "valid_proposal_count": valid_count,
+            "invalid_proposal_count": invalid_count,
+            "valid_rate": valid_count / proposal_count if proposal_count else None,
+            "selected_id": _selected_id(attempt.attempt_summary.get("selected")),
+            "validation_category_counts": dict(sorted(categories.items())),
+        }
+        for category, count in sorted(categories.items()):
+            row[_validation_count_key(category)] = count
         rows.append(row)
     return rows
 
