@@ -3607,3 +3607,12 @@ Acceptance criteria for first pilot:
 - Added dry-run manifest tests for both adaptive submitters so the shared helper is covered through real launcher entry points.
 - Updated `self/README.md` to document that the adaptive candidate and condition-pilot submitters now share sbatch-script submission plumbing.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/lib/adaptive_common.sh launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/submit_adaptive_condition_pilots_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch launchers/self/run_adaptive_condition_ailab.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_launcher_helper tests/test_adaptive_candidate_launcher.py tests/test_adaptive_condition_launcher.py tests/test_main_experiments_launcher.py -q` (`8 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 13:34:26 UTC
+
+- Added `self/analysis/adaptive_manifest_artifacts.py` as a stable notebook-facing loader for adaptive `submission_manifest.json` files.
+- The new loader owns manifest path resolution, recursive manifest discovery, manifest JSON loading, and job-row flattening across candidate-training, condition-pilot, and main-experiment manifest schemas (`output_dir` and `output_root` are normalized to `output_dir`).
+- Reexported the manifest helpers from `self/analysis/artifacts.py` so notebooks can use the existing stable analysis import surface instead of hard-coding raw manifest paths.
+- Extended `tests/test_analysis_artifacts.py` with manifest fixtures covering Slurm metadata, adaptive candidate metadata, and main-experiment-style output-root metadata.
+- Updated `self/README.md` to document the new analysis owner module.
+- Verification: `python -m py_compile self/analysis/adaptive_manifest_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_manifest_artifacts tests/test_analysis_artifacts.py -q` (`5 passed`); `git diff --check`.

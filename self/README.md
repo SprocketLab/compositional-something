@@ -408,6 +408,10 @@ the supported public surface.
 - `self/analysis/adaptive_candidate_artifacts.py`: adaptive candidate
   artifact loading and candidate/train-mix/per-size row flattening for
   per-candidate metrics, train-mix summaries, and worker-failure files.
+- `self/analysis/adaptive_manifest_artifacts.py`: adaptive
+  `submission_manifest.json` discovery, loading, and job-row flattening so
+  notebooks can recover submitted condition metadata without hard-coding raw
+  manifest paths.
 - `self/analysis/nonadaptive_artifacts.py`: non-adaptive result-path
   resolution, round loading, per-size accuracy row construction, and
   records-to-DataFrame conversion.

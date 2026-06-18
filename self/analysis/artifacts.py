@@ -39,6 +39,13 @@ from self.analysis.adaptive_candidate_artifacts import (
     load_adaptive_candidate,
     load_adaptive_candidates,
 )
+from self.analysis.adaptive_manifest_artifacts import (
+    SUBMISSION_MANIFEST_FILE,
+    adaptive_submission_job_records,
+    discover_submission_manifests,
+    load_submission_manifest,
+    resolve_submission_manifest_path,
+)
 from self.analysis.artifact_io import (
     ADAPTIVE_RESULTS_FILE,
     SELF_IMPROVEMENT_RESULTS_FILE,

@@ -17,17 +17,21 @@ from self.analysis.artifacts import (
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
     adaptive_selected_per_size_timeline_records,
+    adaptive_submission_job_records,
     adaptive_trace_records,
     adaptive_trace_rows,
     discover_adaptive_runs,
+    discover_submission_manifests,
     iter_candidate_dirs,
     load_adaptive_candidates,
     load_adaptive_run,
+    load_submission_manifest,
     load_self_improvement_rounds,
     per_size_accuracy_records,
     read_json,
     read_jsonl,
     resolve_self_improvement_results_path,
+    resolve_submission_manifest_path,
 )
 from self.analysis.plot_self_improvement_figure import load_records, resolve_results_path
 
@@ -463,4 +467,88 @@ def test_adaptive_selected_per_size_timeline_records_carries_forward(tmp_path: P
         (1, 1, True, "selected_candidate", "model_candidate_0", 10, 11, 0.2, 0.52),
         (2, 1, False, "carried_forward", None, None, 10, 0.8, 0.52),
         (2, 1, False, "carried_forward", None, None, 11, 0.2, 0.52),
+    ]
+
+
+def test_adaptive_submission_manifest_loader_flattens_job_metadata(tmp_path: Path):
+    run_root = tmp_path / "submissions" / "adaptive"
+    manifest_path = run_root / "submission_manifest.json"
+    _write_json(
+        manifest_path,
+        {
+            "out_root": str(run_root),
+            "slurm": {
+                "partition": "ailab",
+                "gres": "gpu:h200:1",
+                "time": "24:00:00",
+            },
+            "jobs": {
+                "addition-config-numeric-n8-grpo-fixed_baseline": {
+                    "task": "addition",
+                    "condition": "config",
+                    "outcome_trace_target_mode": "numeric",
+                    "proposal_grpo_zero_variance": "fixed_baseline",
+                    "num_candidates": 8,
+                    "job_id": "123",
+                    "output_dir": str(run_root / "addition-config"),
+                    "status": "submitted",
+                },
+                "run_length_run_state": {
+                    "job_id": "456",
+                    "output_root": str(run_root / "run_length"),
+                    "target_mode": "run_state",
+                    "composition_path": "fixed_binary",
+                },
+            },
+        },
+    )
+
+    assert resolve_submission_manifest_path(run_root) == manifest_path
+    assert resolve_submission_manifest_path(manifest_path) == manifest_path
+    assert load_submission_manifest(run_root)["out_root"] == str(run_root)
+    assert discover_submission_manifests(tmp_path / "submissions") == [manifest_path]
+
+    rows = adaptive_submission_job_records(tmp_path / "submissions")
+    assert rows == [
+        {
+            "manifest_path": str(manifest_path),
+            "manifest_dir": str(run_root),
+            "manifest_name": "adaptive",
+            "out_root": str(run_root),
+            "job_key": "addition-config-numeric-n8-grpo-fixed_baseline",
+            "job_id": "123",
+            "status": "submitted",
+            "output_dir": str(run_root / "addition-config"),
+            "task": "addition",
+            "condition": "config",
+            "outcome_trace_target_mode": "numeric",
+            "proposal_grpo_zero_variance": "fixed_baseline",
+            "num_candidates": 8,
+            "target_mode": None,
+            "composition_path": None,
+            "slurm_partition": "ailab",
+            "slurm_gres": "gpu:h200:1",
+            "slurm_time": "24:00:00",
+        },
+        {
+            "manifest_path": str(manifest_path),
+            "manifest_dir": str(run_root),
+            "manifest_name": "adaptive",
+            "out_root": str(run_root),
+            "job_key": "run_length_run_state",
+            "job_id": "456",
+            "status": None,
+            "output_dir": str(run_root / "run_length"),
+            "task": None,
+            "condition": None,
+            "outcome_trace_target_mode": None,
+            "proposal_grpo_zero_variance": None,
+            "num_candidates": None,
+            "target_mode": "run_state",
+            "composition_path": "fixed_binary",
+            "slurm_partition": "ailab",
+            "slurm_gres": "gpu:h200:1",
+            "slurm_time": "24:00:00",
+            "output_root": str(run_root / "run_length"),
+        },
     ]
