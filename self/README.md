@@ -93,9 +93,11 @@ tests, notebooks, and older artifacts.
   evaluation, composed-slice aggregation, and guarded-slice debug sample
   writing.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
-  self-improvement loop runtime, including round-by-round
-  training/evaluation, dynamic composed-pool refresh, pseudo-label
-  generation, and summary writing.
+  self-improvement loop runtime, including round-by-round orchestration,
+  training/evaluation dispatch, pseudo-label handoff, and summary writing.
+- `self/core/nonadaptive_pseudo.py`: non-adaptive dynamic composed-pool
+  refresh, next-round pseudo-label generation, pseudo-generation diagnostics,
+  and per-round pseudo/composed artifact snapshots.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
   for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path

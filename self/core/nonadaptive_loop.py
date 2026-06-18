@@ -44,6 +44,7 @@ from self.core.model_io import (
 from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
+from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
@@ -286,77 +287,39 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         composed_eval_accuracy = evaluation.composed_eval_accuracy
         composed_slice_metrics = evaluation.composed_slice_metrics
 
-        pseudo_generation_stats: JsonDict = {}
-        if round_idx >= args.num_expand_rounds:
-            pseudo_examples = []
-        else:
-            if dynamic_composed:
-                additional_exclude = eval_keys if eval_keys else None
-                if composed_min_size <= final_max_size and args.expand_train_per_size > 0:
-                    refresh_label = f"round_{round_idx:02d}_next"
-                    composed_build_exclude = set(eval_keys)
-                    composed_build_exclude.update(task.keys_for_examples(train_examples))
-                    composed_examples, component_map, _ = task.prepare_composed_train(
-                        rng,
-                        args,
-                        base_splits={**base_splits, "train": train_examples},
-                        base_records=base_records,
-                        min_size=composed_min_size,
-                        max_size=size_schedule.target_max_size_for_round(round_idx),
-                        additional_exclude=composed_build_exclude if composed_build_exclude else None,
-                    )
-                    save_examples(composed_pool_path, composed_examples, task.serialize_example)
-                    task.save_component_map(component_map_path, component_map)
-                    metadata["last_composed_refresh"] = refresh_label
-                    save_examples(round_dir / "composed_pool_for_next_round.jsonl", composed_examples, task.serialize_example)
-                    task.save_component_map(round_dir / "composed_component_map_next_round.json", component_map)
-                else:
-                    metadata["last_composed_refresh"] = f"skipped_round_{round_idx:02d}"
-            persist_metadata()
-
-            target_max_size = size_schedule.target_max_size_for_round(round_idx)
-            pseudo_rng = random.Random(rng.random())
-            pseudo_decode_tokens = max(
-                train_base_decode_tokens,
-                resolve_max_new_tokens(composed_examples, config.decode_max_new_tokens),
-            )
-            if args.pseudo_label_mode == "none":
-                next_pseudo_examples = []
-                missing_labels = 0
-                pseudo_generation_stats = {
-                    "mode": "none",
-                    "target_max_size": int(target_max_size),
-                    "candidate_total": 0,
-                    "retained_total": 0,
-                    "missing_total": 0,
-                }
-            else:
-                next_pseudo_examples, missing_labels, pseudo_generation_stats = task.derive_round_targets(
-                    model,
-                    tokenizer,
-                    composed_examples,
-                    component_map,
-                    target_max_size=target_max_size,
-                    base_examples=train_examples,
-                    batch_size=config.per_device_eval_batch_size,
-                    decode_max_new_tokens=pseudo_decode_tokens,
-                    args=args,
-                    rng=pseudo_rng,
-                )
-            if hasattr(args, "bit_composition_path_mode") and isinstance(pseudo_generation_stats, dict):
-                pseudo_generation_stats.setdefault("bit_composition_path_mode", str(args.bit_composition_path_mode))
-            save_examples(round_dir / "pseudo_for_next_round.jsonl", next_pseudo_examples, task.serialize_example)
-            pseudo_examples = next_pseudo_examples
-            if missing_labels > 0:
-                print(
-                    f"[WARN] Round {round_idx}: skipped {missing_labels} composed examples without pseudo labels.",
-                    flush=True,
-                )
-            if not pseudo_examples:
-                print(
-                    "[WARN] No pseudo-labeled examples generated; subsequent rounds will have no additional data.",
-                    flush=True,
-                )
+        next_pseudo_round = prepare_nonadaptive_next_pseudo_round(
+            args=args,
+            task=task,
+            model=model,
+            tokenizer=tokenizer,
+            rng=rng,
+            round_idx=round_idx,
+            round_dir=round_dir,
+            train_examples=train_examples,
+            base_splits=base_splits,
+            base_records=base_records,
+            composed_examples=composed_examples,
+            component_map=component_map,
+            composed_pool_path=composed_pool_path,
+            component_map_path=component_map_path,
+            metadata=metadata,
+            eval_keys=eval_keys,
+            size_schedule=size_schedule,
+            composed_min_size=composed_min_size,
+            final_max_size=final_max_size,
+            train_base_decode_tokens=train_base_decode_tokens,
+            config_decode_max_new_tokens=config.decode_max_new_tokens,
+            eval_batch_size=config.per_device_eval_batch_size,
+            dynamic_composed=dynamic_composed,
+            persist_metadata_fn=persist_metadata,
+            save_examples_fn=save_examples,
+            resolve_max_new_tokens_fn=resolve_max_new_tokens,
+            random_cls=random.Random,
+        )
+        composed_examples = next_pseudo_round.composed_examples
+        component_map = next_pseudo_round.component_map
+        pseudo_examples = next_pseudo_round.pseudo_examples
+        pseudo_generation_stats = next_pseudo_round.pseudo_generation_stats
 
         summary = RoundSummary(
             index=round_idx,
