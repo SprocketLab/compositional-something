@@ -5,6 +5,7 @@ from self.analysis import (
     adaptive_artifact_common,
     adaptive_artifacts,
     adaptive_candidate_artifacts,
+    adaptive_trace_artifacts,
     nonadaptive_artifacts,
 )
 from self.analysis.artifacts import (
@@ -54,6 +55,10 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert load_adaptive_candidates is adaptive_candidate_artifacts.load_adaptive_candidates
     assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates
     assert adaptive_candidate_artifact_records is adaptive_candidate_artifacts.adaptive_candidate_artifact_records
+    assert adaptive_artifacts.adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
+    assert adaptive_artifacts.adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
+    assert adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
+    assert adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
 
     run_dir = tmp_path / "root" / "addition-config"
     attempt_dir = run_dir / "attempt_0001"

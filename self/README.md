@@ -444,11 +444,14 @@ the supported public surface.
   selected-id handling, and proposal-field flattening helpers used by both
   run-level and candidate-level adaptive loaders.
 - `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
-  loading, prompt/proposal/trace record flattening, selected-checkpoint
-  per-size timelines, and proposal-GRPO metric records.
+  loading, attempt-row flattening, proposal-row flattening, and compatibility
+  reexports for candidate and trace artifact helpers.
 - `self/analysis/adaptive_candidate_artifacts.py`: adaptive candidate
   artifact loading and candidate/train-mix/per-size row flattening for
   per-candidate metrics, train-mix summaries, and worker-failure files.
+- `self/analysis/adaptive_trace_artifacts.py`: adaptive prompt records,
+  selected-checkpoint per-size timelines, proposal-GRPO metric records, and
+  trace JSONL flattening for notebooks.
 - `self/analysis/adaptive_manifest_artifacts.py`: adaptive
   `submission_manifest.json` discovery, loading, and job-row flattening so
   notebooks can recover submitted condition metadata without hard-coding raw
