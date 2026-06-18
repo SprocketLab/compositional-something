@@ -3266,3 +3266,11 @@ Acceptance criteria for first pilot:
 - Added detailed bootstrap cache hit/miss counters to `ModelBootstrapCache` and included them in packed-worker summaries under `model_bootstrap_cache_details`, while preserving the existing compact `model_bootstrap_cache` summary shape.
 - Updated `self/README.md` runtime notes to separate tokenizer bootstrap reuse from optional checkpoint-state reuse.
 - Verification: `python -m py_compile self/core/model_io.py self/core/candidate_worker_runtime.py tests/test_model_io_bootstrap_cache.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_model_cache tests/test_model_io_bootstrap_cache.py -q` (`2 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_candidate_cache tests/test_adaptive_candidate_training.py -q` (`39 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 09:50:00 UTC
+
+- Continued shrinking `self/core/driver.py` by moving the repetitive public compatibility delegate registration into `self/core/driver_public_api.py`.
+- Kept the live driver module as the binding surface for all generated delegates so existing monkeypatches through `self.adaptive_candidate_training` and `self.core.driver` still flow into candidate dispatch, worker entry points, proposal-GRPO dispatch, and run orchestration.
+- Left `driver.py` responsible for lazy default/compat exports, `_default_bf16_on_cuda`, `main(...)`, and module execution only.
+- Updated `self/README.md` to document the new public-delegate installer.
+- Verification: `python -m py_compile self/core/driver.py self/core/driver_public_api.py self/core/driver_wiring.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env python - <<'PY' ...` public-delegate probe; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_public tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).

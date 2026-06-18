@@ -40,6 +40,10 @@ the supported public surface.
 - `self/core/driver_compat_manifest.py`: lightweight manifest of the driver
   compatibility names, kept separate so the driver can expose `dir()`/`__all__`
   without importing the full legacy surface eagerly.
+- `self/core/driver_public_api.py`: mechanical installer for public driver
+  delegates that forward through `driver_wiring.py` with the live driver module
+  as the binding surface, keeping `driver.py` small without breaking old
+  monkeypatch points.
 - `self/core/args.py`: CLI parser construction plus argument validation and
   task-specific default normalization.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
