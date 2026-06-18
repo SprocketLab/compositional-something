@@ -90,10 +90,11 @@ the supported public surface.
   loading, packed-worker shared-input cache keys, proposal/outcome trace
   buffer loading, proposal prompt reconstruction, and per-pack model bootstrap
   cache setup.
+- `self/core/candidate_worker_failures.py`: candidate-worker failure payload
+  construction plus metrics-compatible worker-failure path resolution/writing.
 - `self/core/candidate_worker_runtime.py`: candidate-worker spec entry point
   runtime, including spec loading, pseudo-example reconstruction, metric
-  generation, packed local-worker execution, and worker-failure artifact
-  writing.
+  generation, packed local-worker execution, and failure handling.
 - `self/core/candidate_workers.py`: compatibility wrapper/reexport surface for
   candidate worker specs, local candidate-worker dispatch, and Slurm-array
   candidate-worker dispatch.

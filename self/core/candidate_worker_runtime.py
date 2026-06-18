@@ -16,6 +16,7 @@ from self.core.candidate_worker_inputs import (
     candidate_item_from_payload,
     load_candidate_worker_shared_inputs,
 )
+from self.core.candidate_worker_failures import write_candidate_worker_failure_from_spec
 from self.core.data_io import load_examples
 from self.core.models import CandidateMetrics, float_or_nan
 
@@ -68,25 +69,6 @@ def run_candidate_worker_from_spec(
     )
 
 
-def _write_candidate_failure_from_spec(
-    spec_path: Path,
-    exc: Exception,
-    *,
-    deps: CandidateWorkerRuntimeDeps,
-) -> JsonDict:
-    payload = deps.load_json(spec_path)
-    candidate_index = int(payload["candidate_index"])
-    round_dir = Path(payload["round_dir"])
-    failure_path = round_dir / "candidates" / f"candidate_{candidate_index:02d}" / "worker_failure.json"
-    failure_payload: JsonDict = {
-        "spec_path": str(spec_path),
-        "error_type": type(exc).__name__,
-        "error": str(exc),
-    }
-    deps.write_json(failure_path, failure_payload)
-    return failure_payload
-
-
 def run_candidate_worker(
     spec_path: Path,
     *,
@@ -97,23 +79,14 @@ def run_candidate_worker(
         metrics = run_from_spec_fn(spec_path)
         return metrics.to_json_dict()
     except Exception as exc:
-        payload: Optional[JsonDict] = None
         try:
-            payload = deps.load_json(spec_path)
-            candidate_index = int(payload["candidate_index"])
-            round_dir = Path(payload["round_dir"])
-            failure_path = round_dir / "candidates" / f"candidate_{candidate_index:02d}" / "worker_failure.json"
-            deps.write_json(
-                failure_path,
-                {
-                    "spec_path": str(spec_path),
-                    "error_type": type(exc).__name__,
-                    "error": str(exc),
-                },
+            write_candidate_worker_failure_from_spec(
+                spec_path,
+                exc,
+                load_json_fn=deps.load_json,
+                write_json_fn=deps.write_json,
             )
         except Exception:
-            payload = None
-        if payload is None:
             print(f"[ERROR] Candidate worker failed before failure artifact could be written: {exc}", flush=True)
         raise
 
@@ -146,7 +119,12 @@ def run_candidate_worker_pack_from_spec(
         except Exception as exc:
             failed += 1
             try:
-                failure_payload = _write_candidate_failure_from_spec(spec_path, exc, deps=deps)
+                failure_payload = write_candidate_worker_failure_from_spec(
+                    spec_path,
+                    exc,
+                    load_json_fn=deps.load_json,
+                    write_json_fn=deps.write_json,
+                )
             except Exception:
                 failure_payload = {
                     "spec_path": str(spec_path),
