@@ -4010,3 +4010,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_addition_fullpack_filtered_launcher.py` with config-file coverage plus dry-run checks for `BASELINES` and override-config behavior.
 - Updated `self/README.md` with the new addition fullpack-filtered config boundary.
 - Verification: `bash -n launchers/self/submit_addition_fullpack_filtered_mig.sh launchers/self/config/addition_fullpack_filtered.env launchers/self/run_addition_fullpack_filtered.sbatch`; `python -m py_compile tests/test_addition_fullpack_filtered_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_fullpack_filtered_config tests/test_addition_fullpack_filtered_launcher.py tests/test_self_common_launcher_helpers.py -q` (`11 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 18:02:33 UTC
+
+- Added `launchers/self/config/figure2_recipe_aggressive.env` as the explicit default config for Figure 2 aggressive recipe top-level stage/task/device/dry-run settings and the fullpack baseline list.
+- Updated `launchers/self/run_figure2_recipe_aggressive.sh` and `launchers/self/submit_figure2_recipe_aggressive.sh` to source the tracked default config first and then optionally source one or more `FIGURE2_RECIPE_CONFIG` override files.
+- Preserved existing `BASELINES` environment overrides by using them to initialize `FIGURE2_RECIPE_BASELINES_RAW`, while adding a stable override variable for config-file use.
+- Extended `tests/test_figure2_recipe_aggressive_launchers.py` with config-file coverage plus runner and submitter dry-run checks for `FIGURE2_RECIPE_CONFIG`.
+- Updated `self/README.md` with the new Figure 2 aggressive recipe config boundary.
+- Verification: `bash -n launchers/self/run_figure2_recipe_aggressive.sh launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/config/figure2_recipe_aggressive.env launchers/self/lib/figure2_recipe_common.sh launchers/self/config/figure2_run_length.env launchers/self/run_figure2_paper_retune.sh`; `python -m py_compile tests/test_figure2_recipe_aggressive_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_recipe_aggressive_config tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`13 passed`).

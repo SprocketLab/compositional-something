@@ -7,6 +7,12 @@ source "${SCRIPT_DIR}/lib/figure2_recipe_common.sh"
 
 self_cd_repo_root
 
+FIGURE2_RECIPE_DEFAULT_CONFIG="${ROOT_DIR}/launchers/self/config/figure2_recipe_aggressive.env"
+self_source_config_file "${FIGURE2_RECIPE_DEFAULT_CONFIG}" "Figure 2 recipe default config"
+if [[ -n "${FIGURE2_RECIPE_CONFIG:-}" ]]; then
+  self_source_config_files "${FIGURE2_RECIPE_CONFIG}" "Figure 2 recipe override config"
+fi
+
 FIGURE2_TASK_CONFIG="${FIGURE2_TASK_CONFIG:-${ROOT_DIR}/launchers/self/config/figure2_run_length.env}"
 self_source_config_files "${FIGURE2_TASK_CONFIG}" "Figure 2 task config"
 
@@ -21,15 +27,11 @@ self_resolve_python
 TS="$(date +%Y%m%d_%H%M%S)"
 OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/figure2_recipe_aggressive_${TS}}"
 FIGURE_DIR="${FIGURE_DIR:-${ROOT_DIR}/icmlw26_comp-self-improvement/figures}"
-DEVICE_TARGET="${DEVICE_TARGET:-local_a100_40gb}"
-STAGE="${STAGE:-all}"
-TASKS="${TASKS:-run_length}"
-BASELINES="${BASELINES:-short_only direct compose compose_corrupt}"
+BASELINES="${FIGURE2_RECIPE_BASELINES_RAW}"
 SEED="${SEED:-42}"
 SCRATCH_MODEL_NAME="${SCRATCH_MODEL_NAME:-${ROOT_DIR}/meta/models/tiny_gpt2_8l_384d}"
 RUN_FULLPACK_ONLY_IF_HEALTHY="${RUN_FULLPACK_ONLY_IF_HEALTHY:-1}"
 RUN_PILOT_GATE="${RUN_PILOT_GATE:-1}"
-DRY_RUN="${DRY_RUN:-0}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-}"
 MAX_STEPS_SEED="${MAX_STEPS_SEED:-}"

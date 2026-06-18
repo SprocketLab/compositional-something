@@ -7,6 +7,12 @@ source "${SCRIPT_DIR}/lib/self_common.sh"
 self_cd_repo_root
 self_resolve_python
 
+FIGURE2_RECIPE_DEFAULT_CONFIG="${ROOT_DIR}/launchers/self/config/figure2_recipe_aggressive.env"
+self_source_config_file "${FIGURE2_RECIPE_DEFAULT_CONFIG}" "Figure 2 recipe default config"
+if [[ -n "${FIGURE2_RECIPE_CONFIG:-}" ]]; then
+  self_source_config_files "${FIGURE2_RECIPE_CONFIG}" "Figure 2 recipe override config"
+fi
+
 TS="$(date +%Y%m%d_%H%M%S)"
 OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/figure2_recipe_aggressive_${TS}}"
 JOB_NAME="${JOB_NAME:-fig2-rec-aggr}"
@@ -16,11 +22,7 @@ SBATCH_GRES="${SBATCH_GRES:-}"
 SBATCH_MEM="${SBATCH_MEM:-64G}"
 SBATCH_CPUS="${SBATCH_CPUS:-1}"
 SBATCH_CONSTRAINT="${SBATCH_CONSTRAINT:-}"
-STAGE="${STAGE:-all}"
-TASKS="${TASKS:-run_length}"
-BASELINES="${BASELINES:-short_only direct compose compose_corrupt}"
-DEVICE_TARGET="${DEVICE_TARGET:-local_a100_40gb}"
-DRY_RUN="${DRY_RUN:-0}"
+BASELINES="${FIGURE2_RECIPE_BASELINES_RAW}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-}"
 MAX_STEPS_SEED="${MAX_STEPS_SEED:-}"

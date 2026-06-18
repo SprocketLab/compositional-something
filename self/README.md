@@ -657,7 +657,8 @@ the supported public surface.
   `launchers/self/run_figure2_paper_retune.sh` use the generic helper for
   repo-root/Python setup, boolean parsing, command printing, shared
   repo-command wrapping, and wrapped-job submission across the Figure 2 recipe
-  workflow.
+  workflow. The aggressive workflow's top-level stage/task/baseline defaults
+  live in `launchers/self/config/figure2_recipe_aggressive.env`.
 - `launchers/self/lib/figure2_recipe_common.sh` and
   `launchers/self/config/figure2_run_length.env` own Figure 2 recipe task
   metadata and run-length defaults that were previously embedded in

@@ -10,13 +10,22 @@ RUNNER = ROOT / "launchers" / "self" / "run_figure2_recipe_aggressive.sh"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_figure2_recipe_aggressive.sh"
 RETUNE = ROOT / "launchers" / "self" / "run_figure2_paper_retune.sh"
 FIGURE2_HELPER = ROOT / "launchers" / "self" / "lib" / "figure2_recipe_common.sh"
+FIGURE2_RECIPE_CONFIG = ROOT / "launchers" / "self" / "config" / "figure2_recipe_aggressive.env"
 FIGURE2_RUN_LENGTH_CONFIG = ROOT / "launchers" / "self" / "config" / "figure2_run_length.env"
 
 
 def test_figure2_recipe_aggressive_launchers_have_valid_bash_syntax():
-    for launcher in (RUNNER, SUBMITTER, RETUNE, FIGURE2_HELPER, FIGURE2_RUN_LENGTH_CONFIG):
+    for launcher in (RUNNER, SUBMITTER, RETUNE, FIGURE2_HELPER, FIGURE2_RECIPE_CONFIG, FIGURE2_RUN_LENGTH_CONFIG):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
+
+
+def test_figure2_recipe_aggressive_config_owns_baseline_defaults():
+    text = FIGURE2_RECIPE_CONFIG.read_text(encoding="utf-8")
+
+    assert "FIGURE2_RECIPE_BASELINES_RAW" in text
+    assert "short_only direct compose compose_corrupt" in text
+    assert "${BASELINES:-" in text
 
 
 def test_figure2_recipe_aggressive_runner_dry_run_prints_recipe_schedule(tmp_path):
@@ -87,6 +96,33 @@ def test_figure2_recipe_aggressive_runner_can_source_task_config(tmp_path):
     assert "--expand-num-bits 7" in stdout
 
 
+def test_figure2_recipe_aggressive_runner_can_source_recipe_config(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["STAGE"] = "fullpack"
+    env["OUT_ROOT"] = str(tmp_path / "figure2_recipe")
+    env["PAPER_SCHEDULE_ENV"] = str(tmp_path / "missing_paper_schedule.env")
+    env["FIGURE2_RECIPE_CONFIG"] = str(tmp_path / "figure2_recipe.env")
+    Path(env["FIGURE2_RECIPE_CONFIG"]).write_text(
+        'FIGURE2_RECIPE_BASELINES_RAW="direct"\n',
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(RUNNER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "Loaded Figure 2 recipe override config" in stdout
+    assert "--pseudo-label-mode direct" in stdout
+    assert "--pseudo-label-mode compose_corrupt" not in stdout
+
+
 def test_figure2_recipe_aggressive_runner_can_source_paper_schedule_env(tmp_path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"
@@ -146,6 +182,31 @@ def test_figure2_recipe_aggressive_submitter_dry_run_prints_submission(tmp_path)
     assert "Resolved gres: gpu:a100:1" in stdout
     assert "Resolved constraint: a100&gpu40&nomig" in stdout
     assert "[INFO] DRY_RUN=1; sbatch not executed." in stdout
+
+
+def test_figure2_recipe_aggressive_submitter_can_source_recipe_config(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "figure2_recipe_submit")
+    env["FIGURE2_RECIPE_CONFIG"] = str(tmp_path / "figure2_recipe.env")
+    Path(env["FIGURE2_RECIPE_CONFIG"]).write_text(
+        'FIGURE2_RECIPE_BASELINES_RAW="direct"\n',
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "Loaded Figure 2 recipe override config" in stdout
+    assert "BASELINES=direct" in stdout
+    assert "BASELINES=short_only\\ direct\\ compose\\ compose_corrupt" not in stdout
 
 
 def test_figure2_recipe_aggressive_submitter_uses_shared_wrap_helper(tmp_path):
