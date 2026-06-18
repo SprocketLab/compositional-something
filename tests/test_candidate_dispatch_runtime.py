@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import candidate_dispatch_runtime, candidate_execution, candidate_workers
+from self.core import (
+    candidate_dispatch_runtime,
+    candidate_execution,
+    candidate_serial_runtime,
+    candidate_workers,
+)
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.core.proposals import ConfigProposal, PromptBundle
 
@@ -237,6 +242,10 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
 
 
 def test_candidate_execution_reexports_dispatch_runtime_helpers():
+    assert (
+        candidate_dispatch_runtime.train_candidates_serial
+        is candidate_serial_runtime.train_candidates_serial
+    )
     assert candidate_execution.train_candidates_serial is candidate_dispatch_runtime.train_candidates_serial
     assert (
         candidate_execution.train_candidates_local_parallel

@@ -101,8 +101,11 @@ the supported public surface.
   training mix construction plus train-mix JSONL/summary artifact writing.
 - `self/core/candidate_rewards.py`: static-frontier aggregation, no-pseudo
   failure metrics, trained-candidate reward, and candidate metric construction.
+- `self/core/candidate_serial_runtime.py`: serial candidate scoring dispatch,
+  attempt-index seed routing, and per-dispatch model bootstrap-cache reuse.
 - `self/core/candidate_dispatch_runtime.py`: candidate training mode
-  selection plus serial, local-parallel, and Slurm-array execution helpers.
+  selection plus local-parallel and Slurm-array execution helpers, while
+  reexporting the serial helper for compatibility.
 - `self/core/candidate_dispatch_entrypoints.py`: compatibility-aware wiring
   between driver-level monkeypatchable names and candidate dispatch runtimes.
 - `self/core/checkpoints.py`: checkpoint retention policy and cleanup helpers
@@ -1030,8 +1033,9 @@ new implementation code:
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.
 - Optimize candidate training to avoid repeated full model reloads where
-  semantics allow it. Serial candidate dispatch now reuses one process-local
-  bootstrap cache across candidates, so tokenizer bootstrap work is shared and
+  semantics allow it. Serial candidate dispatch now lives in
+  `self/core/candidate_serial_runtime.py` and reuses one process-local bootstrap
+  cache across candidates, so tokenizer bootstrap work is shared and
   `--candidate-local-cache-base-state` also reuses an unmodified CPU copy of the
   source checkpoint state while still instantiating a fresh model object per
   candidate. Packed-local workers reduce subprocess and shared-input

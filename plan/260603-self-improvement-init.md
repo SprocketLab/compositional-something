@@ -4419,3 +4419,29 @@ Acceptance criteria for first pilot:
   tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env
   pytest --basetemp=.pytest_tmp_adaptive_summary_artifacts
   tests/test_analysis_artifacts.py -q` (`6 passed`).
+
+### Implementation Log: 2026-06-18 20:09:27 UTC
+
+- Split serial candidate dispatch from `self/core/candidate_dispatch_runtime.py`
+  into `self/core/candidate_serial_runtime.py`.
+- The new serial module owns attempt-index seed routing, scorer signature
+  inspection for the optional `model_bootstrap_cache` keyword, and the
+  per-dispatch `ModelBootstrapCache` used to avoid repeated tokenizer/source
+  checkpoint bootstrap work when semantics allow it.
+- Kept `self.core.candidate_dispatch_runtime.train_candidates_serial` and
+  `self.core.candidate_execution.train_candidates_serial` as compatibility
+  reexports.
+- Reduced `self/core/candidate_dispatch_runtime.py` from `281` to `215` lines,
+  leaving it focused on candidate execution-mode selection plus local/Slurm
+  dispatch delegation.
+- Verification: `python -m py_compile self/core/candidate_serial_runtime.py
+  self/core/candidate_dispatch_runtime.py self/core/candidate_execution.py
+  tests/test_candidate_dispatch_runtime.py`; `PYTHONPATH=. conda run -n
+  torch-env pytest --basetemp=.pytest_tmp_candidate_serial_runtime
+  tests/test_candidate_dispatch_runtime.py tests/test_candidate_training_runtime.py
+  tests/test_model_io_bootstrap_cache.py -q` (`11 passed`);
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_candidate_serial_adaptive
+  tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
+  existing multiprocessing fork warnings); `git diff --check`.
