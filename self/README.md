@@ -419,6 +419,9 @@ the supported public surface.
   sample-size sweep submission/collection.
 - `self/experiments/figure3_real_seed_data_ablation.py`: Figure 3 real-task
   seed/data ablation submission/collection.
+- `self/experiments/run_length_alpha10_seed_beam.py`: alpha-10
+  symbol-run run-length trainer-seed beam orchestration, branch copying,
+  Slurm polling, candidate scoring, and best-branch symlink creation.
 - `self/experiments/seed_fit_experiment.py`: seed-only fit experiment for
   addition, run-length, and multiplication task adapters.
 - `self/experiments/rectangular_multiplication_seed_fit.py`: rectangular
@@ -601,7 +604,10 @@ the supported public surface.
   dry-run command printing across the addition seed workflows.
 - `launchers/self/submit_run_length_fixed_binary_mig.sh` uses the generic
   helper for repo-root/Python setup and per-job explicit Slurm resource
-  argument construction across GPU and CPU jobs.
+  argument construction across GPU and CPU jobs. It now launches the alpha-10
+  seed-beam controller through `self.experiments.run_length_alpha10_seed_beam`;
+  `launchers/self/run_run_length_alpha10_seed_beam_mig.py` remains a thin
+  compatibility wrapper for older direct invocations.
 - `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh` and
   `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch` use the
   generic helper for repo-root/Python setup and dry-run command printing. The
@@ -738,6 +744,8 @@ new implementation code:
 - `self/rectangular_multiplication_recipe_seed_fit.py` -> `self/experiments/rectangular_multiplication_recipe_seed_fit.py`
 - `self/rectangular_multiplication_seed_fit.py` -> `self/experiments/rectangular_multiplication_seed_fit.py`
 - `self/rectangular_multiplication_self_improvement.py` -> `self/experiments/rectangular_multiplication_self_improvement.py`
+- `launchers/self/run_run_length_alpha10_seed_beam_mig.py` -> `self/experiments/run_length_alpha10_seed_beam.py`
+  as a compatibility wrapper at the old launcher path.
 - `self/run_length_balanced_eval.py` -> `self/diagnostics/run_length_balanced_eval.py`
 - `self/seed_fit_curve_notebook_utils.py` -> `self/analysis/seed_fit_curve_notebook_utils.py`
 - `self/seed_fit_experiment.py` -> `self/experiments/seed_fit_experiment.py`

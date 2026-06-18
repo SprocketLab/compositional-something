@@ -3974,3 +3974,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_seed_fit_curve_notebook_utils.py` to pin resolver behavior, notebook-helper reexports, bundle loading, and seed-fit summary-grid row/selection behavior.
 - Updated `self/README.md` so new seed-fit notebooks and scripts use the shared artifact resolver rather than raw `**/seed_fit_results.json` path conventions.
 - Verification: `python -m py_compile self/analysis/seed_fit_artifacts.py self/analysis/seed_fit_bundle.py self/analysis/seed_fit_curve_notebook_utils.py self/analysis/summarize_seed_fit_grid.py self/analysis/artifacts.py tests/test_seed_fit_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_seed_fit_artifacts tests/test_seed_fit_curve_notebook_utils.py tests/test_module_proxy.py -q` (`8 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:39:30 UTC
+
+- Moved the alpha-10 symbol-run run-length trainer-seed beam implementation from `launchers/self/run_run_length_alpha10_seed_beam_mig.py` into `self/experiments/run_length_alpha10_seed_beam.py`.
+- Replaced the old launcher path with a thin compatibility wrapper that inserts the repo root into `sys.path` and calls the canonical experiment `main()`.
+- Updated `launchers/self/submit_run_length_fixed_binary_mig.sh` to launch new beam jobs through `python -m self.experiments.run_length_alpha10_seed_beam` while preserving the old wrapper for direct invocations.
+- Extended `tests/test_run_length_fixed_binary_launchers.py` to pin the canonical module import, fixed-binary submitter command, and legacy wrapper dry-run behavior.
+- Updated `self/README.md` with the new experiment owner and compatibility-wrapper boundary.
+- Verification: `python -m py_compile self/experiments/run_length_alpha10_seed_beam.py launchers/self/run_run_length_alpha10_seed_beam_mig.py tests/test_run_length_fixed_binary_launchers.py`; `bash -n launchers/self/submit_run_length_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_beam_move tests/test_run_length_fixed_binary_launchers.py -q` (`3 passed`); `git diff --check`.

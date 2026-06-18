@@ -51,7 +51,7 @@ TEMPLATE_JOB_ID="$(
 )"
 
 BEAM_ROOT="${ALPHA_ROOT}/beam"
-BEAM_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} ${ROOT_DIR}/launchers/self/run_run_length_alpha10_seed_beam_mig.py --template-run ${TEMPLATE_OUT} --seed-model ${ALPHA10_SEED_MODEL} --out-root ${BEAM_ROOT} --max-round 7 --round-warmup-steps 500 --train-batch-size 256 --eval-batch-size 256 --expand-train-per-bit 2000 --bit-composition-path-mode fixed_binary"
+BEAM_CMD="cd ${ROOT_DIR} && PYTHONPATH=. ${PYTHON_BIN} -m self.experiments.run_length_alpha10_seed_beam --template-run ${TEMPLATE_OUT} --seed-model ${ALPHA10_SEED_MODEL} --out-root ${BEAM_ROOT} --max-round 7 --round-warmup-steps 500 --train-batch-size 256 --eval-batch-size 256 --expand-train-per-bit 2000 --bit-composition-path-mode fixed_binary"
 BEAM_JOB_ID="$(
   self_submit_wrapped_job \
     "rl-fb-a10-beam" \
