@@ -3402,3 +3402,11 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_analysis_artifacts.py` with a failure-only candidate directory to cover incomplete candidate artifacts, worker-failure loading, candidate sorting, train-mix loading, and compatibility identity for the new loader.
 - Updated `self/README.md` to document candidate artifact loading in the current analysis layer and remaining cleanup guidance.
 - Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_candidate_artifacts tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`); `git diff --check`. The temporary `.pytest_tmp_analysis_candidate_artifacts` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 11:11:00 UTC
+
+- Continued Slurm launcher consolidation by adding two generic helpers to `launchers/self/lib/self_common.sh`: `self_print_python_launcher_context(...)` for the common root/Python/output-root banner and `self_print_and_run_command_stdout(...)` for the repeated print-then-execute command pattern.
+- Migrated the paper-facing Figure 2/3 wrappers to these helpers: `submit_figure2_condition_sweep_mig.sh`, `submit_figure3_seed_quality_sweep_mig.sh`, `submit_figure3_real_seed_data_ablation_mig.sh`, and `run_figure2_paper_retune.sh`.
+- Preserved the existing command arrays, dry-run flag insertion, output paths, figure paths, selection-env arguments, and Python module entry points; this pass only removes duplicated shell boilerplate.
+- Updated `self/README.md` to document that `self_common.sh` now owns generic context-banner and print-then-execute command helpers for launcher wrappers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_figure2_condition_sweep_mig.sh launchers/self/submit_figure3_seed_quality_sweep_mig.sh launchers/self/submit_figure3_real_seed_data_ablation_mig.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_launcher_common tests/test_figure2_condition_sweep.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py tests/test_figure2_recipe_aggressive_launchers.py -q` (`21 passed`).

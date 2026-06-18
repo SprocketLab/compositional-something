@@ -701,7 +701,9 @@ new implementation code:
 - Continue consolidating Slurm launchers into fewer templates plus explicit
   matrix configs. The adaptive AILAB parent/candidate-worker/controller-worker
   scripts now share `launchers/self/lib/adaptive_common.sh`; the generic
-  helper lives in `launchers/self/lib/self_common.sh`; the adaptive
+  helper lives in `launchers/self/lib/self_common.sh` and owns common repo-root
+  setup, Python resolution, context banners, and stdout/stderr command
+  printing/execution helpers; the adaptive
   condition-pilot, main-experiment, exact-digit addition, and fixed-width
   more-data addition submitters use common Slurm resource/default helpers, with
   the exact-digit schedule banner routed through `self_print_context`; the
@@ -735,8 +737,9 @@ new implementation code:
   self-improvement budget-grid runner/submitter share the same helper pattern,
   including context printing;
   the small Figure 2/3 submitter wrappers share the helper path, including
-  shared dry-run flag insertion and context printing, before delegating to
-  their Python experiment CLIs; the Figure 2 recipe
+  shared dry-run flag insertion, context printing, and print-then-execute
+  command dispatch, before delegating to their Python experiment CLIs; the
+  Figure 2 recipe
   runner/submitter/retune scripts share generic repo-root/Python/boolean,
   context-printing, and command-printing helpers; the composition-error sweep
   now invokes the

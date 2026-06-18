@@ -30,15 +30,11 @@ cmd=(
 
 self_add_dry_run_arg cmd "${DRY_RUN}"
 
-self_print_context \
-  "Root dir" "${ROOT_DIR}" \
-  "Python" "${PYTHON_BIN}" \
-  "Output root" "${OUT_ROOT}" \
+self_print_python_launcher_context "${OUT_ROOT}" \
   "Selection JSON" "${SELECTION_JSON}" \
   "Paper schedule env" "${PAPER_SCHEDULE_ENV}" \
   "Figure dir" "${FIGURE_DIR}" \
   "Log dir" "${LOG_DIR}" \
   "Dry run" "${DRY_RUN}"
-self_print_command_stdout "${cmd[@]}"
 
-"${cmd[@]}"
+self_print_and_run_command_stdout "${cmd[@]}"

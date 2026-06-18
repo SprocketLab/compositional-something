@@ -148,6 +148,16 @@ self_print_context() {
   done
 }
 
+self_print_python_launcher_context() {
+  local out_root="$1"
+  shift
+  self_print_context \
+    "Root dir" "${ROOT_DIR}" \
+    "Python" "${PYTHON_BIN}" \
+    "Output root" "${out_root}" \
+    "$@"
+}
+
 self_print_prefixed_command_stdout() {
   local label="$1"
   shift
@@ -158,6 +168,11 @@ self_print_prefixed_command_stdout() {
 
 self_print_command_stdout() {
   self_print_prefixed_command_stdout "Command" "$@"
+}
+
+self_print_and_run_command_stdout() {
+  self_print_command_stdout "$@"
+  "$@"
 }
 
 self_print_prefixed_command() {
