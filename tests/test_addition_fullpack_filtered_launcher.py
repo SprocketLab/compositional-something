@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "launchers" / "self" / "run_addition_fullpack_filtered.sbatch"
 SUBMIT_WRAPPER = ROOT / "launchers" / "self" / "submit_addition_fullpack_filtered_mig.sh"
+CONFIG = ROOT / "launchers" / "self" / "config" / "addition_fullpack_filtered.env"
 
 
 def test_addition_fullpack_launcher_has_valid_bash_syntax():
@@ -18,6 +19,14 @@ def test_addition_fullpack_launcher_has_valid_bash_syntax():
 def test_addition_fullpack_submit_wrapper_has_valid_bash_syntax():
     assert SUBMIT_WRAPPER.exists()
     subprocess.run(["bash", "-n", str(SUBMIT_WRAPPER)], check=True)
+
+
+def test_addition_fullpack_submit_wrapper_config_exists():
+    assert CONFIG.exists()
+    text = CONFIG.read_text(encoding="utf-8")
+    assert "ADDITION_FULLPACK_FILTERED_BASELINES_RAW" in text
+    assert "short_only direct with_carry with_carry_filtered compose_corrupt" in text
+    assert "${BASELINES:-" in text
 
 
 def test_addition_fullpack_launcher_uses_tiny_seed_mig_defaults():
@@ -101,3 +110,51 @@ def test_addition_fullpack_submit_wrapper_dry_run_lists_five_jobs(tmp_path):
     assert "--error" in combined
     assert r"--export ALL\,BASELINE=with_carry_filtered\,OUT_ROOT=" in combined
     assert "dryrun-addition-fullpack-compose-corrupt" in stdout
+
+
+def test_addition_fullpack_submit_wrapper_honors_baselines_env(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["BASELINES"] = "direct compose_corrupt"
+    env["OUT_ROOT"] = str(tmp_path / "addition_fullpack")
+
+    result = subprocess.run(
+        ["bash", str(SUBMIT_WRAPPER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert stdout.count("[DRY_RUN] baseline=") == 2
+    assert "baseline=direct" in stdout
+    assert "baseline=compose_corrupt" in stdout
+    assert "baseline=short_only" not in stdout
+
+
+def test_addition_fullpack_submit_wrapper_honors_override_config(tmp_path):
+    config = tmp_path / "addition_override.env"
+    config.write_text(
+        'ADDITION_FULLPACK_FILTERED_BASELINES_RAW="with_carry_filtered"\n',
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["ADDITION_FULLPACK_FILTERED_CONFIG"] = str(config)
+    env["OUT_ROOT"] = str(tmp_path / "addition_fullpack")
+
+    result = subprocess.run(
+        ["bash", str(SUBMIT_WRAPPER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert stdout.count("[DRY_RUN] baseline=") == 1
+    assert "baseline=with_carry_filtered" in stdout
+    assert f"Loaded addition fullpack filtered override config: {config}" in stdout

@@ -4001,3 +4001,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_multiplication_rectangular_self_improvement_launchers.py` with syntax coverage for the new config and dry-run coverage for partial fullpack overrides.
 - Updated `self/README.md` with the new rectangular fullpack config boundary.
 - Verification: `bash -n launchers/self/submit_multiplication_rectangular_fullpack_mig.sh launchers/self/config/multiplication_rectangular_fullpack.env launchers/self/run_multiplication_rectangular_self_improvement_mig.sbatch`; `python -m py_compile tests/test_multiplication_rectangular_self_improvement_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mult_rect_fullpack_config tests/test_multiplication_rectangular_self_improvement_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:58:35 UTC
+
+- Added `launchers/self/config/addition_fullpack_filtered.env` as the explicit default config for the addition fullpack-filtered submitter's job script path, log directory, dry-run default, and baseline list.
+- Updated `launchers/self/submit_addition_fullpack_filtered_mig.sh` to source the tracked default config first and then optionally source a partial `ADDITION_FULLPACK_FILTERED_CONFIG` override file before parsing the baseline list.
+- Preserved the default five baseline submissions and existing `BASELINES` environment shortcut while moving the baseline matrix out of the submitter body.
+- Extended `tests/test_addition_fullpack_filtered_launcher.py` with config-file coverage plus dry-run checks for `BASELINES` and override-config behavior.
+- Updated `self/README.md` with the new addition fullpack-filtered config boundary.
+- Verification: `bash -n launchers/self/submit_addition_fullpack_filtered_mig.sh launchers/self/config/addition_fullpack_filtered.env launchers/self/run_addition_fullpack_filtered.sbatch`; `python -m py_compile tests/test_addition_fullpack_filtered_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_fullpack_filtered_config tests/test_addition_fullpack_filtered_launcher.py tests/test_self_common_launcher_helpers.py -q` (`11 passed`); `git diff --check`.

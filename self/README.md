@@ -588,7 +588,8 @@ the supported public surface.
   helper for repo-root/Python setup, boolean parsing, context printing, and
   dry-run command printing. The submitter also uses the shared sbatch-script
   submission helper for per-baseline Slurm metadata and explicit environment
-  export payloads.
+  export payloads. Its default baseline list lives in
+  `launchers/self/config/addition_fullpack_filtered.env`.
 - `launchers/self/run_addition_their_recipe_diagnostic.sh` uses the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
   dry-run command printing before delegating to the addition recipe diagnostic
