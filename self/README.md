@@ -249,6 +249,8 @@ tests, notebooks, and older artifacts.
 
 - `self/experiments/adaptive_self_improvement.py`: dry-run/pilot proposal
   controller used for fixture-based adaptive proposal analysis.
+- `self/experiments/composition_error_sweep.py`: addition self-improvement
+  launcher wrapper for controlled boundary-carry composition-error retention.
 - `self/experiments/figure2_condition_sweep.py`: Figure 2 MIG condition
   sweep submission, stage-2 selection, and final heatmap refresh.
 - `self/experiments/figure2_paper_retune.py`: paper-facing Figure 2 schedule
@@ -501,6 +503,7 @@ new implementation code:
 - `self/plot_appendix_baseline_heatmaps.py` -> `self/analysis/plot_appendix_baseline_heatmaps.py`
 - `self/plot_self_improvement_figure.py` -> `self/analysis/plot_self_improvement_figure.py`
 - `self/program_sandbox.py` -> `self/core/program_sandbox.py`
+- `self/self_improvement_composition_error_experiment.py` -> `self/experiments/composition_error_sweep.py`
 - `self/self_improvement_recipe.py` -> `self/core/recipes.py`
 - `self/task_tokenizer.py` -> `self/core/tokenizers.py`
 - `self/rectangular_multiplication_compose_diagnostic.py` -> `self/diagnostics/rectangular_multiplication_compose_diagnostic.py`
@@ -639,7 +642,9 @@ new implementation code:
   the small Figure 2/3 submitter wrappers share the helper path before
   delegating to their Python experiment CLIs; the Figure 2 recipe
   runner/submitter/retune scripts share generic repo-root/Python/boolean and
-  command-printing helpers; the composition-error sweep, local/refocused
+  command-printing helpers; the composition-error sweep now invokes the
+  canonical `self.experiments.composition_error_sweep` module while preserving
+  the old top-level wrapper, and the local/refocused
   workshop batchers, run-length alpha10 baseline submitter, and self-improvement
   MIG runners also share the generic helper path, leaving the current
   `launchers/self/*.{sh,sbatch}` inventory without duplicated repo-root/Python

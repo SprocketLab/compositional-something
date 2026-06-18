@@ -22,7 +22,7 @@ launch_self_job() {
     local percent="$2"
     local self_output_dir="${ROOT_DIR}/artifacts/runs/self_improvement/error_${percent}"
     local -a run_cmd=(
-        "${PYTHON_BIN}" -m self.self_improvement_composition_error_experiment
+        "${PYTHON_BIN}" -m self.experiments.composition_error_sweep
         --composition-error-percent "${percent}"
         -- --output-dir "${self_output_dir}"
     )

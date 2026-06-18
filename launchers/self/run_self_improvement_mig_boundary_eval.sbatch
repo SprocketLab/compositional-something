@@ -99,7 +99,7 @@ echo "[INFO] Run 1/2: with_carry (no filtering)"
   "${COMMON_ARGS[@]}"
 
 echo "[INFO] Run 2/2: with_carry_filtered (0% boundary-carry retention)"
-"${PYTHON_BIN}" -m self.self_improvement_composition_error_experiment \
+"${PYTHON_BIN}" -m self.experiments.composition_error_sweep \
   --composition-error-percent 0 \
   -- \
   --output-dir "${OUT_ROOT}/with_carry_filtered_p0" \
