@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
 
-from self.analysis import adaptive_artifacts, adaptive_candidate_artifacts, nonadaptive_artifacts
+from self.analysis import (
+    adaptive_artifact_common,
+    adaptive_artifacts,
+    adaptive_candidate_artifacts,
+    nonadaptive_artifacts,
+)
 from self.analysis.artifacts import (
     adaptive_attempt_records,
     adaptive_candidate_artifact_records,
@@ -39,6 +44,8 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 
 def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp_path: Path):
     assert adaptive_attempt_records is adaptive_artifacts.adaptive_attempt_records
+    assert adaptive_artifacts.AdaptiveAttemptArtifacts is adaptive_artifact_common.AdaptiveAttemptArtifacts
+    assert adaptive_candidate_artifacts.AdaptiveRunArtifacts is adaptive_artifact_common.AdaptiveRunArtifacts
     assert load_adaptive_run is adaptive_artifacts.load_adaptive_run
     assert load_adaptive_candidates is adaptive_candidate_artifacts.load_adaptive_candidates
     assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates

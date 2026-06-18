@@ -352,6 +352,10 @@ the supported public surface.
 
 - `self/analysis/artifact_io.py`: shared JSON/JSONL readers and artifact
   filename constants for analysis loaders.
+- `self/analysis/adaptive_artifact_common.py`: shared adaptive artifact
+  constants, run/attempt dataclasses, index parsing, row-context construction,
+  selected-id handling, and proposal-field flattening helpers used by both
+  run-level and candidate-level adaptive loaders.
 - `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
   loading, prompt/proposal/trace record flattening, selected-checkpoint
   per-size timelines, and proposal-GRPO metric records.

@@ -6,16 +6,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from self.analysis.adaptive_artifacts import (
+from self.analysis.adaptive_artifact_common import (
     ADAPTIVE_CANDIDATE_FAILURE_FILE,
     ADAPTIVE_CANDIDATE_METRICS_FILE,
     ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE,
     AdaptiveAttemptArtifacts,
     AdaptiveRunArtifacts,
     _candidate_index,
+    _candidate_metric_for_dir,
     _proposal_fields,
     _run_context,
     _selected_id,
+)
+from self.analysis.adaptive_artifacts import (
     load_adaptive_attempt,
     load_adaptive_run,
 )
@@ -56,24 +59,6 @@ def iter_candidate_dirs(attempt: AdaptiveAttemptArtifacts | Path | str) -> list[
         [path for path in (attempt_dir / "candidates").glob("candidate_*") if path.is_dir()],
         key=natural_sort_key,
     )
-
-
-def _candidate_metric_for_dir(
-    attempt: AdaptiveAttemptArtifacts,
-    candidate_dir: Path,
-) -> JsonDict:
-    metric = read_json(candidate_dir / "candidate_metrics.json", None)
-    if isinstance(metric, Mapping):
-        return dict(metric)
-    candidate_index = _candidate_index(candidate_dir)
-    for item in attempt.candidate_metrics:
-        if not isinstance(item, Mapping):
-            continue
-        if candidate_index is not None and item.get("index") == candidate_index:
-            return dict(item)
-        if item.get("id") == candidate_dir.name:
-            return dict(item)
-    return {}
 
 
 def load_adaptive_candidate(

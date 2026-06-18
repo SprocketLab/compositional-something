@@ -3464,3 +3464,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_analysis_artifacts.py` to pin the new owner module and the old compatibility aliases.
 - Updated `self/README.md` to document the split between run/attempt adaptive loaders and candidate-level adaptive loaders.
 - Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/adaptive_candidate_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_candidate_split tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`).
+
+### Implementation Log: 2026-06-18 11:44:29 UTC
+
+- Extracted shared adaptive artifact constants, dataclasses, and row helpers into `self/analysis/adaptive_artifact_common.py`.
+- The common module now owns `DEFAULT_ADAPTIVE_TRACE_FILES`, candidate artifact filename constants, `AdaptiveAttemptArtifacts`, `AdaptiveRunArtifacts`, attempt/candidate index parsing, run-context row fields, selected-id handling, proposal-field flattening, selected-payload selection, and candidate metric fallback lookup.
+- Updated `self/analysis/adaptive_artifacts.py` and `self/analysis/adaptive_candidate_artifacts.py` to depend on the neutral common layer instead of having candidate helpers import private symbols from the run-level loader.
+- Preserved compatibility aliases from `self/analysis/adaptive_artifacts.py` and `self/analysis/artifacts.py`; tests now pin that the old public dataclass aliases point at the common owner.
+- Updated `self/README.md` to document the common adaptive artifact module and its ownership.
+- Verification: `python -m py_compile self/analysis/adaptive_artifact_common.py self/analysis/adaptive_artifacts.py self/analysis/adaptive_candidate_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_artifact_common tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`); import sanity check confirmed `self.analysis.artifacts`, `self.analysis.adaptive_artifacts`, and `self.analysis.adaptive_candidate_artifacts` expose the common dataclasses/helpers consistently.
