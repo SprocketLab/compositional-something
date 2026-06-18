@@ -4046,3 +4046,15 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_analysis_artifacts.py` to cover local-dispatch loading and row flattening using the existing adaptive-run fixture.
 - Updated `self/README.md` analysis guidance so new notebooks use the loader rather than hard-coding `candidate_jobs/local_dispatch.json`.
 - Verification: `python -m py_compile self/analysis/adaptive_artifact_common.py self/analysis/adaptive_candidate_artifacts.py self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_local_dispatch tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`11 passed`).
+
+### Implementation Log: 2026-06-18 18:22 UTC
+
+- Audited tracked code, launchers, tests, docs, and notebooks for the stale
+  vote-baseline pseudolabel path; no tracked implementation or manuscript
+  references remain on `main`.
+- Added `agentic_writing/` to `.gitignore` because the only matching local
+  text lives in an untracked external writing-example corpus, outside the
+  workshop code path.
+- This keeps the committed project scoped to direct self-labeling, composed
+  pseudolabeling, guarded composition, corrupt-composition controls, and the
+  adaptive config/program proposal loops.
