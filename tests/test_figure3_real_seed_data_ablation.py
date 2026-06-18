@@ -21,6 +21,7 @@ from self.figure3_real_seed_data_ablation import (
     missing_bands,
     select_seed_bands,
 )
+from self.experiments import figure3_cli
 from self.experiments import figure3_common
 from self.experiments import figure3_real_seed_data_ablation
 
@@ -148,6 +149,10 @@ def test_real_ablation_private_csv_helper_reexports_common_owner():
     assert figure3_real_seed_data_ablation._write_csv is figure3_common.write_csv
     assert figure3_real_seed_data_ablation.load_seed_candidates is figure3_common.load_seed_candidates
     assert figure3_real_seed_data_ablation.SEED_BANDS is figure3_common.DEFAULT_SEED_BANDS
+    assert figure3_real_seed_data_ablation._parse_common is figure3_cli.add_common_args
+    assert figure3_real_seed_data_ablation._default_manifest is figure3_cli.default_manifest
+    assert figure3_real_seed_data_ablation._default_selection is figure3_cli.default_selection
+    assert figure3_real_seed_data_ablation._default_summary is figure3_cli.default_summary
 
 
 def test_real_ablation_command_builders_delegate_to_common_helpers(tmp_path: Path):

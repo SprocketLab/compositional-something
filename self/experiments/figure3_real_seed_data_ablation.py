@@ -5,10 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from self.experiments.figure3_cli import (
+    add_common_args as _parse_common,
+    default_manifest as _default_manifest,
+    default_selection as _default_selection,
+    default_summary as _default_summary,
+)
 from self.experiments.figure3_common import (
     DEFAULT_SEED_BANDS,
     SEED_BAND_NAMES,
@@ -356,28 +361,6 @@ def collect_summary(*, selection_path: Path, output_path: Path) -> Dict[str, Any
     _write_csv(output_path.parent / "selected_seeds.csv", selected_rows)
     _write_csv(output_path.parent / "run_length_matrix_summary.csv", si_rows)
     return payload
-
-
-def _default_manifest(out_root: Path) -> Path:
-    return out_root / "manifest.json"
-
-
-def _default_selection(out_root: Path) -> Path:
-    return out_root / "selection.json"
-
-
-def _default_summary(out_root: Path) -> Path:
-    return out_root / "summary.json"
-
-
-def _parse_common(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--out-root", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path, default=None)
-    parser.add_argument("--selection", type=Path, default=None)
-    parser.add_argument("--summary", type=Path, default=None)
-    parser.add_argument("--log-dir", type=Path, default=DEFAULT_LOG_DIR)
-    parser.add_argument("--python-bin", type=str, default=sys.executable)
-    parser.add_argument("--dry-run", action="store_true")
 
 
 def build_parser() -> argparse.ArgumentParser:

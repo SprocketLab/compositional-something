@@ -17,6 +17,7 @@ from self.figure3_seed_quality_sweep import (
     missing_seed_bands,
     select_seed_bands,
 )
+from self.experiments import figure3_cli
 from self.experiments import figure3_common
 from self.experiments import figure3_commands
 from self.experiments import figure3_seed_quality_sweep
@@ -131,6 +132,10 @@ def test_seed_quality_private_helpers_reexport_common_owner():
     assert figure3_common.run_length_self_improvement_command is (
         figure3_commands.run_length_self_improvement_command
     )
+    assert figure3_seed_quality_sweep._parse_common is figure3_cli.add_common_args
+    assert figure3_seed_quality_sweep._default_manifest is figure3_cli.default_manifest
+    assert figure3_seed_quality_sweep._default_selection is figure3_cli.default_selection
+    assert figure3_seed_quality_sweep._default_summary is figure3_cli.default_summary
 
 
 def test_seed_quality_command_builders_delegate_to_common_helpers(tmp_path: Path):

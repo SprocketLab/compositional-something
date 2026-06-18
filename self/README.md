@@ -411,6 +411,8 @@ the supported public surface.
   writing, Slurm submission, seed-metric parsing, seed-band selection, and
   final-summary helpers used by the seed-quality and real-seed ablation
   scripts.
+- `self/experiments/figure3_cli.py`: shared Figure 3 CLI path defaults and
+  common argparse option registration.
 - `self/experiments/figure3_commands.py`: shared Figure 3 seed-fit and
   run-length self-improvement command builders.
 - `self/experiments/figure3_seed_quality_sweep.py`: Figure 3 seed-quality and

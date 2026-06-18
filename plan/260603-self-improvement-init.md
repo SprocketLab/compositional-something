@@ -3901,3 +3901,11 @@ Acceptance criteria for first pilot:
 - Added a reexport identity test to keep the common helper surface pinned to the new command owner.
 - Updated `self/README.md` to document `figure3_commands.py` separately from the shared artifact/selection/submission helpers.
 - Verification: `python -m py_compile self/experiments/figure3_commands.py self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_commands_split tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:59:56 UTC
+
+- Added `self/experiments/figure3_cli.py` for shared Figure 3 manifest/selection/summary default paths and common argparse option registration.
+- Migrated both Figure 3 scripts to use the shared CLI helper while preserving `_parse_common`, `_default_manifest`, `_default_selection`, and `_default_summary` at the old module paths as direct compatibility aliases.
+- Added alias tests for the seed-quality and real-seed ablation CLI helper surfaces.
+- Updated `self/README.md` to document the new Figure 3 CLI helper boundary.
+- Verification: `python -m py_compile self/experiments/figure3_cli.py self/experiments/figure3_commands.py self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_cli tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.
