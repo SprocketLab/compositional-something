@@ -4,7 +4,15 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.core import proposal_generation, proposal_runtime
+from self.core import (
+    attempt_prompt_runtime,
+    driver_compat_exports,
+    driver_default_bindings,
+    proposal_executable_validation,
+    proposal_generation,
+    proposal_prompts,
+    proposal_runtime,
+)
 from self.core.proposals import PromptBundle
 
 
@@ -67,3 +75,13 @@ def test_proposal_runtime_reexports_generation_helpers_for_compatibility():
     assert proposal_runtime._rows_for_round is proposal_generation._rows_for_round
     assert proposal_runtime.generate_proposals_from_model is proposal_generation.generate_proposals_from_model
     assert proposal_runtime.load_or_generate_proposal_rows is proposal_generation.load_or_generate_proposal_rows
+
+
+def test_proposal_implementation_imports_use_canonical_owners():
+    assert attempt_prompt_runtime.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert attempt_prompt_runtime.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
+    assert driver_default_bindings.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert driver_default_bindings.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
+    assert driver_compat_exports.load_or_generate_proposal_rows is proposal_generation.load_or_generate_proposal_rows
+    assert driver_compat_exports._extract_python_code is proposal_executable_validation._extract_python_code
+    assert driver_compat_exports.validate_executable_rows is proposal_executable_validation.validate_executable_rows

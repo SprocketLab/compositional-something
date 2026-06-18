@@ -67,19 +67,19 @@ from self.core.model_io import instantiate_model_and_tokenizer
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset, ExecutableProposal, proposal_from_payload
 from self.core.program_sandbox import execute_program_cases
 from self.core.proposal_grpo import build_proposal_grpo_traces, proposal_grpo_advantages, proposal_grpo_reward
-from self.core.proposal_runtime import (
+from self.core.proposal_config_validation import _raw_output, validate_config_rows
+from self.core.proposal_executable_validation import (
     _extract_python_code,
-    _raw_output,
     _repair_program_with_model,
     _row_payload,
     _row_repair_output,
-    component_prediction_examples_for_task,
-    load_or_generate_proposal_rows,
-    program_validation_cases,
-    render_program_repair_prompt,
-    target_format_for_task,
-    validate_config_rows,
     validate_executable_rows,
+)
+from self.core.proposal_generation import load_or_generate_proposal_rows
+from self.core.proposal_prompts import (
+    component_prediction_examples_for_task,
+    program_validation_cases,
+    target_format_for_task,
 )
 from self.core.proposals import (
     DEFAULT_CONFIG_SEARCH_SPACES,
@@ -89,6 +89,7 @@ from self.core.proposals import (
     parse_config_proposal,
     proposal_output_schema,
     proposal_payload_for_schema,
+    render_program_repair_prompt,
     validate_config_prediction,
 )
 from self.core.run_setup import source_sizes_from_examples

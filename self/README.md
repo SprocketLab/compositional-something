@@ -206,7 +206,9 @@ the supported public surface.
   dispatch, and executable proposal row construction.
 - `self/core/proposal_runtime.py`: config-vs-executable proposal validation
   dispatch plus compatibility reexports for proposal generation and executable
-  validation helpers.
+  validation helpers. New implementation code should import prompt,
+  generation, config-validation, and executable-validation helpers from their
+  owner modules rather than through this compatibility wrapper.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
 - `self/core/proposal_grpo.py`: proposal-GRPO rewards, trace construction,

@@ -37,9 +37,11 @@ from self.core.experience_traces import (
 from self.core.models import candidate_metrics_from_json, float_or_nan as _float_or_nan
 from self.core.proposal_grpo import apply_proposal_grpo_update
 from self.core.proposal_generation import _rows_for_round
-from self.core.proposal_runtime import (
+from self.core.proposal_prompts import (
     choose_default_program_pair,
     render_program_candidate_prompt,
+)
+from self.core.proposal_runtime import (
     validate_proposal_rows,
 )
 from self.core.proposals import PromptBundle, load_fixture_proposals, render_config_prompt, write_trace_jsonl
