@@ -10,6 +10,8 @@ from self.core.candidate_worker_runtime import (
     CandidateWorkerRuntimeDeps,
     run_candidate_worker as _run_candidate_worker_impl,
     run_candidate_worker_from_spec as _run_candidate_worker_from_spec_impl,
+)
+from self.core.candidate_worker_pack_runtime import (
     run_candidate_worker_pack_from_spec as _run_candidate_worker_pack_from_spec_impl,
 )
 from self.core.controller_worker_runtime import (

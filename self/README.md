@@ -92,9 +92,14 @@ the supported public surface.
   cache setup.
 - `self/core/candidate_worker_failures.py`: candidate-worker failure payload
   construction plus metrics-compatible worker-failure path resolution/writing.
+- `self/core/candidate_worker_pack_runtime.py`: packed candidate-worker
+  execution, including shared input-cache dispatch, backward-compatible
+  no-cache runner support, per-candidate failure recording, and pack cache
+  summary reporting.
 - `self/core/candidate_worker_runtime.py`: candidate-worker spec entry point
   runtime, including spec loading, pseudo-example reconstruction, metric
-  generation, packed local-worker execution, and failure handling.
+  generation, and failure handling. It reexports packed-worker execution for
+  old import compatibility.
 - `self/core/candidate_workers.py`: compatibility wrapper/reexport surface for
   candidate worker specs, local candidate-worker dispatch, and Slurm-array
   candidate-worker dispatch.
