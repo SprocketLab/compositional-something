@@ -4084,3 +4084,17 @@ Acceptance criteria for first pilot:
   compatibility aliases so existing tests/notebooks can keep importing them
   while new implementation code has a focused owner module.
 - Updated `self/README.md` with the new pilot-runtime boundary.
+
+### Implementation Log: 2026-06-18 18:36:44 UTC
+
+- Added shared launcher helpers `self_print_torch_cuda_info(...)` and
+  `self_preflight_model_snapshot(...)` to `launchers/self/lib/self_common.sh`.
+- Migrated the standard Hugging Face/local model-snapshot preflight in
+  `run_task_self_improvement.sbatch`, `run_seed_fit_experiment.sbatch`,
+  `run_self_improvement_mig_boundary_eval.sbatch`, and
+  `run_self_improvement_qwen_no_growth.sbatch` from duplicated embedded
+  Python heredocs to the shared helper.
+- Left the fixed-char tokenizer preflight in
+  `run_addition_fullpack_filtered.sbatch` unchanged because it has
+  tokenizer-mode-specific behavior beyond the standard AutoTokenizer check.
+- Updated `self/README.md` with the new launcher helper responsibility.

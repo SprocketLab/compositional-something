@@ -72,32 +72,8 @@ echo "[INFO] Slurm Job ID: ${SLURM_JOB_ID:-unknown}"
 echo "[INFO] Hostname: $(hostname)"
 nvidia-smi -L || true
 
-"${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
-MODEL_NAME="${MODEL_NAME}" "${PYTHON_BIN}" - <<'PY'
-import os
-from pathlib import Path
-from transformers import AutoConfig
-from transformers import AutoTokenizer
-
-model_name = os.environ["MODEL_NAME"]
-model_path = Path(model_name)
-if model_path.exists() and model_path.is_dir():
-    has_weights = any(
-        candidate.exists()
-        for candidate in (
-            model_path / "model.safetensors",
-            model_path / "pytorch_model.bin",
-        )
-    ) or any(model_path.glob("model-*.safetensors")) or any(model_path.glob("pytorch_model-*.bin"))
-    if not has_weights:
-        raise FileNotFoundError(
-            f"Local model directory {model_name} does not contain model weights. "
-            "Set MODEL_NAME to a complete local snapshot or a Hugging Face model id."
-        )
-AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-print(f"[INFO] model_preflight_ok={model_name}")
-PY
+self_print_torch_cuda_info
+self_preflight_model_snapshot "${MODEL_NAME}"
 
 "${PYTHON_BIN}" -m self.self_improvement "${COMMON_ARGS[@]}"
 
