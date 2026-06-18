@@ -67,6 +67,10 @@ adaptive_print_worker_context() {
   nvidia-smi -L || true
 }
 
+adaptive_print_torch_probe() {
+  "${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
+}
+
 adaptive_set_sbatch_defaults() {
   self_set_sbatch_defaults "$@"
 }

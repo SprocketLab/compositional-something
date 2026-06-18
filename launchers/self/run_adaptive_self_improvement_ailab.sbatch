@@ -28,7 +28,7 @@ AGGREGATE_METRICS_JSON="${AGGREGATE_METRICS_JSON:-{\"frontier_accuracy\":0.42,\"
 
 echo "[INFO] Output root: ${OUT_ROOT}"
 adaptive_print_worker_context "Adaptive self-improvement pilot"
-"${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
+adaptive_print_torch_probe
 
 echo "[INFO] Compile check"
 "${PYTHON_BIN}" -m py_compile \

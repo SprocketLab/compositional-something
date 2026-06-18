@@ -66,7 +66,7 @@ self_print_context \
   "Output dir" "${OUT_DIR}" \
   "Fixture" "${FIXTURE}"
 adaptive_print_worker_context "Adaptive proposal condition"
-"${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
+adaptive_print_torch_probe
 
 if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
   echo "[INFO] Compile check"

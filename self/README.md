@@ -354,7 +354,8 @@ tests, notebooks, and older artifacts.
   as boolean parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
-  environment setup, adaptive config-file sourcing, and worker context logging.
+  environment setup, adaptive config-file sourcing, worker context logging,
+  and Torch/CUDA probe printing.
 - `launchers/self/run_adaptive_candidate_training_ailab.sbatch`,
   `launchers/self/run_adaptive_candidate_worker_ailab.sbatch`,
   `launchers/self/run_adaptive_controller_worker_ailab.sbatch`,

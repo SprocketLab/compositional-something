@@ -277,7 +277,7 @@ echo "[INFO] PYTORCH_CUDA_ALLOC_CONF: ${PYTORCH_CUDA_ALLOC_CONF}"
 echo "[INFO] Python: ${PYTHON_BIN}"
 echo "[INFO] Slurm Job ID: ${SLURM_JOB_ID:-unknown}"
 echo "[INFO] Hostname: $(hostname)"
-"${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
+adaptive_print_torch_probe
 
 if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
   "${PYTHON_BIN}" -m py_compile \
