@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from core.addition_pipeline import AdditionExample, build_composed_pseudo_map, example_key
 from self.core.models import ExecutableProposal
-from self.core.program_sandbox import SandboxCase, execute_program_cases
+from self.core.program_sandbox import execute_program_cases
+from self.core.program_sandbox_models import SandboxCase
 from self.core.proposals import ConfigProposal
 from self.tasks.bit_common import (
     RUN_LENGTH_TARGET_RUN_STATE,

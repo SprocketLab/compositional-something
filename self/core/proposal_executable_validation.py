@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
 from self.core.models import ExecutableProposal
-from self.core.program_sandbox import ProgramValidationResult, validate_program_with_repair
+from self.core.program_sandbox import validate_program_with_repair
+from self.core.program_sandbox_models import ProgramValidationResult
 from self.core.proposal_config_validation import _raw_output
 from self.core.proposal_generation import generate_proposals_from_model
 from self.core.proposal_prompts import program_validation_cases, target_format_for_task

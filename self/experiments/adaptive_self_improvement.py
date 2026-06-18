@@ -25,11 +25,13 @@ from self.core.proposals import (
     render_program_repair_prompt,
     write_trace_jsonl,
 )
-from self.core.program_sandbox import (
-    ProgramValidationResult,
+from self.core.program_sandbox import validate_program_with_repair
+from self.core.program_sandbox_cases import (
     build_addition_program_cases,
     build_run_length_program_cases,
-    validate_program_with_repair,
+)
+from self.core.program_sandbox_models import (
+    ProgramValidationResult,
 )
 from self.core.data_io import ensure_dir, sanitize_json_value
 

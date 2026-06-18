@@ -193,7 +193,13 @@ the supported public surface.
 - `self/core/nonadaptive_training.py`: non-adaptive per-round recipe phase
   resolution, training argument/trainer construction, round training, and
   model/tokenizer save handling.
-- `self/core/program_sandbox.py`: sandboxed composition-program validation.
+- `self/core/program_sandbox.py`: sandboxed composition-program validation
+  and bounded execution, with compatibility reexports for sandbox models and
+  property-case builders.
+- `self/core/program_sandbox_models.py`: sandbox case/result dataclasses and
+  repair callback typing.
+- `self/core/program_sandbox_cases.py`: addition and run-length
+  property-test cases for generated composition programs.
 - `self/core/proposals.py`: proposal schemas, prompts, parsing, validation,
   and trace row helpers.
 - `self/core/proposal_prompts.py`: task-specific proposal target formats,

@@ -7,10 +7,12 @@ import json
 from typing import Any, List, Mapping, Optional
 
 from self.core.data_io import sanitize_json_value
-from self.core.program_sandbox import (
-    SandboxCase,
+from self.core.program_sandbox_cases import (
     build_addition_program_cases,
     build_run_length_program_cases,
+)
+from self.core.program_sandbox_models import (
+    SandboxCase,
 )
 from self.core.proposals import ConfigProposal, PromptBundle
 from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE, normalize_bit_target_mode
