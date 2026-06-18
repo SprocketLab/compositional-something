@@ -265,9 +265,12 @@ the supported public surface.
 - `self/tasks/rectangular_data.py`: rectangular multiplication example
   container, exact-digit sampling, sampled partition datasets, final-answer
   parsing, prediction normalization, and key construction.
+- `self/tasks/rectangular_composition.py`: rectangular multiplication
+  multiplier-digit component construction, supported-partition component
+  construction, least-significant block splitting, and target composition.
 - `self/tasks/rectangular_multiplication.py`: rectangular multiplication
-  compatibility wrapper for sampled datasets plus supported component
-  construction and composition helpers for rectangular experiments.
+  compatibility import surface plus the sampled-dataset wrapper that preserves
+  old sampler monkeypatch behavior.
 - `self/tasks/run_length.py`: run-length task orchestration, metadata
   validation, and `RunLengthTask`.
 - `self/tasks/run_length_data.py`: run-length example container, key
@@ -612,8 +615,9 @@ new implementation code:
   `self/tasks/rectangular_partitions.py`, rectangular digit-order/reverse-CoT
   helpers live in `self/tasks/rectangular_digits.py`, and rectangular example,
   parsing, prediction-normalization, and sampled-data helpers live in
-  `self/tasks/rectangular_data.py`, while `MultiplicationTask` remains the
-  orchestration layer.
+  `self/tasks/rectangular_data.py`. Rectangular component construction and
+  target composition now live in `self/tasks/rectangular_composition.py`, while
+  `MultiplicationTask` remains the orchestration layer.
 - `self/self_improvement_core.py` is now a compatibility facade. Continue
   migrating internal imports to canonical `self/core/*` modules when touching
   old top-level scripts, but preserve the facade for old imports and
