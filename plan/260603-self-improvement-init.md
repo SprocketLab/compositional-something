@@ -3282,3 +3282,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_nonadaptive_compat.py` to pin the helper's direct behavior, while existing non-adaptive tests continue to verify old facade monkeypatch paths.
 - Updated `self/README.md` to document `self/core/nonadaptive_compat.py` and clarify that non-adaptive monkeypatch sync policy has moved out of the facade.
 - Verification: `python -m py_compile self/self_improvement_core.py self/core/nonadaptive_compat.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_nonadaptive_compat tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py -q` (`44 passed`).
+
+### Implementation Log: 2026-06-18 09:59:38 UTC
+
+- Split bit-string composition-path helpers out of `self/tasks/bit_common.py` into `self/tasks/bit_composition.py`.
+- Moved component-size selection and reachable target-size helpers into the new module, while preserving old `self.tasks.bit_common` and `self.self_improvement_tasks` imports as compatibility reexports.
+- Updated run-length implementation modules to import composition-path helpers from the new canonical module.
+- Added `tests/test_bit_composition.py` to pin direct behavior and old reexport compatibility.
+- Updated `self/README.md` to document the new bit-composition task helper.
+- Verification: `python -m py_compile self/tasks/bit_composition.py self/tasks/bit_common.py self/tasks/run_length.py self/tasks/run_length_data.py self/self_improvement_tasks.py tests/test_bit_composition.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_bit_composition tests/test_bit_composition.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py -q` (`41 passed`).

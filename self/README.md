@@ -245,9 +245,11 @@ the supported public surface.
   preparation, boundary-carry slicing, and numeric-target corruption helper.
 - `self/tasks/addition_pseudolabels.py`: addition direct/compose/corrupt
   pseudolabel derivation and pseudolabel diagnostics.
-- `self/tasks/bit_common.py`: shared run-length bit-string constants,
-  parsers, composition-size helpers, guarded pseudolabel refill, and direct
-  pseudolabel utilities.
+- `self/tasks/bit_composition.py`: bit-string composition-path constants,
+  component-size selection, and reachable target-size helpers.
+- `self/tasks/bit_common.py`: shared run-length/multiplication parsers,
+  normalization helpers, guarded pseudolabel refill, direct pseudolabel
+  utilities, and compatibility reexports for older bit-composition imports.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
   blocked-component pseudolabel derivation, metadata validation, and
   `MultiplicationTask`.
@@ -593,7 +595,8 @@ new implementation code:
   `self/tasks/addition_pseudolabels.py`, and `AdditionTask` remains the
   orchestration layer. The large run-length adapter has split pure
   state/target logic into `self/tasks/run_length_logic.py`, data/example
-  construction into `self/tasks/run_length_data.py`, and round-target
+  construction into `self/tasks/run_length_data.py`, bit-string composition
+  path helpers into `self/tasks/bit_composition.py`, and round-target
   pseudolabel derivation into `self/tasks/run_length_pseudolabels.py`.
   Multiplication example/data construction now lives in
   `self/tasks/multiplication_data.py`, while `MultiplicationTask` remains the

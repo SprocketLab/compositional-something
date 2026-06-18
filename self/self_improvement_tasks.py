@@ -39,9 +39,6 @@ from self.tasks.addition_data import (
 )
 from self.tasks.bit_common import (
     BIT_COMPOSE_ARITIES,
-    BIT_COMPOSITION_PATH_FIXED_BINARY,
-    BIT_COMPOSITION_PATH_MODES,
-    BIT_COMPOSITION_PATH_RANDOM,
     BIT_GUARDED_COMPOSE_RULES,
     BIT_TARGET_MODES,
     INTEGER_PATTERN,
@@ -49,13 +46,9 @@ from self.tasks.bit_common import (
     RUN_LENGTH_ALPHABET_SYMBOLS,
     RUN_LENGTH_FORMATS,
     RUN_LENGTH_TARGET_RUN_STATE,
-    bit_composed_target_sizes_from_examples,
     build_direct_pseudo_examples,
     build_guarded_bit_pseudo_examples,
-    choose_component_sizes,
     count_examples_by_size,
-    exact2_reachable_sizes_from_examples,
-    fixed_binary_reachable_sizes_from_examples,
     format_multiplication_target,
     format_size_count_map,
     guard_slice_partition,
@@ -71,6 +64,15 @@ from self.tasks.bit_common import (
     parse_run_length_symbol_pair_prediction,
     run_length_guard_accepts_true_components,
     sample_unique_bitstrings,
+)
+from self.tasks.bit_composition import (
+    BIT_COMPOSITION_PATH_FIXED_BINARY,
+    BIT_COMPOSITION_PATH_MODES,
+    BIT_COMPOSITION_PATH_RANDOM,
+    bit_composed_target_sizes_from_examples,
+    choose_component_sizes,
+    exact2_reachable_sizes_from_examples,
+    fixed_binary_reachable_sizes_from_examples,
 )
 from self.tasks.multiplication import (
     MultiplicationTask,

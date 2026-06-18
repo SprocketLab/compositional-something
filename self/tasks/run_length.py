@@ -13,15 +13,11 @@ from self.core.evaluation import generate_prediction_map as _default_generate_pr
 from self.core.task_protocols import JsonDict, SelfImprovementTask
 from self.tasks.bit_common import (
     BIT_COMPOSE_ARITIES,
-    BIT_COMPOSITION_PATH_FIXED_BINARY,
-    BIT_COMPOSITION_PATH_MODES,
-    BIT_COMPOSITION_PATH_RANDOM,
     BIT_GUARDED_COMPOSE_RULES,
     BIT_TARGET_MODES,
     RUN_LENGTH_ALPHABET_SYMBOLS,
     RUN_LENGTH_FORMATS,
     RUN_LENGTH_TARGET_RUN_STATE,
-    bit_composed_target_sizes_from_examples,
     guard_slice_partition,
     normalize_bit_composition_path_mode,
     normalize_bit_target_mode,
@@ -31,6 +27,12 @@ from self.tasks.bit_common import (
     normalize_task_format_version,
     parse_run_length_prediction,
     run_length_guard_accepts_true_components,
+)
+from self.tasks.bit_composition import (
+    BIT_COMPOSITION_PATH_FIXED_BINARY,
+    BIT_COMPOSITION_PATH_MODES,
+    BIT_COMPOSITION_PATH_RANDOM,
+    bit_composed_target_sizes_from_examples,
 )
 from self.tasks.run_length_data import (
     RunLengthExample,

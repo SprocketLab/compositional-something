@@ -8,7 +8,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from self.tasks.bit_common import BIT_COMPOSITION_PATH_RANDOM, choose_component_sizes, sample_unique_bitstrings
+from self.tasks.bit_common import sample_unique_bitstrings
+from self.tasks.bit_composition import BIT_COMPOSITION_PATH_RANDOM, choose_component_sizes
 from self.tasks.run_length_logic import compute_run_stats, format_run_length_target
 
 
