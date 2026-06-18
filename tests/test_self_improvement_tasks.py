@@ -27,6 +27,14 @@ from self.self_improvement_core import evaluate_accuracy_with_breakdown, extract
 from self import self_improvement_tasks as tasks
 
 
+def test_task_facade_all_exports_are_available_and_unique():
+    assert len(tasks.__all__) == len(set(tasks.__all__))
+    assert all(hasattr(tasks, name) for name in tasks.__all__)
+    assert tasks.AdditionTask.__module__ == "self.tasks.addition"
+    assert tasks.MultiplicationTask.__module__ == "self.tasks.multiplication"
+    assert tasks.RunLengthTask.__module__ == "self.tasks.run_length"
+
+
 def test_fixed_binary_component_size_selection_is_deterministic():
     assert tasks.choose_component_sizes(
         9,

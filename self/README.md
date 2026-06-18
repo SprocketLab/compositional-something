@@ -286,7 +286,9 @@ the supported public surface.
   run-state, and default tuple pseudolabel derivation.
 - `self/self_improvement_tasks.py`: explicit compatibility import surface for
   the old task-module path, backed by canonical `self/tasks/*` and
-  `self/core/*` modules.
+  `self/core/*` modules. Its `__all__` is grouped by protocol/evaluation,
+  addition, bit-common, bit-composition, multiplication, and run-length exports
+  so old-path compatibility stays auditable.
 
 ## Current Experiments
 
@@ -676,7 +678,8 @@ new implementation code:
   `self/self_improvement_tasks.py`; `self/core`, `self/experiments`,
   `self/diagnostics`, and `self/analysis` import task classes, run-length
   parsers, and constants from their canonical `self/tasks/*` owners. The old
-  task facade remains for top-level compatibility scripts and legacy imports.
+  task facade remains for top-level compatibility scripts and legacy imports,
+  with grouped exports and tests guarding duplicate or missing legacy names.
 - Continue moving historical baselines and paper-specific scripts into
   `self/legacy/`, `self/experiments`, `self/diagnostics/`, or `self/analysis/`
   gradually with wrapper modules where old launchers still need them. The first
