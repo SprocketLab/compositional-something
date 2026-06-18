@@ -9,9 +9,13 @@ tests, notebooks, and older artifacts.
 - `self/core/driver.py`: thin adaptive CLI/worker entry point and
   monkeypatch-compatible wrapper surface for the extracted adaptive runtime.
 - `self/core/driver_wiring.py`: dependency-factory construction for candidate
-  dispatch, worker entry points, proposal-GRPO dispatch, and full adaptive run
-  orchestration. It reads through the live driver module so old monkeypatches
-  still affect execution.
+  dispatch, proposal-GRPO dispatch, and full adaptive run orchestration. It
+  reads through the live driver module so old monkeypatches still affect
+  execution.
+- `self/core/driver_worker_wiring.py`: driver-binding bridge for candidate
+  workers, packed candidate workers, and controller worker entry points. It
+  keeps worker dispatch monkeypatch-compatible while `driver_wiring.py` stays
+  focused on top-level orchestration wiring.
 - `self/core/driver_default_bindings.py`: concrete default runtime bindings
   exposed lazily by the driver for old imports and patch points such as
   `train_and_score_candidate`, `subprocess`, `_load_json`, and
