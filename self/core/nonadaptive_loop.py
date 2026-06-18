@@ -86,15 +86,12 @@ from self.core.training import (
     training_arg_supported,
 )
 
-from self.core.recipes import (
-    PaddingAwareCausalLMDataCollator,
-    instantiate_recipe_model,
-    load_recipe_model,
-)
+from self.core.recipe_models import instantiate_recipe_model, load_recipe_model
 from self.core.recipe_presets import (
     recipe_enabled,
     resolve_self_improvement_recipe,
 )
+from self.core.recipe_training import PaddingAwareCausalLMDataCollator
 
 def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     setup = prepare_nonadaptive_run_setup(

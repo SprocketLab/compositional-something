@@ -46,13 +46,15 @@ from self.core.nonadaptive_compat import (
     NONADAPTIVE_PATCHABLE_NAMES,
     sync_nonadaptive_loop_globals,
 )
-from self.core.recipes import (
-    PaddingAwareCausalLMDataCollator,
+from self.core.recipe_models import (
     instantiate_recipe_model,
     load_recipe_model,
+)
+from self.core.recipe_presets import (
     recipe_enabled,
     resolve_self_improvement_recipe,
 )
+from self.core.recipe_training import PaddingAwareCausalLMDataCollator
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,

@@ -264,9 +264,14 @@ the supported public surface.
 - `self/core/recipe_presets.py`: shared algorithmic self-improvement recipe
   constants, preset dataclasses, phase resolution, and max-step schedule
   compression.
-- `self/core/recipes.py`: recipe tokenizer/model construction, recipe training
-  arguments, recipe-aware Trainer variants, and compatibility reexports for
-  old preset imports.
+- `self/core/recipe_models.py`: recipe tokenizer construction, no-position
+  LLaMA model classes/configs, recipe model instantiation/loading, runtime
+  CUDA settings, and tokenizer-padding context management.
+- `self/core/recipe_training.py`: recipe padding collator, warmup-stable-decay
+  schedule, recipe-aware Trainer variants, and recipe training-argument
+  construction.
+- `self/core/recipes.py`: compatibility facade that reexports recipe presets,
+  model helpers, and training helpers for old import paths.
 - `self/core/run_finalization.py`: final adaptive result writing, summary
   artifact construction, and plan-log finalization.
 - `self/core/run_initialization_runtime.py`: adaptive output/data directory
@@ -787,12 +792,13 @@ new implementation code:
   save-policy, and round input artifact setup lives in
   `self/core/nonadaptive_round_setup.py`. These helpers have direct unit
   coverage.
-- Recipe presets now live in `self/core/recipe_presets.py`; runtime recipe
-  helpers live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
-  and `self/addition_recipe.py` are compatibility wrappers. Current
-  implementation modules should import preset-only helpers from
-  `recipe_presets.py` and model/trainer helpers from `recipes.py`, while legacy
-  scripts and old tests can keep using the wrappers.
+- Recipe presets now live in `self/core/recipe_presets.py`; model/tokenizer
+  helpers live in `self/core/recipe_models.py`; recipe Trainer/scheduler
+  helpers live in `self/core/recipe_training.py`; and `self/core/recipes.py`,
+  `self/self_improvement_recipe.py`, and `self/addition_recipe.py` are
+  compatibility wrappers. Current implementation modules should import from
+  the owner modules directly, while legacy scripts and old tests can keep using
+  the wrappers.
 - Compatibility wrappers that need monkeypatch-style write forwarding should use
   `self/core/module_proxy.py`. The top-level rectangular, adaptive,
   addition-recipe, legacy addition, and composition-error proxy wrappers now use

@@ -40,13 +40,13 @@ from self.core.training import (
     build_trainer,
     make_training_args,
 )
-from self.core.recipes import (
-    PaddingAwareCausalLMDataCollator,
+from self.core.recipe_presets import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     RECIPE_MULTIPLICATION_SELF_IMPROVE_V1,
     recipe_enabled,
     resolve_self_improvement_recipe,
 )
+from self.core.recipe_training import PaddingAwareCausalLMDataCollator
 
 
 DEFAULT_EDGE_PARTITIONS_SPEC = ",".join(partition_label(partition) for partition in EDGE_ONLY_MULTIPLICATION_PARTITIONS)

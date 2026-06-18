@@ -62,7 +62,7 @@ def train_checkpoint(
     use_recipe = recipe_enabled(str(args.recipe))
     data_collator = CausalLMDataCollator(tokenizer)
     if use_recipe:
-        from self.core.recipes import PaddingAwareCausalLMDataCollator
+        from self.core.recipe_training import PaddingAwareCausalLMDataCollator
 
         data_collator = PaddingAwareCausalLMDataCollator(tokenizer=tokenizer, padding_side="right")
     train_dataset = TokenizedPromptTargetDataset(train_examples, tokenizer)

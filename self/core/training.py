@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 from transformers import Trainer, TrainingArguments
 
-from self.core.recipes import (
+from self.core.recipe_training import (
     BatchSamplerWarmupStableDecayTrainer,
     WarmupStableDecayTrainer,
     make_recipe_training_args,

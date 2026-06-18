@@ -28,9 +28,11 @@ from core.addition_pipeline import (
 )
 from self.core.data_io import sanitize_json_value
 from self.core.evaluation import extract_numeric_answer, evaluate_accuracy_with_breakdown, resolve_max_new_tokens
-from self.core.recipes import (
+from self.core.recipe_models import (
     build_recipe_tokenizer,
     load_recipe_model,
+)
+from self.core.recipe_presets import (
     resolve_self_improvement_recipe,
 )
 from self.tasks.bit_parsing import (

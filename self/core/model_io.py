@@ -17,7 +17,7 @@ from self.core.model_bootstrap_cache import (
     model_state_cache_key,
     token_initializers_key,
 )
-from self.core.recipes import (
+from self.core.recipe_models import (
     apply_recipe_runtime_settings,
     build_recipe_tokenizer,
     instantiate_recipe_model,

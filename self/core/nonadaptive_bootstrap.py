@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List
 from self.core.data_io import JsonDict, load_examples
 from self.core.evaluation import resolve_max_new_tokens
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.core.recipes import PaddingAwareCausalLMDataCollator
+from self.core.recipe_training import PaddingAwareCausalLMDataCollator
 from self.core.training import CausalLMDataCollator, TrainingConfig
 
 
