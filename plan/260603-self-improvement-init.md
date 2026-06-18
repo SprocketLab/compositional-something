@@ -3037,3 +3037,10 @@ Acceptance criteria for first pilot:
 - Renamed the multiplication corruption test away from aggregation-condition wording and removed the unused argument plumbing from the seed-fit and legacy multiplication wrappers.
 - Updated `self/README.md` and the old workshop planning doc so tracked docs no longer imply an extra aggregation condition beyond exact blocked composition.
 - Verification: `python -m py_compile self/tasks/multiplication.py self/experiments/seed_fit_experiment.py self/legacy/multiplication_self_improvement.py tests/test_self_improvement_tasks.py`; tracked terminology grep returned no matches; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_aggregation_cleanup tests/test_self_improvement_tasks.py tests/test_nonadaptive_setup.py tests/test_candidate_rewards.py -q` (`40 passed`).
+
+### Implementation Log: 2026-06-18 07:48:01 UTC
+
+- Added `self_add_dry_run_arg(...)` and `self_print_context(...)` to `launchers/self/lib/self_common.sh` so small submitter wrappers can share dry-run flag insertion and `[INFO]` context printing in addition to repo-root/Python setup and command formatting.
+- Updated `launchers/self/submit_figure2_condition_sweep_mig.sh`, `launchers/self/submit_figure3_seed_quality_sweep_mig.sh`, and `launchers/self/submit_figure3_real_seed_data_ablation_mig.sh` to use the new helpers while preserving their Python CLI delegation and dry-run command output.
+- Updated `self/README.md` to note that the small Figure 2/3 wrappers now share dry-run and context-printing helpers as well as the generic setup path.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_figure2_condition_sweep_mig.sh launchers/self/submit_figure3_seed_quality_sweep_mig.sh launchers/self/submit_figure3_real_seed_data_ablation_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure_launchers tests/test_figure2_condition_sweep.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`16 passed`).

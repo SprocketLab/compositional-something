@@ -22,15 +22,14 @@ cmd=(
   --python-bin "${PYTHON_BIN}"
 )
 
-if self_parse_bool "${DRY_RUN}"; then
-  cmd+=(--dry-run)
-fi
+self_add_dry_run_arg cmd "${DRY_RUN}"
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Log dir: ${LOG_DIR}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Log dir" "${LOG_DIR}" \
+  "Dry run" "${DRY_RUN}"
 self_print_command_stdout "${cmd[@]}"
 
 "${cmd[@]}"

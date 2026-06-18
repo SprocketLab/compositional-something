@@ -86,6 +86,25 @@ self_parse_bool() {
   esac
 }
 
+self_add_dry_run_arg() {
+  local array_name="$1"
+  local dry_run_value="${2:-${DRY_RUN:-0}}"
+  if self_parse_bool "${dry_run_value}"; then
+    eval "${array_name}+=(--dry-run)"
+  fi
+}
+
+self_print_context() {
+  if (( $# % 2 != 0 )); then
+    echo "[ERROR] self_print_context expects label/value pairs." >&2
+    return 2
+  fi
+  while (( $# > 0 )); do
+    echo "[INFO] $1: $2"
+    shift 2
+  done
+}
+
 self_print_prefixed_command_stdout() {
   local label="$1"
   shift
