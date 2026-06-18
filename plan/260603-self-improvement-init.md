@@ -4384,3 +4384,22 @@ Acceptance criteria for first pilot:
   --basetemp=.pytest_tmp_adaptive_manifest_helpers
   tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py
   tests/test_adaptive_condition_launcher.py -q` (`10 passed`).
+
+### Implementation Log: 2026-06-18 19:56:32 UTC
+
+- Continued non-adaptive cleanup by extracting round-loop context/state and
+  single-round dependency-map assembly from `self/core/nonadaptive_loop.py`
+  into `self/core/nonadaptive_round_context.py`.
+- Kept the legacy monkeypatch boundary intact: `self/core/nonadaptive_loop.py`
+  still owns the patchable globals synced from `self.self_improvement_core`,
+  and passes those live globals into the new assembly helper before dispatching
+  the round loop.
+- Reduced `self/core/nonadaptive_loop.py` from `303` to `223` lines; the new
+  context helper owns `130` lines with focused tests.
+- Verification: `python -m py_compile self/core/nonadaptive_round_context.py
+  self/core/nonadaptive_loop.py tests/test_nonadaptive_round_context.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_nonadaptive_round_context
+  tests/test_nonadaptive_round_context.py tests/test_nonadaptive_round_runtime.py
+  tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_compat.py
+  tests/test_nonadaptive_seed_round_zero.py -q` (`12 passed`).
