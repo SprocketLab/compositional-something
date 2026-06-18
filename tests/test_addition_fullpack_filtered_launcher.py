@@ -49,7 +49,7 @@ def test_addition_fullpack_launcher_uses_tiny_seed_mig_defaults():
     assert '--per-device-train-batch-size "${TRAIN_BATCH_SIZE}"' in text
     assert '--per-device-eval-batch-size "${EVAL_BATCH_SIZE}"' in text
     assert '--skip-save-model' not in text
-    assert 'build_fixed_char_tokenizer' in text
+    assert 'self_preflight_model_snapshot "${MODEL_NAME}" "${TOKENIZER_MODE}"' in text
 
 
 def test_addition_fullpack_launcher_dry_run_prints_expected_command(tmp_path):

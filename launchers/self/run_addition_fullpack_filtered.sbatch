@@ -100,41 +100,8 @@ if self_parse_bool "${DRY_RUN}"; then
   echo "[INFO] DRY_RUN=1; skipping CUDA and model/tokenizer preflight."
 else
   nvidia-smi -L || true
-  "${PYTHON_BIN}" -c "import torch; print(f'[INFO] torch={torch.__version__} cuda={torch.cuda.is_available()} device_count={torch.cuda.device_count()}')"
-  MODEL_NAME="${MODEL_NAME}" TOKENIZER_MODE="${TOKENIZER_MODE}" "${PYTHON_BIN}" - <<'PY'
-import os
-from pathlib import Path
-from transformers import AutoConfig
-
-from self.task_tokenizer import build_fixed_char_tokenizer
-
-model_name = os.environ["MODEL_NAME"]
-tokenizer_mode = os.environ["TOKENIZER_MODE"]
-model_path = Path(model_name)
-if model_path.exists() and model_path.is_dir():
-    has_weights = any(
-        candidate.exists()
-        for candidate in (
-            model_path / "model.safetensors",
-            model_path / "pytorch_model.bin",
-        )
-    ) or any(model_path.glob("model-*.safetensors")) or any(model_path.glob("pytorch_model-*.bin"))
-    if not has_weights:
-        raise FileNotFoundError(
-            f"Local model directory {model_name} does not contain model weights. "
-            "Set MODEL_NAME to a complete local snapshot or a Hugging Face model id."
-        )
-AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-if tokenizer_mode == "fixed_char":
-    tokenizer = build_fixed_char_tokenizer()
-    print(f"[INFO] fixed_char_tokenizer_ok vocab={len(tokenizer)}")
-else:
-    from transformers import AutoTokenizer
-
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-    print(f"[INFO] auto_tokenizer_ok={type(tokenizer).__name__}")
-print(f"[INFO] model_preflight_ok={model_name} tokenizer_mode={tokenizer_mode}")
-PY
+  self_print_torch_cuda_info
+  self_preflight_model_snapshot "${MODEL_NAME}" "${TOKENIZER_MODE}"
 fi
 
 run_baseline() {

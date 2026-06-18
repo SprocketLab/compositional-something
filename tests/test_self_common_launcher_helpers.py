@@ -106,6 +106,39 @@ def test_self_common_model_preflight_uses_configured_python_and_model_name(tmp_p
     assert "model=/tmp/local model" in result.stdout
 
 
+def test_self_common_model_preflight_passes_optional_tokenizer_mode(tmp_path: Path):
+    fake_python = tmp_path / "fake_python"
+    fake_python.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf 'fake_args=%s\\n' \"$*\"\n"
+        "printf 'model=%s\\n' \"${MODEL_NAME:-}\"\n"
+        "printf 'tokenizer=%s\\n' \"${TOKENIZER_MODE:-}\"\n"
+        "cat >/dev/null\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+
+    script = (
+        "set -euo pipefail\n"
+        f"source {SELF_COMMON}\n"
+        f"PYTHON_BIN={shlex.quote(str(fake_python))}\n"
+        "self_preflight_model_snapshot '/tmp/local model' fixed_char\n"
+    )
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "fake_args=-" in result.stdout
+    assert "model=/tmp/local model" in result.stdout
+    assert "tokenizer=fixed_char" in result.stdout
+
+
 def test_self_common_torch_info_uses_configured_python(tmp_path: Path):
     fake_python = tmp_path / "fake_python"
     fake_python.write_text(

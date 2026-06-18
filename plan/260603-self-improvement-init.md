@@ -4098,3 +4098,16 @@ Acceptance criteria for first pilot:
   `run_addition_fullpack_filtered.sbatch` unchanged because it has
   tokenizer-mode-specific behavior beyond the standard AutoTokenizer check.
 - Updated `self/README.md` with the new launcher helper responsibility.
+
+### Implementation Log: 2026-06-18 18:41:07 UTC
+
+- Extended `self_preflight_model_snapshot(...)` with an optional tokenizer-mode
+  argument. With no tokenizer-mode argument it preserves the previous standard
+  AutoTokenizer preflight output; with `fixed_char` it builds and reports the
+  fixed-char tokenizer used by addition recipe launchers.
+- Migrated `run_addition_fullpack_filtered.sbatch` onto the shared preflight
+  helper via `self_preflight_model_snapshot "${MODEL_NAME}" "${TOKENIZER_MODE}"`.
+- Kept the fixed-char behavior and output shape documented explicitly because
+  it differs from the standard AutoTokenizer-only launchers.
+- Updated launcher helper tests and `self/README.md` for the optional
+  tokenizer-mode preflight path.

@@ -544,9 +544,9 @@ the supported public surface.
   wrapped-job or script-job submission/dry-run handling. It also owns command
   printing to stdout or stderr, shell-quoted env-wrapped and repo-root
   command construction, colon-separated config-file sourcing, shared
-  Torch/CUDA probe printing, standard Hugging Face/local model-snapshot
-  preflight, and small shell utilities such as boolean parsing for launcher
-  flags.
+  Torch/CUDA probe printing, Hugging Face/local model-snapshot preflight with
+  optional tokenizer-mode checks, and small shell utilities such as boolean
+  parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive-labeled config-file sourcing wrappers, worker
@@ -594,9 +594,11 @@ the supported public surface.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
-  dry-run command printing. The submitter also uses the shared sbatch-script
-  submission helper for per-baseline Slurm metadata and explicit environment
-  export payloads. Its default baseline list lives in
+  dry-run command printing. The runner also uses the shared model-snapshot
+  preflight with `TOKENIZER_MODE`, including the fixed-char tokenizer branch.
+  The submitter also uses the shared sbatch-script submission helper for
+  per-baseline Slurm metadata and explicit environment export payloads. Its
+  default baseline list lives in
   `launchers/self/config/addition_fullpack_filtered.env`.
 - `launchers/self/run_addition_their_recipe_diagnostic.sh` uses the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
@@ -682,7 +684,7 @@ the supported public surface.
   generic helper for repo-root/Python setup, boolean parsing, Slurm resource
   construction where applicable, shell-quoted repo-command wrapping,
   wrapped-job submission, and dry-run/print-only command verification.
-  The boundary-eval and qwen-no-growth runners use the shared standard
+  The boundary-eval and qwen-no-growth runners use the shared
   model-snapshot preflight. The
   alpha10 baseline-pack matrix lives in
   `launchers/self/config/run_length_alpha10_baseline_pack.env`.

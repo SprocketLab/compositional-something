@@ -284,13 +284,14 @@ self_print_torch_cuda_info() {
 
 self_preflight_model_snapshot() {
   local model_name="${1:?model name is required}"
-  MODEL_NAME="${model_name}" "${PYTHON_BIN}" - <<'PY'
+  local tokenizer_mode="${2:-}"
+  MODEL_NAME="${model_name}" TOKENIZER_MODE="${tokenizer_mode}" "${PYTHON_BIN}" - <<'PY'
 import os
 from pathlib import Path
 from transformers import AutoConfig
-from transformers import AutoTokenizer
 
 model_name = os.environ["MODEL_NAME"]
+tokenizer_mode = os.environ.get("TOKENIZER_MODE", "")
 model_path = Path(model_name)
 if model_path.exists() and model_path.is_dir():
     has_weights = any(
@@ -306,8 +307,24 @@ if model_path.exists() and model_path.is_dir():
             "Set MODEL_NAME to a complete local snapshot or a Hugging Face model id."
         )
 AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-print(f"[INFO] model_preflight_ok={model_name}")
+if tokenizer_mode == "fixed_char":
+    from self.task_tokenizer import build_fixed_char_tokenizer
+
+    tokenizer = build_fixed_char_tokenizer()
+    print(f"[INFO] fixed_char_tokenizer_ok vocab={len(tokenizer)}")
+elif tokenizer_mode:
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    print(f"[INFO] auto_tokenizer_ok={type(tokenizer).__name__}")
+else:
+    from transformers import AutoTokenizer
+
+    AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+if tokenizer_mode:
+    print(f"[INFO] model_preflight_ok={model_name} tokenizer_mode={tokenizer_mode}")
+else:
+    print(f"[INFO] model_preflight_ok={model_name}")
 PY
 }
 
