@@ -19,13 +19,15 @@ from self.core.proposal_generation import (
 )
 from self.core.proposal_config_validation import _raw_output, validate_config_rows
 from self.core.proposal_config_schema import ConfigProposal
-from self.core.proposal_prompts import (
+from self.core.proposal_prompt_metadata import (
     choose_default_program_pair,
     component_prediction_examples_for_task,
     program_validation_cases,
+    target_format_for_task,
+)
+from self.core.proposal_prompts import (
     render_program_candidate_prompt,
     render_program_repair_prompt,
-    target_format_for_task,
 )
 
 JsonDict = Dict[str, Any]

@@ -10,6 +10,7 @@ from self.core import (
     driver_default_bindings,
     proposal_executable_validation,
     proposal_generation,
+    proposal_prompt_metadata,
     proposal_prompts,
     proposal_runtime,
 )
@@ -78,9 +79,11 @@ def test_proposal_runtime_reexports_generation_helpers_for_compatibility():
 
 
 def test_proposal_implementation_imports_use_canonical_owners():
-    assert attempt_prompt_runtime.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert proposal_prompts.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
+    assert proposal_runtime.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
+    assert attempt_prompt_runtime.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
     assert attempt_prompt_runtime.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
-    assert driver_default_bindings.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert driver_default_bindings.choose_default_program_pair is proposal_prompt_metadata.choose_default_program_pair
     assert driver_default_bindings.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
     assert driver_compat_exports.load_or_generate_proposal_rows is proposal_generation.load_or_generate_proposal_rows
     assert driver_compat_exports._extract_python_code is proposal_executable_validation._extract_python_code

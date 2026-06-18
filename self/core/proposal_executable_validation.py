@@ -16,11 +16,11 @@ from self.core.proposal_config_schema import (
     extract_json_object,
 )
 from self.core.proposal_generation import generate_proposals_from_model
-from self.core.proposal_prompts import (
+from self.core.proposal_prompt_metadata import (
     program_validation_cases,
-    render_program_repair_prompt,
     target_format_for_task,
 )
+from self.core.proposal_prompts import render_program_repair_prompt
 
 
 JsonDict = Dict[str, Any]

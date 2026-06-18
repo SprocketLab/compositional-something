@@ -4128,3 +4128,29 @@ Acceptance criteria for first pilot:
   tests/test_addition_fixedwidth_moredata_launcher.py
   tests/test_addition_recipe_recovery_launchers.py
   tests/test_multiplication_rectangular_seed_launchers.py -q` (`40 passed`).
+
+### Implementation Log: 2026-06-18 18:57:40 UTC
+
+- Split task-specific proposal prompt metadata out of
+  `self/core/proposal_prompts.py` into
+  `self/core/proposal_prompt_metadata.py`.
+- The new module owns target-format descriptions, component-prediction example
+  strings, generated-program sandbox validation-case selection, and the
+  driver-selected default executable source-pair policy.
+- Kept old imports working by reexporting those helpers through
+  `self/core/proposal_prompts.py`; implementation code that only needs
+  metadata now imports the new owner directly.
+- Updated proposal ownership tests to pin both canonical metadata ownership and
+  old-path compatibility through `proposal_prompts` and driver compatibility
+  exports.
+- Updated `self/README.md` with the new prompt-metadata boundary.
+- Verification: `python -m py_compile self/core/proposal_prompt_metadata.py
+  self/core/proposal_prompts.py self/core/proposal_runtime.py
+  self/core/proposal_executable_validation.py self/core/attempt_prompt_runtime.py
+  self/core/driver_default_bindings.py self/core/driver_compat_exports.py
+  tests/test_proposal_generation.py tests/test_adaptive_proposals_and_sandbox.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_prompt_metadata
+  tests/test_proposal_generation.py tests/test_adaptive_proposals_and_sandbox.py
+  tests/test_proposal_executable_validation.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`57 passed`, `7`
+  existing multiprocessing fork warnings).

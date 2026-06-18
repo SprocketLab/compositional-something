@@ -236,10 +236,13 @@ the supported public surface.
   action-prediction normalization.
 - `self/core/proposal_io.py`: proposal fixture loading plus proposal/trace
   JSONL row construction and writing.
+- `self/core/proposal_prompt_metadata.py`: task-specific target-format
+  descriptions, component-prediction examples, generated-program validation
+  case selection, and the driver-selected default executable source-pair
+  policy.
 - `self/core/proposal_prompts.py`: prompt bundle dataclass, config/program
-  prompt rendering, task-specific target formats, default executable
-  source-pair selection, sandbox validation-case selection, and executable
-  program/policy/meta prompt rendering.
+  prompt rendering, executable program/policy/meta prompt rendering, and
+  compatibility reexports for prompt metadata helpers.
 - `self/core/proposal_config_validation.py`: config proposal row output
   normalization, schema/action-prediction validation, duplicate marking, and
   repeat-target annotation.

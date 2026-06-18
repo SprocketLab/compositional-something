@@ -5,7 +5,7 @@ from pathlib import Path
 
 from self import adaptive_proposals as proposals
 from self import program_sandbox
-from self.core import driver_compat_exports, proposal_config_schema, proposal_prompts
+from self.core import driver_compat_exports, proposal_config_schema, proposal_prompt_metadata, proposal_prompts
 from self.core import proposal_io
 
 
@@ -112,11 +112,15 @@ def test_config_schema_owner_reexports() -> None:
 
 
 def test_prompt_owner_reexports() -> None:
+    assert proposal_prompts.target_format_for_task is proposal_prompt_metadata.target_format_for_task
+    assert proposal_prompts.program_validation_cases is proposal_prompt_metadata.program_validation_cases
     assert proposals.PromptBundle is proposal_prompts.PromptBundle
     assert proposals.render_config_prompt is proposal_prompts.render_config_prompt
     assert proposals.render_program_prompt is proposal_prompts.render_program_prompt
     assert proposals.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
     assert driver_compat_exports.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
+    assert driver_compat_exports.target_format_for_task is proposal_prompt_metadata.target_format_for_task
+    assert driver_compat_exports.program_validation_cases is proposal_prompt_metadata.program_validation_cases
 
 
 def test_config_proposal_schema_rejects_ranges_and_enums():

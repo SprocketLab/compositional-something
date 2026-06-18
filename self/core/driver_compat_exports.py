@@ -90,11 +90,13 @@ from self.core.proposal_config_schema import (
     proposal_payload_for_schema,
     validate_config_prediction,
 )
-from self.core.proposal_prompts import (
+from self.core.proposal_prompt_metadata import (
     component_prediction_examples_for_task,
     program_validation_cases,
-    render_program_repair_prompt,
     target_format_for_task,
+)
+from self.core.proposal_prompts import (
+    render_program_repair_prompt,
 )
 from self.core.run_setup import source_sizes_from_examples
 from self.core.training import TrainingConfig
