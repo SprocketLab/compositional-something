@@ -254,6 +254,9 @@ the supported public surface.
   validation helpers. New implementation code should import prompt,
   generation, config-validation, and executable-validation helpers from their
   owner modules rather than through this compatibility wrapper.
+- `self/core/proposal_pilot_runtime.py`: dry-run/pilot proposal processing
+  for fixture rows, including config/program validation, reward normalization,
+  duplicate filtering, selected-proposal choice, and trace-row construction.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
 - `self/core/proposal_grpo_traces.py`: proposal-GRPO reward shaping,
@@ -400,7 +403,8 @@ the supported public surface.
 ## Current Experiments
 
 - `self/experiments/adaptive_self_improvement.py`: dry-run/pilot proposal
-  controller used for fixture-based adaptive proposal analysis.
+  controller used for fixture-based adaptive proposal analysis; validation,
+  ranking, and trace-row construction live in `self/core/proposal_pilot_runtime.py`.
 - `self/experiments/composition_error_sweep.py`: addition self-improvement
   launcher wrapper for controlled boundary-carry composition-error retention.
 - `self/experiments/figure2_condition_sweep.py`: Figure 2 MIG condition

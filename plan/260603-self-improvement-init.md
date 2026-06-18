@@ -4071,3 +4071,16 @@ Acceptance criteria for first pilot:
 - Reexported the helper through `self/analysis/artifacts.py` so notebooks can
   keep importing from the stable compatibility surface.
 - Updated `self/README.md` to document the round-summary loader boundary.
+
+### Implementation Log: 2026-06-18 18:30:15 UTC
+
+- Extracted fixture dry-run proposal processing from
+  `self/experiments/adaptive_self_improvement.py` into
+  `self/core/proposal_pilot_runtime.py`.
+- The new core runtime owns pilot config/program validation, reward
+  normalization, raw-output normalization, duplicate filtering, selected
+  proposal ranking, prompt rendering, and proposal-trace row construction.
+- Kept the old private helper names available from the experiment module as
+  compatibility aliases so existing tests/notebooks can keep importing them
+  while new implementation code has a focused owner module.
+- Updated `self/README.md` with the new pilot-runtime boundary.

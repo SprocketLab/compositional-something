@@ -4,6 +4,14 @@ import json
 from pathlib import Path
 
 from self import adaptive_self_improvement
+from self.core import proposal_pilot_runtime
+
+
+def test_adaptive_pilot_private_helpers_delegate_to_core_runtime():
+    assert adaptive_self_improvement._process_rows is proposal_pilot_runtime.process_pilot_rows
+    assert adaptive_self_improvement._select_best is proposal_pilot_runtime.select_best_pilot_result
+    assert adaptive_self_improvement._trace_rows is proposal_pilot_runtime.build_pilot_trace_rows
+    assert adaptive_self_improvement._render_prompt is proposal_pilot_runtime.render_pilot_prompt
 
 
 def test_adaptive_controller_config_dry_run_writes_selection_and_traces(tmp_path: Path):
