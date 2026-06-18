@@ -494,10 +494,9 @@ new implementation code:
   multiplication experiment batches have moved under canonical package
   directories, the rectangular multiplication shared helper now lives under
   `self/tasks/`, and the historical addition self-improvement CLI now lives
-  in `self/legacy/addition_self_improvement.py`. The majority task and its
-  legacy CLI were removed because they are not part of the workshop/main-track
-  experiment scope. The historical run-length, multiplication, and bit-task
-  CLI helpers have moved under `self/legacy/`, the multiplication CoT
+  in `self/legacy/addition_self_improvement.py`. The historical run-length,
+  multiplication, and bit-task CLI helpers have moved under `self/legacy/`,
+  the multiplication CoT
   pseudo-addition curriculum script has
   moved under `self/legacy/`, and the balanced run-length evaluation
   diagnostic has moved under `self/diagnostics/`.
