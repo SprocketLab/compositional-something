@@ -268,6 +268,9 @@ the supported public surface.
   `self.self_improvement_core` facade globals into the canonical
   non-adaptive loop before execution, preserving old monkeypatch-based tests
   and scripts without making implementation modules import through the facade.
+- `self/core/nonadaptive_facade_exports.py`: explicit legacy export manifest
+  for `self.self_improvement_core`, grouping compatibility names by canonical
+  owner while keeping the old facade small and auditable.
 - `self/core/task_protocols.py`: shared task/example protocols and type
   aliases used by task-agnostic self-improvement code.
 - `self/core/task_registry.py`: adaptive task-name lookup for concrete task
@@ -289,8 +292,9 @@ the supported public surface.
   evaluation/generation helpers, training construction, summary helpers, task
   protocols, non-adaptive loop execution, and non-adaptive monkeypatch sync
   policy have moved into focused `self/core/` modules. Its public compatibility
-  exports are grouped by owner, and the patchable names synced into the
-  non-adaptive loop are tested against that export surface.
+  exports now come from `self/core/nonadaptive_facade_exports.py`, and the
+  patchable names synced into the non-adaptive loop are tested against that
+  export surface.
 
 ## Current Tasks
 
@@ -337,11 +341,15 @@ the supported public surface.
   formatting.
 - `self/tasks/run_length_pseudolabels.py`: run-length direct, guarded-pair,
   run-state, and default tuple pseudolabel derivation.
+- `self/tasks/compat_exports.py`: explicit legacy export manifest for
+  `self.self_improvement_tasks`, grouping old-path task exports by protocol,
+  evaluation, addition, bit-common, bit-composition, multiplication, and
+  run-length owner.
 - `self/self_improvement_tasks.py`: explicit compatibility import surface for
   the old task-module path, backed by canonical `self/tasks/*` and
-  `self/core/*` modules. Its `__all__` is grouped by protocol/evaluation,
-  addition, bit-common, bit-composition, multiplication, and run-length exports
-  so old-path compatibility stays auditable.
+  `self/core/*` modules. Its public compatibility exports now come from
+  `self/tasks/compat_exports.py` so old-path compatibility stays auditable
+  without keeping the export manifest in the facade itself.
 
 ## Current Experiments
 

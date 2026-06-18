@@ -25,9 +25,11 @@ from core.addition_pipeline import (
 )
 from self.self_improvement_core import evaluate_accuracy_with_breakdown, extract_numeric_answer, generate_prediction_map
 from self import self_improvement_tasks as tasks
+from self.tasks import compat_exports as task_compat_exports
 
 
 def test_task_facade_all_exports_are_available_and_unique():
+    assert tasks.__all__ == list(task_compat_exports.TASK_COMPAT_EXPORT_NAMES)
     assert len(tasks.__all__) == len(set(tasks.__all__))
     assert all(hasattr(tasks, name) for name in tasks.__all__)
     assert tasks.AdditionTask.__module__ == "self.tasks.addition"
