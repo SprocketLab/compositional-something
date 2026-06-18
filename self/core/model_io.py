@@ -44,11 +44,25 @@ class ModelBootstrapCache:
     cache_base_state: bool = False
     tokenizer_cache: Dict[Tuple[Any, ...], TokenizerBootstrap] = field(default_factory=dict)
     model_state_cache: Dict[Tuple[Any, ...], CachedModelState] = field(default_factory=dict)
+    tokenizer_cache_hits: int = 0
+    tokenizer_cache_misses: int = 0
+    model_state_cache_hits: int = 0
+    model_state_cache_misses: int = 0
 
     def stats(self) -> Dict[str, int]:
         return {
             "tokenizer_cache_entries": len(self.tokenizer_cache),
             "model_state_cache_entries": len(self.model_state_cache),
+        }
+
+    def detailed_stats(self) -> Dict[str, int]:
+        return {
+            **self.stats(),
+            "cache_base_state": int(self.cache_base_state),
+            "tokenizer_cache_hits": self.tokenizer_cache_hits,
+            "tokenizer_cache_misses": self.tokenizer_cache_misses,
+            "model_state_cache_hits": self.model_state_cache_hits,
+            "model_state_cache_misses": self.model_state_cache_misses,
         }
 
 
@@ -200,7 +214,10 @@ def _tokenizer_bootstrap(
 ) -> TokenizerBootstrap:
     cache_key = (str(model_path), tokenizer_mode, _token_initializers_key(token_initializers))
     if bootstrap_cache is not None and cache_key in bootstrap_cache.tokenizer_cache:
+        bootstrap_cache.tokenizer_cache_hits += 1
         return bootstrap_cache.tokenizer_cache[cache_key]
+    if bootstrap_cache is not None:
+        bootstrap_cache.tokenizer_cache_misses += 1
     bootstrap = _build_tokenizer_bootstrap(
         model_path,
         token_initializers=token_initializers,
@@ -265,8 +282,11 @@ def instantiate_model_and_tokenizer(
         apply_recipe_runtime_settings(preset)
         recipe_tokenizer_key = ("recipe", preset.name)
         if bootstrap_cache is not None and recipe_tokenizer_key in bootstrap_cache.tokenizer_cache:
+            bootstrap_cache.tokenizer_cache_hits += 1
             tokenizer = bootstrap_cache.tokenizer_cache[recipe_tokenizer_key].tokenizer
         else:
+            if bootstrap_cache is not None:
+                bootstrap_cache.tokenizer_cache_misses += 1
             tokenizer = build_recipe_tokenizer(preset)
             if bootstrap_cache is not None:
                 bootstrap_cache.tokenizer_cache[recipe_tokenizer_key] = TokenizerBootstrap(
@@ -309,6 +329,7 @@ def instantiate_model_and_tokenizer(
             token_initializers=token_initializers,
         )
         if bootstrap_cache is not None and bootstrap_cache.cache_base_state and state_key in bootstrap_cache.model_state_cache:
+            bootstrap_cache.model_state_cache_hits += 1
             model = _load_model_from_cached_state(
                 bootstrap_cache.model_state_cache[state_key],
                 tokenizer,
@@ -316,6 +337,8 @@ def instantiate_model_and_tokenizer(
                 fp16=fp16,
             )
         else:
+            if bootstrap_cache is not None and bootstrap_cache.cache_base_state:
+                bootstrap_cache.model_state_cache_misses += 1
             model = load_model_for_tokenizer(
                 model_path,
                 tokenizer,

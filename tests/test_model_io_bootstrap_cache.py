@@ -87,6 +87,15 @@ def test_model_bootstrap_cache_reuses_tokenizer_and_cached_base_state(monkeypatc
     assert first_tokenizer is second_tokenizer
     assert float(second_model.weight.item()) == 1.0
     assert cache.stats() == {"model_state_cache_entries": 1, "tokenizer_cache_entries": 1}
+    assert cache.detailed_stats() == {
+        "cache_base_state": 1,
+        "model_state_cache_entries": 1,
+        "model_state_cache_hits": 1,
+        "model_state_cache_misses": 1,
+        "tokenizer_cache_entries": 1,
+        "tokenizer_cache_hits": 1,
+        "tokenizer_cache_misses": 1,
+    }
 
 
 def test_model_bootstrap_cache_can_reuse_tokenizer_without_state_cache(monkeypatch):
@@ -126,3 +135,12 @@ def test_model_bootstrap_cache_can_reuse_tokenizer_without_state_cache(monkeypat
     assert float(first_model.weight.item()) == 1.0
     assert float(second_model.weight.item()) == 2.0
     assert cache.stats() == {"model_state_cache_entries": 0, "tokenizer_cache_entries": 1}
+    assert cache.detailed_stats() == {
+        "cache_base_state": 0,
+        "model_state_cache_entries": 0,
+        "model_state_cache_hits": 0,
+        "model_state_cache_misses": 0,
+        "tokenizer_cache_entries": 1,
+        "tokenizer_cache_hits": 1,
+        "tokenizer_cache_misses": 1,
+    }

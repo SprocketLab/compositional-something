@@ -113,15 +113,22 @@ def _load_shared_inputs(
             system=str(prompt_payload.get("system", "")),
             user=str(prompt_payload.get("user", "")),
         ),
-        model_bootstrap_cache=(
-            ModelBootstrapCache(cache_base_state=True)
-            if bool(getattr(args, "candidate_local_cache_base_state", False))
-            else None
-        ),
+        model_bootstrap_cache=_make_model_bootstrap_cache(args, shared_cache=shared_cache),
     )
     if shared_cache is not None:
         shared_cache[cache_key] = shared
     return shared
+
+
+def _make_model_bootstrap_cache(
+    args: argparse.Namespace,
+    *,
+    shared_cache: Optional[SharedInputCache],
+) -> Optional[ModelBootstrapCache]:
+    cache_base_state = bool(getattr(args, "candidate_local_cache_base_state", False))
+    if shared_cache is not None or cache_base_state:
+        return ModelBootstrapCache(cache_base_state=cache_base_state)
+    return None
 
 
 def _candidate_item_from_payload(payload: JsonDict, pseudo_examples: Sequence[Any]) -> CandidateWorkItem:
@@ -274,6 +281,11 @@ def run_candidate_worker_pack_from_spec(
         "shared_input_cache_entries": len(shared_cache),
         "model_bootstrap_cache": [
             shared.model_bootstrap_cache.stats()
+            for shared in shared_cache.values()
+            if shared.model_bootstrap_cache is not None
+        ],
+        "model_bootstrap_cache_details": [
+            shared.model_bootstrap_cache.detailed_stats()
             for shared in shared_cache.values()
             if shared.model_bootstrap_cache is not None
         ],

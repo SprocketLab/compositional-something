@@ -1459,9 +1459,108 @@ def test_candidate_pack_worker_reuses_shared_inputs(tmp_path, monkeypatch):
     assert summary["model_bootstrap_cache"] == [
         {"model_state_cache_entries": 0, "tokenizer_cache_entries": 0}
     ]
+    assert summary["model_bootstrap_cache_details"] == [
+        {
+            "cache_base_state": 1,
+            "model_state_cache_entries": 0,
+            "model_state_cache_hits": 0,
+            "model_state_cache_misses": 0,
+            "tokenizer_cache_entries": 0,
+            "tokenizer_cache_hits": 0,
+            "tokenizer_cache_misses": 0,
+        }
+    ]
     assert scored_indices == [0, 1]
     assert len(set(bootstrap_cache_ids)) == 1
     assert sorted(trace_load_counts.values()) == [1, 1]
+
+
+def test_candidate_pack_worker_passes_tokenizer_cache_without_base_state(tmp_path, monkeypatch):
+    parser = loop.build_parser()
+    args = loop.normalize_args(
+        parser.parse_args(
+            [
+                "--task",
+                "addition",
+                "--output-dir",
+                str(tmp_path / "run"),
+                "--candidate-execution-mode",
+                "local_parallel",
+            ]
+        )
+    )
+    task = loop.task_for_name("addition")
+    round_dir = tmp_path / "run" / "attempt_0001"
+    work_items = _write_candidate_pseudo_examples(tmp_path, round_dir, task, count=2)
+    spec_paths = loop._prepare_candidate_worker_specs(
+        args=args,
+        task=task,
+        current_checkpoint="checkpoint",
+        source_examples=[],
+        proposal_trace_buffer=[],
+        outcome_trace_buffer=[],
+        proposal_prompt=PromptBundle(system="", user=""),
+        round_index=1,
+        work_items=work_items,
+        round_dir=round_dir,
+        eval_examples=[],
+        current_final_accuracy=0.4,
+        current_per_size_accuracy={5: 0.0},
+        init_final_accuracy=0.3,
+        attempt_index=1,
+    )
+    pack_path = round_dir / "candidate_jobs" / "pack_specs" / "manual_pack.json"
+    loop.write_json(pack_path, {"spec_paths": [str(path) for path in spec_paths]})
+
+    bootstrap_cache_ids = []
+    cache_base_state_values = []
+
+    def fake_train_and_score_candidate(**kwargs):
+        cache = kwargs["model_bootstrap_cache"]
+        bootstrap_cache_ids.append(id(cache))
+        cache_base_state_values.append(cache.cache_base_state)
+        return loop.CandidateMetrics(
+            index=kwargs["item"].index,
+            row_id=kwargs["item"].row_id,
+            proposal=kwargs["item"].proposal,
+            valid=True,
+            reward=0.1,
+            frontier_delta=0.1,
+            target_accuracy=0.2,
+            current_target_accuracy=0.0,
+            final_accuracy=0.5,
+            current_final_accuracy=0.4,
+            init_final_accuracy=0.3,
+            final_accuracy_delta=0.2,
+            final_accuracy_delta_from_current=0.1,
+            per_size_accuracy={5: 0.2},
+            pseudo_count=len(kwargs["item"].pseudo_examples),
+            model_dir=tmp_path / f"model_{kwargs['item'].index}",
+        )
+
+    monkeypatch.setattr(loop, "train_and_score_candidate", fake_train_and_score_candidate)
+
+    summary = loop.run_candidate_worker_pack_from_spec(pack_path)
+
+    assert summary["succeeded"] == 2
+    assert summary["failed"] == 0
+    assert summary["shared_input_cache_entries"] == 1
+    assert summary["model_bootstrap_cache"] == [
+        {"model_state_cache_entries": 0, "tokenizer_cache_entries": 0}
+    ]
+    assert summary["model_bootstrap_cache_details"] == [
+        {
+            "cache_base_state": 0,
+            "model_state_cache_entries": 0,
+            "model_state_cache_hits": 0,
+            "model_state_cache_misses": 0,
+            "tokenizer_cache_entries": 0,
+            "tokenizer_cache_hits": 0,
+            "tokenizer_cache_misses": 0,
+        }
+    ]
+    assert len(set(bootstrap_cache_ids)) == 1
+    assert cache_base_state_values == [False, False]
 
 
 def test_local_parallel_candidate_worker_failure_becomes_metric(tmp_path, monkeypatch):

@@ -484,12 +484,17 @@ the supported public surface.
   it reduces process launch overhead and repeated worker-spec/bootstrap work.
   Packed workers also reuse shared args/source/eval/trace/prompt inputs across
   candidates in the same pack; candidate pseudo examples, seeds, training, and
-  metrics remain candidate-specific.
+  metrics remain candidate-specific. Packed workers now also pass a per-pack
+  tokenizer bootstrap cache by default, without caching model weights unless
+  explicitly requested. Worker summaries include
+  `model_bootstrap_cache_details` with tokenizer/model-state hit and miss
+  counters for debugging cache effectiveness.
 - Add `--candidate-local-cache-base-state` when using packed local workers to
-  cache a CPU copy of the shared source checkpoint state after the first load.
-  Later candidates instantiate fresh model objects from that cached state
-  instead of rereading checkpoint weights from disk. This preserves candidate
-  isolation but increases per-worker CPU memory use by roughly one checkpoint.
+  extend the per-pack bootstrap cache with a CPU copy of the shared source
+  checkpoint state after the first load. Later candidates instantiate fresh
+  model objects from that cached state instead of rereading checkpoint weights
+  from disk. This preserves candidate isolation but increases per-worker CPU
+  memory use by roughly one checkpoint.
 
 ## Source And Artifacts
 
@@ -702,7 +707,8 @@ new implementation code:
   bundles, local cache/editor state, and command/LaTeX logs are ignored.
 - Optimize candidate training to avoid repeated full model reloads for each
   local candidate worker where semantics allow it. Current packed-local workers
-  reduce subprocess and shared-input IO/parsing overhead by default. With
-  `--candidate-local-cache-base-state`, packed workers also avoid repeated disk
-  reads of the shared source checkpoint while still instantiating a fresh model
-  object per candidate from an unmodified cached CPU state.
+  reduce subprocess and shared-input IO/parsing overhead by default, reuse
+  tokenizer bootstrap work inside each pack, and report bootstrap cache hit/miss
+  counters. With `--candidate-local-cache-base-state`, packed workers also avoid
+  repeated disk reads of the shared source checkpoint while still instantiating
+  a fresh model object per candidate from an unmodified cached CPU state.

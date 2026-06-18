@@ -3258,3 +3258,11 @@ Acceptance criteria for first pilot:
 - Removed the remaining tracked historical plan wording that described the removed auxiliary classification task as part of the old workshop cleanup trail.
 - Updated `self/README.md` to state the supported workshop/main-track task surface directly: addition, run-length, and multiplication.
 - Verification: the tracked grep checks for the removed task name and related removed-selection wording returned no tracked matches; `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:44:35 UTC
+
+- Reduced repeated packed-local candidate worker bootstrap work by creating a per-pack `ModelBootstrapCache` whenever shared packed-worker inputs are reused.
+- Kept CPU checkpoint-state caching gated behind `--candidate-local-cache-base-state`, but now packed workers get tokenizer bootstrap reuse by default without changing candidate training/evaluation semantics.
+- Added detailed bootstrap cache hit/miss counters to `ModelBootstrapCache` and included them in packed-worker summaries under `model_bootstrap_cache_details`, while preserving the existing compact `model_bootstrap_cache` summary shape.
+- Updated `self/README.md` runtime notes to separate tokenizer bootstrap reuse from optional checkpoint-state reuse.
+- Verification: `python -m py_compile self/core/model_io.py self/core/candidate_worker_runtime.py tests/test_model_io_bootstrap_cache.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_model_cache tests/test_model_io_bootstrap_cache.py -q` (`2 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_candidate_cache tests/test_adaptive_candidate_training.py -q` (`39 passed`, `3` existing multiprocessing fork warnings).
