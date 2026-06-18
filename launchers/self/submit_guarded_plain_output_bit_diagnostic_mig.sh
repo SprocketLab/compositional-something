@@ -20,15 +20,16 @@ DRY_RUN="${DRY_RUN:-0}"
 
 read -r -a TASK_LIST <<< "${TASKS}"
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Job script: ${JOB_SCRIPT}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Tasks: ${TASKS}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Seed: ${SEED}"
-echo "[INFO] Symbol alphabet size: ${SYMBOL_ALPHABET_SIZE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Job script" "${JOB_SCRIPT}" \
+  "Output root" "${OUT_ROOT}" \
+  "Tasks" "${TASKS}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Seed" "${SEED}" \
+  "Symbol alphabet size" "${SYMBOL_ALPHABET_SIZE}" \
+  "Dry run" "${DRY_RUN}"
 
 for task in "${TASK_LIST[@]}"; do
   cmd=(

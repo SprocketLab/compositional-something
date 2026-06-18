@@ -3080,3 +3080,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh` and `launchers/self/submit_addition_fixedwidth_moredata_mig.sh` to route repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving baseline command construction, Slurm manifest writing, and dry-run grid output.
 - Updated `self/README.md` to note that the fixed-width fullpack and more-data sweep context banners now use the shared helper path.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh launchers/self/submit_addition_fixedwidth_moredata_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_fixedwidth_helpers tests/test_addition_fixedwidth_moredata_launcher.py -q` (`3 passed`).
+
+### Implementation Log: 2026-06-18 08:08:19 UTC
+
+- Extended shared context-banner printing to the guarded plain-output bit diagnostic runner and submitter.
+- Updated `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch` and `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh` to route repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving diagnostic command construction, `nvidia-smi` probe behavior, and dry-run submission output.
+- Updated `self/README.md` to note that the guarded diagnostic launchers now share context-printing helpers in addition to repo-root/Python and command-printing helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_guarded_helpers tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`5 passed`).

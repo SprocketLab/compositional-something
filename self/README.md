@@ -635,7 +635,8 @@ new implementation code:
   through `self_print_context`; the run-length fixed-binary submitter uses the
   generic explicit-resource helper for its mixed GPU/CPU jobs; the guarded
   plain-output bit diagnostic runner and submitter share generic
-  repo-root/Python/command-printing helpers; the rectangular square
+  repo-root/Python/context-printing/command-printing helpers; the rectangular
+  square
   seed/diagnostic runners and probe/resweep submitters share generic
   repo-root/Python/boolean/context-printing/command-printing helpers; the
   rectangular non-square

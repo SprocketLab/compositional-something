@@ -181,26 +181,27 @@ guarded_cmd=(
   "${pilot_common[@]}"
 )
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Task: ${TASK}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Scratch model: ${SCRATCH_MODEL_NAME}"
-echo "[INFO] Seed model override: ${SEED_MODEL:-<none>}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Seed range: ${INITIAL_MIN_BITS}..${INITIAL_MAX_BITS}"
-echo "[INFO] Frontier range: ${FRONTIER_MIN_BITS}..$((FRONTIER_MIN_BITS + EXPAND_NUM_BITS - 1))"
-echo "[INFO] Symbol alphabet size: ${SYMBOL_ALPHABET_SIZE}"
-echo "[INFO] Target mode: ${TARGET_MODE}"
-echo "[INFO] Bit composition path mode: ${BIT_COMPOSITION_PATH_MODE}"
-echo "[INFO] Num expand rounds: ${NUM_EXPAND_ROUNDS}"
-echo "[INFO] Round warmup steps: ${ROUND_WARMUP_STEPS:-recipe_default}"
-echo "[INFO] Save pilot checkpoints: ${SAVE_MODEL}"
-echo "[INFO] Save model policy: ${SAVE_MODEL_POLICY}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Slurm Job ID: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Task" "${TASK}" \
+  "Output root" "${OUT_ROOT}" \
+  "Scratch model" "${SCRATCH_MODEL_NAME}" \
+  "Seed model override" "${SEED_MODEL:-<none>}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Seed range" "${INITIAL_MIN_BITS}..${INITIAL_MAX_BITS}" \
+  "Frontier range" "${FRONTIER_MIN_BITS}..$((FRONTIER_MIN_BITS + EXPAND_NUM_BITS - 1))" \
+  "Symbol alphabet size" "${SYMBOL_ALPHABET_SIZE}" \
+  "Target mode" "${TARGET_MODE}" \
+  "Bit composition path mode" "${BIT_COMPOSITION_PATH_MODE}" \
+  "Num expand rounds" "${NUM_EXPAND_ROUNDS}" \
+  "Round warmup steps" "${ROUND_WARMUP_STEPS:-recipe_default}" \
+  "Save pilot checkpoints" "${SAVE_MODEL}" \
+  "Save model policy" "${SAVE_MODEL_POLICY}" \
+  "Dry run" "${DRY_RUN}" \
+  "Slurm Job ID" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 nvidia-smi -L || true
 
 if [[ -n "${SEED_MODEL}" ]]; then
