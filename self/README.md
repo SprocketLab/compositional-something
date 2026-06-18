@@ -52,9 +52,12 @@ tests, notebooks, and older artifacts.
   runtime, including spec loading, trace/pseudo-example reconstruction, metric
   generation, packed local-worker execution, and worker-failure artifact
   writing.
-- `self/core/candidate_workers.py`: candidate worker spec/pack-spec
-  preparation plus compatibility wrappers/reexports for local and Slurm-array
+- `self/core/candidate_workers.py`: compatibility wrapper/reexport surface for
+  candidate worker specs, local candidate-worker dispatch, and Slurm-array
   candidate-worker dispatch.
+- `self/core/candidate_worker_specs.py`: candidate worker shared input/spec
+  generation, pack-spec generation, candidate manifest writing, and candidate
+  metrics/failure path helpers.
 - `self/core/candidate_local_workers.py`: local and packed-local
   candidate-worker process scheduling, local dispatch manifests, timeout
   handling, and local worker failure artifact writing.
