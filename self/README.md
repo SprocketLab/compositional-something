@@ -84,6 +84,9 @@ tests, notebooks, and older artifacts.
   added-token embedding initialization, and model loading/instantiation.
 - `self/core/models.py`: shared proposal, candidate work-item, candidate
   metrics, and JSON conversion containers.
+- `self/core/nonadaptive_bootstrap.py`: non-adaptive resume checkpoint
+  selection, model/tokenizer instantiation, training config/collator setup,
+  decode-budget derivation, and resumed pseudo-seed loading.
 - `self/core/nonadaptive_datasets.py`: non-adaptive initial/composed/eval
   dataset generation and persisted dataset loading.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
@@ -479,6 +482,7 @@ new implementation code:
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
   evaluation, dynamic refresh, and pseudo-label loop. Dataset
   generation/loading now lives in `self/core/nonadaptive_datasets.py`;
+  resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
   IO and loaded-metadata compatibility checks live in

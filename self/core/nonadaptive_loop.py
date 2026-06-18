@@ -42,6 +42,7 @@ from self.core.model_io import (
     lookup_single_token_id,
     sync_model_special_token_ids,
 )
+from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
@@ -192,84 +193,36 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
 
     eval_keys = task.keys_for_examples(eval_examples)
 
-    resume_round = 0
-    if resume_requested:
-        if args.resume_from_round is not None:
-            resume_round = args.resume_from_round
-        elif existing_summaries:
-            resume_round = max(existing_summaries) + 1
-        if resume_round > args.num_expand_rounds:
-            print(
-                f"[INFO] Requested resume round {resume_round} exceeds configured num_expand_rounds={args.num_expand_rounds}; "
-                "no additional training will be performed.",
-                flush=True,
-            )
-        for round_idx in list(existing_summaries.keys()):
-            if round_idx >= resume_round:
-                existing_summaries.pop(round_idx, None)
-        if resume_round > 0 and not reset_each_round:
-            checkpoint_dir = base_output_dir / f"round_{resume_round-1:02d}"
-            if not checkpoint_dir.exists():
-                raise ValueError(
-                    f"Cannot resume from round {resume_round}; checkpoint directory {checkpoint_dir} is missing."
-                )
-            model_name_or_path = str(checkpoint_dir)
-        else:
-            model_name_or_path = args.model_name
-        print(f"[INFO] Resuming training from round {resume_round}.", flush=True)
-    else:
-        model_name_or_path = args.model_name
-
-    token_initializers = task.token_initializers(args) if hasattr(task, "token_initializers") else {}
-    model, tokenizer = instantiate_model_and_tokenizer(
-        model_name_or_path,
-        bf16=args.bf16,
-        fp16=args.fp16,
-        token_initializers=token_initializers,
-        init_from_scratch=getattr(args, "init_from_scratch", False),
-        tokenizer_mode=str(getattr(args, "tokenizer_mode", "auto")),
-        recipe=recipe_name,
+    bootstrap = prepare_nonadaptive_bootstrap(
+        args,
+        task,
+        base_output_dir=base_output_dir,
+        base_train_examples=base_splits["train"],
+        eval_examples=eval_examples,
+        composed_eval_examples=composed_eval_examples,
+        existing_summaries=existing_summaries,
+        resume_requested=resume_requested,
+        reset_each_round=reset_each_round,
+        use_recipe=use_recipe,
+        recipe_name=recipe_name,
+        load_examples_fn=load_examples,
+        instantiate_model_and_tokenizer_fn=instantiate_model_and_tokenizer,
+        training_config_cls=TrainingConfig,
+        resolve_max_new_tokens_fn=resolve_max_new_tokens,
+        recipe_collator_cls=PaddingAwareCausalLMDataCollator,
+        default_collator_cls=CausalLMDataCollator,
     )
-
-    config = TrainingConfig(
-        num_epochs=args.num_epochs,
-        learning_rate=args.learning_rate,
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        per_device_eval_batch_size=args.per_device_eval_batch_size,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        weight_decay=args.weight_decay,
-        logging_steps=args.logging_steps,
-        max_steps=args.max_steps if args.max_steps > 0 else None,
-        eval_steps=args.eval_steps if args.eval_steps > 0 else None,
-        decode_max_new_tokens=args.decode_max_new_tokens,
-    )
-
-    train_base_decode_tokens = resolve_max_new_tokens(base_splits["train"], config.decode_max_new_tokens)
-    eval_decode_tokens = resolve_max_new_tokens(eval_examples, config.decode_max_new_tokens)
-    composed_eval_decode_tokens = resolve_max_new_tokens(composed_eval_examples, config.decode_max_new_tokens)
-
-    if use_recipe:
-        data_collator = PaddingAwareCausalLMDataCollator(tokenizer=tokenizer, padding_side="right")
-    else:
-        data_collator = CausalLMDataCollator(tokenizer)
-    summary_records = dict(existing_summaries)
-    pseudo_examples: List[Any] = []
+    resume_round = bootstrap.resume_round
+    model = bootstrap.model
+    tokenizer = bootstrap.tokenizer
+    config = bootstrap.config
+    train_base_decode_tokens = bootstrap.train_base_decode_tokens
+    eval_decode_tokens = bootstrap.eval_decode_tokens
+    composed_eval_decode_tokens = bootstrap.composed_eval_decode_tokens
+    data_collator = bootstrap.data_collator
+    summary_records = bootstrap.summary_records
+    pseudo_examples = bootstrap.pseudo_examples
     round_dirs: List[Path] = []
-
-    if resume_round > 0:
-        prev_round_dir = base_output_dir / f"round_{resume_round-1:02d}"
-        pseudo_seed_path = prev_round_dir / "pseudo_for_next_round.jsonl"
-        if not pseudo_seed_path.exists():
-            raise RuntimeError(
-                f"Pseudo dataset for round {resume_round} is missing (expected {pseudo_seed_path}). "
-                "Please rerun the previous round to regenerate the pseudo labels before resuming."
-            )
-        pseudo_examples = load_examples(pseudo_seed_path, task.deserialize_example)
-        print(
-            f"[INFO] Loaded {len(pseudo_examples)} pseudo examples for upcoming round {resume_round} "
-            f"from {pseudo_seed_path}.",
-            flush=True,
-        )
 
     for round_idx in range(args.num_expand_rounds + 1):
         max_size = size_schedule.round_max_size_for_index(round_idx)
