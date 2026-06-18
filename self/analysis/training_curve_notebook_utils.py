@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import ast
-import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -13,6 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from self.analysis.training_curve_logs import (
+    ROUND_PATTERN,
+    _to_float,
+    load_round_metrics,
+    parse_training_log,
+)
 from self.analysis.training_curve_results import (
     load_round_payload,
     per_size_accuracy_frame_from_results,
@@ -26,8 +29,6 @@ from self.analysis.training_curve_style import (
     configure_plot_style,
     mode_label,
 )
-
-ROUND_PATTERN = re.compile(r"\[ROUND\s+(\d+)\].*?eval_acc=([0-9.]+)")
 
 
 @dataclass
@@ -79,15 +80,6 @@ def _should_annotate_sparse_cell(
     return size % y_tick_stride == 0
 
 
-def _to_float(value: Any) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def load_submission_jobs(run_root: Path, logs_dir: Optional[Path] = None) -> pd.DataFrame:
     """Load the Slurm submission table and attach derived paths."""
     run_root = Path(run_root)
@@ -103,113 +95,6 @@ def load_submission_jobs(run_root: Path, logs_dir: Optional[Path] = None) -> pd.
     jobs["mode"] = pd.Categorical(jobs["mode"], categories=MODE_ORDER, ordered=True)
     jobs["task"] = jobs["task"].astype(str)
     return jobs
-
-
-def parse_training_log(log_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Recover per-log-step training loss and optional validation loss from Slurm stdout."""
-    pending_train: List[Dict[str, Any]] = []
-    pending_validation: List[Dict[str, Any]] = []
-    train_rows: List[Dict[str, Any]] = []
-    validation_rows: List[Dict[str, Any]] = []
-    train_summary: Optional[float] = None
-
-    with Path(log_path).open("r", encoding="utf-8") as handle:
-        for line_number, raw_line in enumerate(handle, start=1):
-            line = raw_line.strip()
-            if not line:
-                continue
-
-            if line.startswith("{") and line.endswith("}"):
-                try:
-                    payload = ast.literal_eval(line)
-                except (SyntaxError, ValueError):
-                    payload = None
-                if isinstance(payload, dict):
-                    if "loss" in payload:
-                        pending_train.append(
-                            {
-                                "epoch": _to_float(payload.get("epoch")),
-                                "loss": _to_float(payload.get("loss")),
-                                "grad_norm": _to_float(payload.get("grad_norm")),
-                                "learning_rate": _to_float(payload.get("learning_rate")),
-                                "line_number": line_number,
-                            }
-                        )
-                        continue
-                    if "eval_loss" in payload:
-                        pending_validation.append(
-                            {
-                                "epoch": _to_float(payload.get("epoch")),
-                                "validation_loss": _to_float(payload.get("eval_loss")),
-                                "line_number": line_number,
-                            }
-                        )
-                        continue
-                    if "train_loss" in payload:
-                        train_summary = _to_float(payload.get("train_loss"))
-                        continue
-
-            round_match = ROUND_PATTERN.search(line)
-            if not round_match:
-                continue
-
-            round_index = int(round_match.group(1))
-            for step_index, row in enumerate(pending_train, start=1):
-                epoch = row.get("epoch")
-                round_progress = round_index + (epoch if epoch is not None else 0.0)
-                train_rows.append(
-                    {
-                        **row,
-                        "round": round_index,
-                        "step_in_round": step_index,
-                        "round_progress": round_progress,
-                        "train_loss_summary": train_summary,
-                    }
-                )
-            for step_index, row in enumerate(pending_validation, start=1):
-                epoch = row.get("epoch")
-                round_progress = round_index + (epoch if epoch is not None else 0.0)
-                validation_rows.append(
-                    {
-                        **row,
-                        "round": round_index,
-                        "step_in_round": step_index,
-                        "round_progress": round_progress,
-                    }
-                )
-
-            pending_train = []
-            pending_validation = []
-            train_summary = None
-
-    return pd.DataFrame(train_rows), pd.DataFrame(validation_rows)
-
-
-def load_round_metrics(results_path: Path) -> pd.DataFrame:
-    """Load round-level accuracy metrics."""
-    with Path(results_path).open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-
-    if not isinstance(payload, list):
-        raise ValueError(f"Expected a list of round summaries in {results_path}.")
-
-    rows: List[Dict[str, Any]] = []
-    for entry in payload:
-        if not isinstance(entry, dict):
-            continue
-        rows.append(
-            {
-                "round": int(entry["round"]),
-                "max_size": int(entry["max_size"]),
-                "train_examples": int(entry["train_examples"]),
-                "pseudo_examples": int(entry["pseudo_examples"]),
-                "eval_accuracy": _to_float(entry.get("eval_accuracy")),
-                "composed_eval_accuracy": _to_float(entry.get("composed_eval_accuracy")),
-                "pseudo_retention_rate": _to_float(entry.get("pseudo_retention_rate")),
-                "max_solved_size_at_90_accuracy": entry.get("max_solved_size_at_90_accuracy"),
-            }
-        )
-    return pd.DataFrame(rows)
 
 
 def load_curve_bundle(run_root: str | Path, logs_dir: Optional[str | Path] = None) -> CurveBundle:

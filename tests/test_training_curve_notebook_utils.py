@@ -6,10 +6,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import training_curve_results, training_curve_style
+from self.analysis import training_curve_logs, training_curve_results, training_curve_style
 from self.training_curve_notebook_utils import (
     configure_plot_style,
+    load_round_metrics,
     per_size_accuracy_frame_from_results,
+    parse_training_log,
     plot_per_size_accuracy_heatmap_from_results,
 )
 
@@ -53,6 +55,80 @@ def test_per_size_accuracy_frame_supports_addition_schema(tmp_path: Path):
         (4, 12, 0.99),
         (7, 7, 0.91),
         (12, 12, 0.73),
+    ]
+
+
+def test_training_log_and_round_metric_helpers_keep_compatibility(tmp_path: Path):
+    assert parse_training_log is training_curve_logs.parse_training_log
+    assert load_round_metrics is training_curve_logs.load_round_metrics
+
+    log_path = tmp_path / "slurm.out"
+    log_path.write_text(
+        "\n".join(
+            [
+                "{'loss': 0.4, 'epoch': 0.25, 'grad_norm': 1.5, 'learning_rate': 1e-5}",
+                "{'eval_loss': 0.3, 'epoch': 0.5}",
+                "{'train_loss': 0.35}",
+                "[ROUND 2] eval_acc=0.72",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    train_frame, validation_frame = parse_training_log(log_path)
+    assert train_frame.to_dict(orient="records") == [
+        {
+            "epoch": 0.25,
+            "loss": 0.4,
+            "grad_norm": 1.5,
+            "learning_rate": 1e-5,
+            "line_number": 1,
+            "round": 2,
+            "step_in_round": 1,
+            "round_progress": 2.25,
+            "train_loss_summary": 0.35,
+        }
+    ]
+    assert validation_frame.to_dict(orient="records") == [
+        {
+            "epoch": 0.5,
+            "validation_loss": 0.3,
+            "line_number": 2,
+            "round": 2,
+            "step_in_round": 1,
+            "round_progress": 2.5,
+        }
+    ]
+
+    results_path = tmp_path / "self_improvement_results.json"
+    results_path.write_text(
+        json.dumps(
+            [
+                {
+                    "round": 2,
+                    "max_size": 12,
+                    "train_examples": 100,
+                    "pseudo_examples": 40,
+                    "eval_accuracy": "0.72",
+                    "composed_eval_accuracy": 0.68,
+                    "pseudo_retention_rate": 0.5,
+                    "max_solved_size_at_90_accuracy": 8,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    metric_rows = load_round_metrics(results_path).to_dict(orient="records")
+    assert metric_rows == [
+        {
+            "round": 2,
+            "max_size": 12,
+            "train_examples": 100,
+            "pseudo_examples": 40,
+            "eval_accuracy": 0.72,
+            "composed_eval_accuracy": 0.68,
+            "pseudo_retention_rate": 0.5,
+            "max_solved_size_at_90_accuracy": 8,
+        }
     ]
 
 
