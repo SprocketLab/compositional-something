@@ -299,9 +299,11 @@ the supported public surface.
   adapters.
 - `self/core/tokenizers.py`: fixed-character and arithmetic recipe
   tokenizers used by scratch symbolic models.
-- `self/core/training.py`: training configuration, prompt/target dataset,
-  causal-LM collator, exact-size batch sampler, training-argument creation,
-  and Trainer construction.
+- `self/core/training_data.py`: prompt/target dataset, causal-LM collator,
+  exact-size batch sampler, and batch-sampler Trainer variant.
+- `self/core/training.py`: training configuration, training-argument
+  creation, Trainer construction, and compatibility reexports for training
+  data/batching helpers.
 - `self/core/worker_io.py`: JSON/path helpers shared by controller and
   candidate workers. The adaptive driver keeps compatibility aliases for the
   old private helper names.

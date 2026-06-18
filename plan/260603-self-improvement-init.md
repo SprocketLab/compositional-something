@@ -3765,3 +3765,12 @@ Acceptance criteria for first pilot:
 - Added compatibility tests pinning the old frontier import paths to the new canonical modules.
 - Updated `self/README.md` with the new frontier ownership boundaries.
 - Verification: `python -m py_compile self/core/frontier_models.py self/core/frontier_candidates.py self/core/frontier.py self/adaptive_frontier.py self/experiments/adaptive_self_improvement.py tests/test_adaptive_frontier.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_frontier_split tests/test_adaptive_frontier.py tests/test_adaptive_self_improvement_controller.py tests/test_adaptive_proposals_and_sandbox.py tests/test_adaptive_candidate_training.py -q` (`53 passed`, `7` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 15:16:54 UTC
+
+- Split training dataset, causal-LM collator, exact-size batch sampler, and batch-sampler Trainer variant out of `self/core/training.py` into `self/core/training_data.py`.
+- Kept `self/core/training.py` as the public compatibility facade for those data/batching helpers plus the owner of `TrainingConfig`, training-argument construction, and recipe-aware Trainer construction.
+- Preserved old imports through `self.core.training` and `self.self_improvement_core` by reexporting the moved classes.
+- Added focused tests for old-path object identity plus tokenized prompt-target masking and collator padding behavior.
+- Updated `self/README.md` with the new training-data ownership boundary.
+- Verification: `python -m py_compile self/core/training_data.py self/core/training.py self/core/nonadaptive_facade_exports.py self/self_improvement_core.py tests/test_training_data.py tests/test_run_length_recipe.py tests/test_nonadaptive_compat.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_training_data tests/test_training_data.py tests/test_run_length_recipe.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_training.py tests/test_candidate_training_runtime.py tests/test_model_io_bootstrap_cache.py -q` (`17 passed`); `git diff --check`.
