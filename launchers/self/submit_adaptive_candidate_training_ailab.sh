@@ -43,7 +43,14 @@ submit_cell() {
     "adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}" \
     "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.out" \
     "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.err" \
-    "ALL,TASK=${task},CONDITION=${condition},OUTCOME_TRACE_TARGET_MODE=${outcome_mode},PROPOSAL_GRPO_ZERO_VARIANCE=${zero_variance},NUM_CANDIDATES=${num_candidates},OUT_DIR=${out_dir},ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}" \
+    "$(self_sbatch_export_all \
+      "TASK=${task}" \
+      "CONDITION=${condition}" \
+      "OUTCOME_TRACE_TARGET_MODE=${outcome_mode}" \
+      "PROPOSAL_GRPO_ZERO_VARIANCE=${zero_variance}" \
+      "NUM_CANDIDATES=${num_candidates}" \
+      "OUT_DIR=${out_dir}" \
+      "ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}")" \
     --mem "${SBATCH_MEM}" \
     "${SBATCH_SCRIPT}"
 }

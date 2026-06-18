@@ -70,7 +70,16 @@ submit_job() {
     "${job_name}" \
     "${log_stem}.out" \
     "${log_stem}.err" \
-    "ALL,OUT_ROOT=${out_dir},LR=${lr},TRAIN_PER_PARTITION=${train_per_partition},MAX_STEPS=${max_steps},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=${save_model},HELDOUT_PER_PARTITION=${heldout_per_partition}" \
+    "$(self_sbatch_export_all \
+      "OUT_ROOT=${out_dir}" \
+      "LR=${lr}" \
+      "TRAIN_PER_PARTITION=${train_per_partition}" \
+      "MAX_STEPS=${max_steps}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "SEED=${SEED}" \
+      "SAVE_MODEL=${save_model}" \
+      "HELDOUT_PER_PARTITION=${heldout_per_partition}")" \
     "${LAUNCHER}"
 }
 

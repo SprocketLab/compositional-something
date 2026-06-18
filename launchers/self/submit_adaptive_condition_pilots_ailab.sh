@@ -36,10 +36,30 @@ submit_condition() {
   local frontier_max_allowed="$8"
   local out_dir="${OUT_ROOT}/${job_key}"
   local export_vars
-  export_vars="ALL,TASK=${task},CONDITION=${condition},FIXTURE=${fixture},OUT_DIR=${out_dir},SOURCE_MIN_ALLOWED=${source_min_allowed},SOURCE_MAX_ALLOWED=${source_max_allowed},FRONTIER_MIN_ALLOWED=${frontier_min_allowed},FRONTIER_MAX_ALLOWED=${frontier_max_allowed},FRONTIER_POLICY=${FRONTIER_POLICY},FRONTIER_MIN_COUNT=${FRONTIER_MIN_COUNT},FRONTIER_MAX_ACCURACY=${FRONTIER_MAX_ACCURACY},FRONTIER_MAX_WIDTH=${FRONTIER_MAX_WIDTH},FRONTIER_PREFER_LARGER_WEIGHT=${FRONTIER_PREFER_LARGER_WEIGHT},ENFORCE_SELECTED_FRONTIER=${ENFORCE_SELECTED_FRONTIER},MIN_EXAMPLES_PER_SIZE=${MIN_EXAMPLES_PER_SIZE},MAX_EXAMPLES_PER_SIZE=${MAX_EXAMPLES_PER_SIZE},PYTHON_BIN=${PYTHON_BIN},PLAN_LOG_PATH=${PLAN_LOG_PATH}"
+  local -a export_pairs=(
+    "TASK=${task}"
+    "CONDITION=${condition}"
+    "FIXTURE=${fixture}"
+    "OUT_DIR=${out_dir}"
+    "SOURCE_MIN_ALLOWED=${source_min_allowed}"
+    "SOURCE_MAX_ALLOWED=${source_max_allowed}"
+    "FRONTIER_MIN_ALLOWED=${frontier_min_allowed}"
+    "FRONTIER_MAX_ALLOWED=${frontier_max_allowed}"
+    "FRONTIER_POLICY=${FRONTIER_POLICY}"
+    "FRONTIER_MIN_COUNT=${FRONTIER_MIN_COUNT}"
+    "FRONTIER_MAX_ACCURACY=${FRONTIER_MAX_ACCURACY}"
+    "FRONTIER_MAX_WIDTH=${FRONTIER_MAX_WIDTH}"
+    "FRONTIER_PREFER_LARGER_WEIGHT=${FRONTIER_PREFER_LARGER_WEIGHT}"
+    "ENFORCE_SELECTED_FRONTIER=${ENFORCE_SELECTED_FRONTIER}"
+    "MIN_EXAMPLES_PER_SIZE=${MIN_EXAMPLES_PER_SIZE}"
+    "MAX_EXAMPLES_PER_SIZE=${MAX_EXAMPLES_PER_SIZE}"
+    "PYTHON_BIN=${PYTHON_BIN}"
+    "PLAN_LOG_PATH=${PLAN_LOG_PATH}"
+  )
   if [[ -n "${FRONTIER_DIAGNOSTICS_PATH:-}" ]]; then
-    export_vars="${export_vars},FRONTIER_DIAGNOSTICS_PATH=${FRONTIER_DIAGNOSTICS_PATH}"
+    export_pairs+=("FRONTIER_DIAGNOSTICS_PATH=${FRONTIER_DIAGNOSTICS_PATH}")
   fi
+  export_vars="$(self_sbatch_export_all "${export_pairs[@]}")"
   local -a resource_args=()
   adaptive_add_sbatch_resources resource_args
   self_submit_sbatch_script \

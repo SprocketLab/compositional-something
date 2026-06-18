@@ -105,7 +105,17 @@ seed_job="$(
     "add-fw-seed" \
     "artifacts/logs/add-fw-seed-%j.out" \
     "artifacts/logs/add-fw-seed-%j.err" \
-    "ALL,OUT_ROOT=${SEED_OUT_ROOT},TRAIN_PER_DIGIT=${TRAIN_PER_DIGIT},MAX_STEPS=${MAX_STEPS},LR=${LR},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE},SEED=${SEED},SAVE_MODEL=1,PYTHONUNBUFFERED=1" \
+    "$(self_sbatch_export_all \
+      "OUT_ROOT=${SEED_OUT_ROOT}" \
+      "TRAIN_PER_DIGIT=${TRAIN_PER_DIGIT}" \
+      "MAX_STEPS=${MAX_STEPS}" \
+      "LR=${LR}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "ADDITION_SAMPLING_MODE=${ADDITION_SAMPLING_MODE}" \
+      "SEED=${SEED}" \
+      "SAVE_MODEL=1" \
+      "PYTHONUNBUFFERED=1")" \
     "${SEED_LAUNCHER}"
 )"
 

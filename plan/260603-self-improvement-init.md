@@ -4336,3 +4336,29 @@ Acceptance criteria for first pilot:
   tests/test_addition_fullpack_filtered_launcher.py
   tests/test_multiplication_rectangular_square_launchers.py
   tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`29 passed`).
+
+### Implementation Log: 2026-06-18 19:41:04 UTC
+
+- Completed the first `self_submit_sbatch_script(...)` export-string cleanup:
+  no remaining `launchers/self` submitter uses hand-written `"ALL,..."`
+  strings or `export_vars="ALL,..."` construction.
+- Migrated the remaining representative callers to `self_sbatch_export_all(...)`:
+  `submit_addition_fixedwidth_mixed_mig.sh`,
+  `submit_multiplication_rectangular_seed_sweep_mig.sh`,
+  `submit_multiplication_rectangular_fullpack_mig.sh`,
+  `submit_adaptive_candidate_training_ailab.sh`, and
+  `submit_adaptive_condition_pilots_ailab.sh`.
+- Preserved the existing exported variable names and values; this is a
+  readability/consolidation-only launcher change.
+- Verification: `rg -n "\"ALL,|export_vars=\"ALL," launchers/self` returned no
+  matches; `bash -n launchers/self/submit_addition_fixedwidth_mixed_mig.sh
+  launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh
+  launchers/self/submit_multiplication_rectangular_fullpack_mig.sh
+  launchers/self/submit_adaptive_candidate_training_ailab.sh
+  launchers/self/submit_adaptive_condition_pilots_ailab.sh`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_export_helper_round2
+  tests/test_adaptive_candidate_launcher.py tests/test_adaptive_condition_launcher.py
+  tests/test_addition_fixedwidth_moredata_launcher.py
+  tests/test_multiplication_rectangular_seed_launchers.py
+  tests/test_multiplication_rectangular_self_improvement_launchers.py
+  tests/test_self_common_launcher_helpers.py -q` (`35 passed`).

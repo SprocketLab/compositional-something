@@ -715,6 +715,8 @@ the supported public surface.
   construction where applicable, shell-quoted repo-command wrapping,
   wrapped-job submission, structured `sbatch --export=ALL,...` construction,
   and dry-run/print-only command verification.
+  Current `self_submit_sbatch_script(...)` callers build export payloads
+  through `self_sbatch_export_all(...)` instead of hand-written comma strings.
   The boundary-eval and qwen-no-growth runners use the shared
   model-snapshot preflight. The
   alpha10 baseline-pack matrix lives in
