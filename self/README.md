@@ -109,6 +109,8 @@ the supported public surface.
 - `self/core/candidate_dispatch_runtime.py`: candidate training mode
   selection, candidate-array metric/failure wrapper reexports, and compatibility
   reexports for serial/local/Slurm dispatch helpers.
+- `self/core/candidate_dispatch_deps.py`: candidate-dispatch entrypoint
+  dependency dataclass plus driver-binding dependency builder.
 - `self/core/candidate_dispatch_entrypoints.py`: compatibility-aware wiring
   between driver-level monkeypatchable names and candidate dispatch runtimes.
 - `self/core/checkpoints.py`: checkpoint retention policy and cleanup helpers

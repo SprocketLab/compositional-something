@@ -4473,3 +4473,28 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
   existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:20:35 UTC
+
+- Split candidate-dispatch dependency ownership from
+  `self/core/candidate_dispatch_entrypoints.py` and
+  `self/core/driver_candidate_dispatch_wiring.py` into
+  `self/core/candidate_dispatch_deps.py`.
+- The new module owns `CandidateDispatchEntrypointDeps` and
+  `build_candidate_dispatch_deps(...)`, while the old entrypoint and driver
+  wiring paths keep compatibility reexports/wrappers.
+- This keeps driver monkeypatch binding construction in one inspectable place
+  and leaves `candidate_dispatch_entrypoints.py` focused on public wrapper
+  calls into the runtime dispatch modules.
+- Verification: `python -m py_compile self/core/candidate_dispatch_deps.py
+  self/core/candidate_dispatch_entrypoints.py
+  self/core/driver_candidate_dispatch_wiring.py
+  tests/test_candidate_dispatch_runtime.py`; `PYTHONPATH=. conda run -n
+  torch-env pytest --basetemp=.pytest_tmp_candidate_dispatch_deps
+  tests/test_candidate_dispatch_runtime.py tests/test_candidate_training_runtime.py
+  tests/test_model_io_bootstrap_cache.py -q` (`12 passed`);
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_candidate_dispatch_deps_adaptive
+  tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
+  existing multiprocessing fork warnings); `git diff --check`.

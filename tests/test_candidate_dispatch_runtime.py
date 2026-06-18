@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from self.core import (
+    candidate_dispatch_deps,
+    candidate_dispatch_entrypoints,
     candidate_dispatch_runtime,
     candidate_execution,
     candidate_parallel_runtime,
@@ -244,6 +246,10 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
 
 def test_candidate_execution_reexports_dispatch_runtime_helpers():
     assert (
+        candidate_dispatch_entrypoints.CandidateDispatchEntrypointDeps
+        is candidate_dispatch_deps.CandidateDispatchEntrypointDeps
+    )
+    assert (
         candidate_dispatch_runtime.train_candidates_serial
         is candidate_serial_runtime.train_candidates_serial
     )
@@ -267,3 +273,25 @@ def test_candidate_execution_reexports_dispatch_runtime_helpers():
         candidate_execution.train_candidates_slurm_array
         is candidate_dispatch_runtime.train_candidates_slurm_array
     )
+
+
+def test_build_candidate_dispatch_deps_reads_driver_bindings():
+    bindings = SimpleNamespace(
+        train_and_score_candidate=object(),
+        _candidate_failure_metrics=object(),
+        _collect_candidate_array_metrics=object(),
+        train_candidates_serial=object(),
+        train_candidates_local_parallel=object(),
+        train_candidates_slurm_array=object(),
+        subprocess=object(),
+    )
+
+    deps = candidate_dispatch_deps.build_candidate_dispatch_deps(bindings)
+
+    assert deps.train_and_score_candidate is bindings.train_and_score_candidate
+    assert deps.candidate_failure_metrics is bindings._candidate_failure_metrics
+    assert deps.collect_candidate_array_metrics is bindings._collect_candidate_array_metrics
+    assert deps.train_candidates_serial is bindings.train_candidates_serial
+    assert deps.train_candidates_local_parallel is bindings.train_candidates_local_parallel
+    assert deps.train_candidates_slurm_array is bindings.train_candidates_slurm_array
+    assert deps.subprocess_module is bindings.subprocess

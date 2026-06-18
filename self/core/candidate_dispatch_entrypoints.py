@@ -3,26 +3,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Sequence
+from typing import Any, List, Mapping, Sequence
 
 from self.core import candidate_dispatch_runtime
+from self.core.candidate_dispatch_deps import CandidateDispatchEntrypointDeps
 from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
-
-
-@dataclass(frozen=True)
-class CandidateDispatchEntrypointDeps:
-    train_and_score_candidate: Callable[..., CandidateMetrics]
-    candidate_failure_metrics: Callable[..., CandidateMetrics]
-    collect_candidate_array_metrics: Callable[..., List[CandidateMetrics]]
-    train_candidates_serial: Callable[..., List[CandidateMetrics]]
-    train_candidates_local_parallel: Callable[..., List[CandidateMetrics]]
-    train_candidates_slurm_array: Callable[..., List[CandidateMetrics]]
-    subprocess_module: Any
 
 
 def candidate_failure_metrics(
