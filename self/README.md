@@ -47,8 +47,10 @@ the supported public surface.
 - `self/core/module_proxy.py`: shared compatibility helper for old module
   paths that should proxy canonical modules while forwarding monkeypatch-style
   attribute writes.
-- `self/core/args.py`: CLI parser construction plus argument validation and
-  task-specific default normalization.
+- `self/core/args.py`: adaptive CLI parser construction, public choice
+  constants, and compatibility reexport for `normalize_args(...)`.
+- `self/core/args_normalization.py`: adaptive argument validation,
+  cross-field checks, task-specific defaults, and derived size/count aliases.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
   orchestration across prompt construction, dry-run handling, round-model
   dispatch, candidate scoring, trace writing, and outcome application.
