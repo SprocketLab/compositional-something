@@ -8,9 +8,18 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import seed_fit_bundle, seed_fit_plots
+from self.analysis import seed_fit_artifacts, seed_fit_bundle, seed_fit_plots, summarize_seed_fit_grid
+from self.analysis.artifacts import (
+    SEED_FIT_RESULTS_FILE,
+    discover_seed_fit_results,
+    is_seed_fit_run_dir,
+    load_seed_fit_result,
+    load_seed_fit_results,
+    resolve_seed_fit_results_path,
+)
 from self.seed_fit_curve_notebook_utils import (
     configure_plot_style,
+    discover_seed_fit_results as notebook_discover_seed_fit_results,
     find_threshold_budget,
     load_seed_fit_bundle,
     plot_task_budget_curve,
@@ -43,7 +52,7 @@ def _write_seed_fit_result(
             "learning_rate": 1e-4,
             "effective_batch_size": 8,
             "num_epochs": 2,
-            "max_steps": None,
+            "max_steps": 100,
             "final_epoch": 2.0,
             "approx_effective_epochs_from_steps": 2.0,
             "log_history": [
@@ -67,10 +76,22 @@ def test_seed_fit_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: P
     assert load_seed_fit_bundle is seed_fit_bundle.load_seed_fit_bundle
     assert summarize_task is seed_fit_bundle.summarize_task
     assert find_threshold_budget is seed_fit_bundle.find_threshold_budget
+    assert SEED_FIT_RESULTS_FILE == seed_fit_artifacts.SEED_FIT_RESULTS_FILE
+    assert discover_seed_fit_results is seed_fit_artifacts.discover_seed_fit_results
+    assert notebook_discover_seed_fit_results is seed_fit_artifacts.discover_seed_fit_results
 
     root = tmp_path / "seed_grid"
     _write_seed_fit_result(root / "low_budget", train_per_size=10, train_examples=30, test_min_accuracy=0.91)
     _write_seed_fit_result(root / "high_budget", train_per_size=20, train_examples=60, test_min_accuracy=0.96)
+
+    low_results = root / "low_budget" / "seed_fit_results.json"
+    high_results = root / "high_budget" / "seed_fit_results.json"
+    assert is_seed_fit_run_dir(root / "low_budget") is True
+    assert resolve_seed_fit_results_path(root / "low_budget") == low_results
+    assert resolve_seed_fit_results_path(low_results) == low_results
+    assert discover_seed_fit_results(root) == [high_results, low_results]
+    assert load_seed_fit_result(root / "high_budget")["train_examples"] == 60
+    assert [path for path, _ in load_seed_fit_results(root)] == [high_results, low_results]
 
     bundle = load_seed_fit_bundle([root])
 
@@ -91,6 +112,15 @@ def test_seed_fit_bundle_helpers_keep_compatibility_and_load_fixture(tmp_path: P
     selected = find_threshold_budget(bundle, "addition", threshold=0.95)
     assert selected is not None
     assert selected["run_name"] == "high_budget"
+
+    rows = summarize_seed_fit_grid.build_rows(root)
+    assert [
+        (row["initial_train_per_size"], row["test_min_per_size_accuracy"])
+        for row in sorted(rows, key=lambda item: item["initial_train_per_size"])
+    ] == [(10, 0.91), (20, 0.96)]
+    assert summarize_seed_fit_grid.choose_best(rows, threshold=0.94)["addition"][
+        "results_path"
+    ] == str(high_results)
 
 
 def test_seed_fit_plot_helpers_keep_compatibility_and_render_fixture(tmp_path: Path):

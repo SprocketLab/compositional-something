@@ -9,15 +9,23 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from self.analysis.seed_fit_artifacts import discover_seed_fit_results, load_seed_fit_result
+
 
 def load_result(path: Path) -> Dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_seed_fit_result(path)
+
+
+def _split_metric(payload: Dict[str, Any], split: str, key: str) -> Any:
+    split_payload = payload.get("results", {}).get(split, {})
+    if isinstance(split_payload, dict):
+        return split_payload.get(key)
+    return None
 
 
 def build_rows(base_out: Path) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
-    for path in sorted(base_out.glob("**/seed_fit_results.json")):
+    for path in discover_seed_fit_results(base_out):
         payload = load_result(path)
         training = payload.get("training", {})
         rows.append(
@@ -29,9 +37,15 @@ def build_rows(base_out: Path) -> List[Dict[str, Any]]:
                 "effective_batch_size": training.get("effective_batch_size"),
                 "approx_effective_epochs_from_steps": training.get("approx_effective_epochs_from_steps"),
                 "validation_accuracy": payload["results"]["validation"]["accuracy"],
-                "validation_min_per_size_accuracy": payload.get("validation_min_per_size_accuracy"),
+                "validation_min_per_size_accuracy": payload.get(
+                    "validation_min_per_size_accuracy",
+                    _split_metric(payload, "validation", "min_per_size_accuracy"),
+                ),
                 "test_accuracy": payload["results"]["test"]["accuracy"],
-                "test_min_per_size_accuracy": payload.get("test_min_per_size_accuracy"),
+                "test_min_per_size_accuracy": payload.get(
+                    "test_min_per_size_accuracy",
+                    _split_metric(payload, "test", "min_per_size_accuracy"),
+                ),
                 "meets_threshold": payload.get("meets_threshold", False),
                 "results_path": str(path),
             }

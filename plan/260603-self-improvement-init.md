@@ -3965,3 +3965,12 @@ Acceptance criteria for first pilot:
 - Reexported the new validity summary helper through `self/analysis/artifacts.py` and pinned both additions in `tests/test_analysis_artifacts.py`.
 - Updated `self/README.md` so new adaptive notebooks use the analysis loaders for valid-rate evolution, selected-target heatmap markers, candidate metrics, train-mix summaries, and worker-failure files instead of direct raw JSON globbing.
 - Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/adaptive_trace_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_artifacts tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`11 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:33:59 UTC
+
+- Added `self/analysis/seed_fit_artifacts.py` as the canonical owner for `seed_fit_results.json` constants, run-directory detection, result-path resolution, discovery, and validated payload loading.
+- Updated `self/analysis/seed_fit_bundle.py` and `self/analysis/summarize_seed_fit_grid.py` to use the shared seed-fit artifact resolver instead of each hard-coding recursive `seed_fit_results.json` glob/load behavior.
+- Preserved the old private `_load_json(...)` seed-fit bundle helper for notebook compatibility and reexported the new artifact helpers through `self/analysis/seed_fit_curve_notebook_utils.py` and `self/analysis/artifacts.py`.
+- Extended `tests/test_seed_fit_curve_notebook_utils.py` to pin resolver behavior, notebook-helper reexports, bundle loading, and seed-fit summary-grid row/selection behavior.
+- Updated `self/README.md` so new seed-fit notebooks and scripts use the shared artifact resolver rather than raw `**/seed_fit_results.json` path conventions.
+- Verification: `python -m py_compile self/analysis/seed_fit_artifacts.py self/analysis/seed_fit_bundle.py self/analysis/seed_fit_curve_notebook_utils.py self/analysis/summarize_seed_fit_grid.py self/analysis/artifacts.py tests/test_seed_fit_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_seed_fit_artifacts tests/test_seed_fit_curve_notebook_utils.py tests/test_module_proxy.py -q` (`8 passed`); `git diff --check`.

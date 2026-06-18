@@ -55,6 +55,14 @@ from self.analysis.nonadaptive_artifacts import (
     records_to_dataframe,
     resolve_self_improvement_results_path,
 )
+from self.analysis.seed_fit_artifacts import (
+    SEED_FIT_RESULTS_FILE,
+    discover_seed_fit_results,
+    is_seed_fit_run_dir,
+    load_seed_fit_result,
+    load_seed_fit_results,
+    resolve_seed_fit_results_path,
+)
 from self.analysis.adaptive_trace_artifacts import (
     adaptive_prompt_records,
     adaptive_proposal_grpo_records,

@@ -493,6 +493,9 @@ the supported public surface.
   heatmap imports.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   compatibility imports over the canonical training-curve analysis modules.
+- `self/analysis/seed_fit_artifacts.py`: seed-fit result filename constants,
+  run-directory detection, result-path resolution, discovery, and validated
+  `seed_fit_results.json` loading shared by notebooks and summary scripts.
 - `self/analysis/seed_fit_bundle.py`: seed-fit result loading, flattened
   training/validation log tables, compact task summaries, and threshold
   budget selection.
@@ -940,6 +943,11 @@ new implementation code:
   and worker-failure files, so notebooks should not glob
   `attempt_*` or `attempt_*/candidates/candidate_*` directly for these common
   views.
+- Use `self/analysis/seed_fit_artifacts.py` for `seed_fit_results.json`
+  discovery/loading. `seed_fit_bundle.py`,
+  `seed_fit_curve_notebook_utils.py`, and `summarize_seed_fit_grid.py` now
+  share that resolver, so notebooks and scripts should avoid hard-coding
+  `**/seed_fit_results.json` when one of these helpers covers the view.
 - Keep source/artifact hygiene conservative: source notebooks and report
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.

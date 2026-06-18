@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 import pandas as pd
+
+from self.analysis.seed_fit_artifacts import discover_seed_fit_results, load_seed_fit_result
 
 
 @dataclass
@@ -18,8 +19,9 @@ class SeedFitCurveBundle:
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+    """Compatibility alias for older notebook helpers."""
+
+    return load_seed_fit_result(path)
 
 
 def _as_float(value: Any) -> Optional[float]:
@@ -71,7 +73,7 @@ def load_seed_fit_bundle(run_roots: Iterable[Path]) -> SeedFitCurveBundle:
         root = Path(run_root)
         if not root.exists():
             continue
-        for results_path in sorted(root.glob("**/seed_fit_results.json")):
+        for results_path in discover_seed_fit_results(root):
             payload = _load_json(results_path)
             training = payload.get("training", {})
             results = payload.get("results", {})
