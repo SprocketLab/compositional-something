@@ -15,7 +15,7 @@ from self.core.frontier import (
     select_frontier,
 )
 from self.core.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, parse_config_proposal
-from self.core.proposals import (
+from self.core.proposal_prompts import (
     PromptBundle,
     render_config_prompt,
     render_program_prompt,

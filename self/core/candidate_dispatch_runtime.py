@@ -13,7 +13,7 @@ from self.core.candidate_metric_collection import (
 )
 from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 

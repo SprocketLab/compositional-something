@@ -20,7 +20,7 @@ from self.core.experience_trace_models import (
 from self.core.experience_traces import build_candidate_proposal_trace_example
 from self.core.models import CandidateWorkItem
 from self.core.proposal_io import write_trace_jsonl
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 @dataclass(frozen=True)

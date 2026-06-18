@@ -26,7 +26,7 @@ from self.core.candidate_slurm_workers import (
     train_candidates_slurm_array_from_specs,
     wait_for_candidate_array as _wait_for_candidate_array,
 )
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 from self.core.slurm import cancel_job, slurm_job_active, submit_sbatch
 
 

@@ -11,7 +11,7 @@ from self.core.proposal_grpo_dispatch import (
     ProposalGrpoDispatchDeps,
     apply_or_dispatch_proposal_grpo_update as _apply_or_dispatch_proposal_grpo_update_impl,
 )
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

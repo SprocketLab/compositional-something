@@ -11,7 +11,7 @@ from self.core.candidate_local_workers import write_json
 from self.core.candidate_worker_payloads import candidate_payload_from_work_item
 from self.core.data_io import ensure_dir, save_examples
 from self.core.proposal_io import write_trace_jsonl
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

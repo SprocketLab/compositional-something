@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Mapping, Sequence
 
 from self.core.controller_phases import PHASE_ROUND_MODEL
 from self.core.models import CandidateWorkItem
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 

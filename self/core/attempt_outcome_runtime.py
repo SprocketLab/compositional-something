@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

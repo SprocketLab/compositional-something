@@ -15,7 +15,7 @@ from self.core.data_io import load_examples
 from self.core.experience_trace_models import outcome_trace_from_json, proposal_trace_from_json
 from self.core.model_io import ModelBootstrapCache
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

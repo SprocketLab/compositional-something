@@ -24,9 +24,9 @@ from self.core.proposal_prompts import (
     component_prediction_examples_for_task,
     program_validation_cases,
     render_program_candidate_prompt,
+    render_program_repair_prompt,
     target_format_for_task,
 )
-from self.core.proposals import render_program_repair_prompt
 
 JsonDict = Dict[str, Any]
 

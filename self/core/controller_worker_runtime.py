@@ -11,7 +11,7 @@ from transformers import set_seed
 
 from self.core.controller_phases import PHASE_PROPOSAL_GRPO, PHASE_ROUND_MODEL, PHASE_SEED
 from self.core.data_io import load_examples
-from self.core.proposals import PromptBundle
+from self.core.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

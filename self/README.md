@@ -200,16 +200,17 @@ the supported public surface.
   repair callback typing.
 - `self/core/program_sandbox_cases.py`: addition and run-length
   property-test cases for generated composition programs.
-- `self/core/proposals.py`: prompt rendering, program proposal shape, and
-  compatibility reexports for config-schema and proposal-IO helpers.
+- `self/core/proposals.py`: program proposal shape plus compatibility
+  reexports for prompt, config-schema, and proposal-IO helpers.
 - `self/core/proposal_config_schema.py`: config proposal dataclasses, search
   spaces, output-schema handling, JSON extraction, config parsing, and
   action-prediction normalization.
 - `self/core/proposal_io.py`: proposal fixture loading plus proposal/trace
   JSONL row construction and writing.
-- `self/core/proposal_prompts.py`: task-specific proposal target formats,
-  default executable source-pair selection, sandbox validation-case selection,
-  and executable program/policy/meta prompt rendering.
+- `self/core/proposal_prompts.py`: prompt bundle dataclass, config/program
+  prompt rendering, task-specific target formats, default executable
+  source-pair selection, sandbox validation-case selection, and executable
+  program/policy/meta prompt rendering.
 - `self/core/proposal_config_validation.py`: config proposal row output
   normalization, schema/action-prediction validation, duplicate marking, and
   repeat-target annotation.

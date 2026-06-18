@@ -39,13 +39,14 @@ from self.core.proposal_grpo import apply_proposal_grpo_update
 from self.core.proposal_generation import _rows_for_round
 from self.core.proposal_prompts import (
     choose_default_program_pair,
+    PromptBundle,
+    render_config_prompt,
     render_program_candidate_prompt,
 )
 from self.core.proposal_runtime import (
     validate_proposal_rows,
 )
 from self.core.proposal_io import load_fixture_proposals, write_trace_jsonl
-from self.core.proposals import PromptBundle, render_config_prompt
 from self.core.round_model_dispatch_runtime import run_round_model_dispatch
 from self.core.run_setup import append_plan_log, load_trace_jsonl, prepare_datasets
 from self.core.seed_dispatch_runtime import run_seed_dispatch

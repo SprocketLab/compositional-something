@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from self.core.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal
-from self.core.proposal_prompts import choose_default_program_pair, render_program_candidate_prompt
-from self.core.proposals import (
+from self.core.proposal_prompts import (
+    choose_default_program_pair,
     PromptBundle,
     render_config_prompt,
+    render_program_candidate_prompt,
 )
 
 
