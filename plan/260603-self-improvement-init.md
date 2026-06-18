@@ -3654,3 +3654,14 @@ Acceptance criteria for first pilot:
 - Added a compatibility test pinning the old private helper alias to the new owner.
 - Updated `self/README.md` to document `self/tasks/run_length_guarded_pseudolabels.py`.
 - Verification: `python -m py_compile self/tasks/run_length_pseudolabels.py self/tasks/run_length_guarded_pseudolabels.py self/tasks/run_length.py self/tasks/run_length_splits.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_guarded_pseudolabels tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`84 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:07:07 UTC
+
+- Split training-curve per-size heatmap plotting from `self/analysis/training_curve_plots.py` into `self/analysis/training_curve_heatmaps.py`.
+- The new module owns sparse tick/annotation helpers, bundle-backed per-size heatmaps, direct results-file heatmaps, paper-layout controls, and heatmap colorbar labeling.
+- Kept `self/analysis/training_curve_plots.py` as the task-curve/comparison/export owner and compatibility reexport surface for old heatmap imports.
+- Updated `self/analysis/training_curve_notebook_utils.py` to import heatmap helpers from the canonical heatmap module while preserving object identity through the old plotting module.
+- Reduced `self/analysis/training_curve_plots.py` from `455` to `220` lines in this pass.
+- Added a compatibility test pinning the top-level notebook utility heatmap helper to both the old plotting path and the new heatmap owner.
+- Updated `self/README.md` to document `self/analysis/training_curve_heatmaps.py`.
+- Verification: `python -m py_compile self/analysis/training_curve_heatmaps.py self/analysis/training_curve_plots.py self/analysis/training_curve_notebook_utils.py self/training_curve_notebook_utils.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_training_curve_heatmaps tests/test_training_curve_notebook_utils.py tests/test_analysis_artifacts.py -q` (`11 passed`); `git diff --check`.

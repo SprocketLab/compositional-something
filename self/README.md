@@ -437,8 +437,12 @@ the supported public surface.
   round-level metric loading for training-curve bundles.
 - `self/analysis/training_curve_bundle.py`: submission-table loading, curve
   bundle assembly, bundle summaries, and bundle per-size accuracy frames.
-- `self/analysis/training_curve_plots.py`: task training curves, per-size
-  heatmaps, comparison curves, and figure bundle export helpers.
+- `self/analysis/training_curve_heatmaps.py`: per-size heatmap plotting,
+  sparse annotation selection, paper-layout controls, and direct results-file
+  heatmaps.
+- `self/analysis/training_curve_plots.py`: task training curves, comparison
+  curves, figure bundle export helpers, and compatibility reexports for older
+  heatmap imports.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   compatibility imports over the canonical training-curve analysis modules.
 - `self/analysis/seed_fit_bundle.py`: seed-fit result loading, flattened

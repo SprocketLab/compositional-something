@@ -16,11 +16,13 @@ from self.analysis.training_curve_logs import (
     load_round_metrics,
     parse_training_log,
 )
-from self.analysis.training_curve_plots import (
+from self.analysis.training_curve_heatmaps import (
     _should_annotate_sparse_cell,
     _visible_tick_indices,
     plot_per_size_accuracy_heatmap,
     plot_per_size_accuracy_heatmap_from_results,
+)
+from self.analysis.training_curve_plots import (
     plot_self_improvement_comparison_curve,
     plot_task_curves,
     save_figure_bundle,
