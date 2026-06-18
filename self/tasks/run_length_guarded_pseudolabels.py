@@ -8,15 +8,17 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from self.core.task_protocols import JsonDict
 from self.tasks.bit_common import (
-    build_guarded_bit_pseudo_examples,
     normalize_bit_composition_path_mode,
     normalize_compose_arity,
     normalize_guarded_compose_rule,
-    run_length_guard_accepts_true_components,
 )
 from self.tasks.bit_parsing import (
     parse_run_length_prediction,
     parse_run_length_symbol_pair_prediction,
+)
+from self.tasks.bit_pseudolabels import (
+    build_guarded_bit_pseudo_examples,
+    run_length_guard_accepts_true_components,
 )
 from self.tasks.run_length_data import (
     RunLengthExample,

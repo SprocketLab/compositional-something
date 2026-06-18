@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Shared pseudolabel helpers for bit-string self-improvement tasks."""
+
+from __future__ import annotations
+
+import math
+import sys
+from collections import defaultdict
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+
+from self.core.evaluation import generate_prediction_map
+from self.core.task_protocols import JsonDict
+
+_DEFAULT_GENERATE_PREDICTION_MAP = generate_prediction_map
+
+
+def _compat_symbol(name: str, fallback: Any) -> Any:
+    facade = sys.modules.get("self.self_improvement_tasks")
+    if facade is None:
+        return fallback
+    return getattr(facade, name, fallback)
+
+
+def _generate_prediction_map(**kwargs: Any) -> Any:
+    return _compat_symbol("generate_prediction_map", _DEFAULT_GENERATE_PREDICTION_MAP)(**kwargs)
+
+
+def build_direct_pseudo_examples(
+    candidate_examples: Sequence[Any],
+    *,
+    model: Any,
+    tokenizer: Any,
+    batch_size: int,
+    decode_max_new_tokens: int,
+    key_getter: Callable[[Any], Any],
+    prediction_parser: Callable[[str], Optional[str]],
+    clone_builder: Callable[[Any, Optional[str]], Any],
+    mode: str,
+) -> Tuple[List[Any], int, JsonDict]:
+    prediction_map = _generate_prediction_map(
+        model=model,
+        tokenizer=tokenizer,
+        examples=candidate_examples,
+        batch_size=batch_size,
+        max_new_tokens=decode_max_new_tokens,
+        key_getter=key_getter,
+        prediction_parser=prediction_parser,
+    )
+    pseudo_examples: List[Any] = []
+    missing_total = 0
+    for example in candidate_examples:
+        override = prediction_map.get(key_getter(example))
+        if override is None:
+            missing_total += 1
+            continue
+        pseudo_examples.append(clone_builder(example, override))
+    diagnostics: JsonDict = {
+        "mode": mode,
+        "candidate_total": len(candidate_examples),
+        "retained_total": len(pseudo_examples),
+        "missing_total": missing_total,
+        "retained_fraction": len(pseudo_examples) / len(candidate_examples) if candidate_examples else math.nan,
+    }
+    return pseudo_examples, missing_total, diagnostics
+
+
+def count_examples_by_size(examples: Sequence[Any], size_getter: Callable[[Any], int]) -> Dict[int, int]:
+    counts: Dict[int, int] = defaultdict(int)
+    for example in examples:
+        counts[size_getter(example)] += 1
+    return dict(counts)
+
+
+def format_size_count_map(values: Dict[int, int]) -> str:
+    return ", ".join(f"{size}:{count}" for size, count in sorted(values.items()))
+
+
+def run_length_guard_accepts_true_components(
+    component_keys: Sequence[Tuple[int, str]],
+) -> Optional[bool]:
+    if len(component_keys) != 2:
+        return None
+    left_bitstring = component_keys[0][1]
+    right_bitstring = component_keys[1][1]
+    if not left_bitstring or not right_bitstring:
+        return None
+    return left_bitstring[-1] != right_bitstring[0]
+
+
+def guard_slice_partition(
+    examples: Sequence[Any],
+    component_map: Dict[Any, List[Any]],
+    *,
+    key_getter: Callable[[Any], Any],
+    guard_fn: Callable[[Sequence[Any]], Optional[bool]],
+) -> Dict[str, List[Any]]:
+    accepted: List[Any] = []
+    rejected: List[Any] = []
+    for example in examples:
+        component_keys = component_map.get(key_getter(example), [])
+        status = guard_fn(component_keys)
+        if status is True:
+            accepted.append(example)
+        elif status is False:
+            rejected.append(example)
+    return {
+        "accepted_by_guard": accepted,
+        "rejected_by_guard": rejected,
+        "all": list(examples),
+    }
+
+
+def build_guarded_bit_pseudo_examples(
+    candidate_examples: Sequence[Any],
+    initial_component_map: Dict[Any, List[Any]],
+    *,
+    target_max_size: int,
+    requested_per_size: int,
+    size_getter: Callable[[Any], int],
+    key_getter: Callable[[Any], Any],
+    clone_builder: Callable[[Any, Optional[str]], Any],
+    evaluate_candidate: Callable[[Any, Optional[Sequence[Any]]], Tuple[str, Optional[str]]],
+    refill_builder: Callable[[int, int, set[Any]], Tuple[List[Any], Dict[Any, List[Any]]]],
+    mode: str,
+    max_refill_rounds: int = 32,
+) -> Tuple[List[Any], int, JsonDict]:
+    active_candidates = [example for example in candidate_examples if size_getter(example) <= target_max_size]
+    target_sizes = sorted({size_getter(example) for example in active_candidates})
+    requested_counts = {size: requested_per_size for size in target_sizes}
+    requested_total = sum(requested_counts.values())
+
+    candidate_total_by_size: Dict[int, int] = defaultdict(int)
+    retained_total_by_size: Dict[int, int] = defaultdict(int)
+    missing_total_by_size: Dict[int, int] = defaultdict(int)
+    rejected_total_by_size: Dict[int, int] = defaultdict(int)
+    pseudo_examples: List[Any] = []
+    missing_total = 0
+    rejected_total = 0
+    occupied_keys = {key_getter(example) for example in active_candidates}
+
+    def process_batch(
+        examples: Sequence[Any],
+        component_map: Dict[Any, List[Any]],
+    ) -> None:
+        nonlocal missing_total, rejected_total
+        for example in examples:
+            key = key_getter(example)
+            size = size_getter(example)
+            candidate_total_by_size[size] += 1
+            status, override = evaluate_candidate(example, component_map.get(key))
+            if status == "accepted" and override is not None:
+                pseudo_examples.append(clone_builder(example, override))
+                retained_total_by_size[size] += 1
+            elif status == "missing":
+                missing_total += 1
+                missing_total_by_size[size] += 1
+            else:
+                rejected_total += 1
+                rejected_total_by_size[size] += 1
+
+    process_batch(active_candidates, initial_component_map)
+
+    refill_rounds = 0
+    while True:
+        deficits = {
+            size: max(0, requested_counts[size] - retained_total_by_size.get(size, 0))
+            for size in requested_counts
+        }
+        deficits = {size: count for size, count in deficits.items() if count > 0}
+        if not deficits:
+            break
+        if refill_rounds >= max_refill_rounds:
+            raise RuntimeError(
+                "Unable to retain the requested guarded pseudo examples after refill attempts. "
+                f"Missing per-size counts: {format_size_count_map(deficits)}"
+            )
+        refill_rounds += 1
+        progress_made = False
+        for size, need in sorted(deficits.items()):
+            refill_examples, refill_component_map = refill_builder(size, need, occupied_keys)
+            if not refill_examples:
+                continue
+            progress_made = True
+            occupied_keys.update(key_getter(example) for example in refill_examples)
+            process_batch(refill_examples, refill_component_map)
+        if not progress_made:
+            raise RuntimeError(
+                "Unable to retain the requested guarded pseudo examples after refill attempts. "
+                f"Missing per-size counts: {format_size_count_map(deficits)}"
+            )
+
+    diagnostics: JsonDict = {
+        "mode": mode,
+        "target_max_bits": int(target_max_size),
+        "requested_per_size": requested_per_size,
+        "requested_total": requested_total,
+        "candidate_total": sum(candidate_total_by_size.values()),
+        "retained_total": len(pseudo_examples),
+        "missing_total": missing_total,
+        "rejected_total": rejected_total,
+        "retained_fraction": len(pseudo_examples) / sum(candidate_total_by_size.values())
+        if candidate_total_by_size
+        else math.nan,
+        "per_size_candidate_total": dict(sorted(candidate_total_by_size.items())),
+        "per_size_retained_total": dict(sorted(retained_total_by_size.items())),
+        "per_size_missing_total": dict(sorted(missing_total_by_size.items())),
+        "per_size_rejected_total": dict(sorted(rejected_total_by_size.items())),
+        "refill_rounds": refill_rounds,
+    }
+    return pseudo_examples, missing_total, diagnostics

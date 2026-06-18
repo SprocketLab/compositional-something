@@ -3774,3 +3774,12 @@ Acceptance criteria for first pilot:
 - Added focused tests for old-path object identity plus tokenized prompt-target masking and collator padding behavior.
 - Updated `self/README.md` with the new training-data ownership boundary.
 - Verification: `python -m py_compile self/core/training_data.py self/core/training.py self/core/nonadaptive_facade_exports.py self/self_improvement_core.py tests/test_training_data.py tests/test_run_length_recipe.py tests/test_nonadaptive_compat.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_training_data tests/test_training_data.py tests/test_run_length_recipe.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_training.py tests/test_candidate_training_runtime.py tests/test_model_io_bootstrap_cache.py -q` (`17 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 15:28:10 UTC
+
+- Split shared bit pseudolabel and guard-refill helpers out of `self/tasks/bit_common.py` into `self/tasks/bit_pseudolabels.py`.
+- The new module owns direct model-prediction pseudolabel construction, run-length boundary guard checks, guard-slice partitioning, guarded/refill pseudolabel construction, and retained-count diagnostics.
+- Kept old imports through `self.tasks.bit_common` and `self.self_improvement_tasks` compatible by reexporting moved names, while updating run-length and multiplication implementation imports to use the canonical pseudolabel module directly.
+- Added focused tests for old-path object identity, facade monkeypatch behavior, guard partitioning, and guarded pseudolabel diagnostics.
+- Updated `self/README.md` with the new bit-pseudolabel ownership boundary.
+- Verification: `python -m py_compile self/tasks/bit_pseudolabels.py self/tasks/bit_common.py self/tasks/compat_exports.py self/tasks/run_length_pseudolabels.py self/tasks/run_length_guarded_pseudolabels.py self/tasks/run_length_splits.py self/tasks/multiplication.py tests/test_bit_pseudolabels.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_bit_pseudolabels tests/test_bit_pseudolabels.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py -q` (`86 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

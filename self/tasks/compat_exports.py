@@ -35,18 +35,12 @@ from self.tasks.bit_common import (
     BIT_COMPOSE_ARITIES,
     BIT_GUARDED_COMPOSE_RULES,
     BIT_TARGET_MODES,
-    build_direct_pseudo_examples,
-    build_guarded_bit_pseudo_examples,
-    count_examples_by_size,
-    format_size_count_map,
-    guard_slice_partition,
     normalize_bit_composition_path_mode,
     normalize_bit_target_mode,
     normalize_compose_arity,
     normalize_guarded_compose_rule,
     normalize_symbol_alphabet_size,
     normalize_task_format_version,
-    run_length_guard_accepts_true_components,
     sample_unique_bitstrings,
 )
 from self.tasks.bit_composition import (
@@ -69,6 +63,14 @@ from self.tasks.bit_parsing import (
     parse_run_length_prediction,
     parse_run_length_run_state_prediction,
     parse_run_length_symbol_pair_prediction,
+)
+from self.tasks.bit_pseudolabels import (
+    build_direct_pseudo_examples,
+    build_guarded_bit_pseudo_examples,
+    count_examples_by_size,
+    format_size_count_map,
+    guard_slice_partition,
+    run_length_guard_accepts_true_components,
 )
 from self.tasks.multiplication import MultiplicationTask
 from self.tasks.multiplication_data import (

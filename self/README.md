@@ -334,9 +334,12 @@ the supported public surface.
 - `self/tasks/bit_parsing.py`: run-length and multiplication prediction
   parsing, run-length alphabet/target constants, and multiplication target
   formatting.
-- `self/tasks/bit_common.py`: shared bit-task normalization helpers, guarded
-  pseudolabel refill, direct pseudolabel utilities, and compatibility reexports
-  for older bit-composition and parsing imports.
+- `self/tasks/bit_common.py`: shared bit-task constants, target-format
+  normalization helpers, unique bitstring sampling, and compatibility reexports
+  for older bit-composition, bit-parsing, and bit-pseudolabel imports.
+- `self/tasks/bit_pseudolabels.py`: shared bit-task direct pseudolabel
+  construction, guarded/refill pseudolabel construction, guard-slice
+  partitioning, retained-count diagnostics, and the run-length boundary guard.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
   blocked-component pseudolabel derivation, metadata validation, and
   `MultiplicationTask`.
@@ -376,8 +379,8 @@ the supported public surface.
   preparation and composed-eval guard-slice partitioning.
 - `self/tasks/compat_exports.py`: explicit legacy export manifest for
   `self.self_improvement_tasks`, grouping old-path task exports by protocol,
-  evaluation, addition, bit-common, bit-composition, multiplication, and
-  run-length owner.
+  evaluation, addition, bit-common, bit-composition, bit-pseudolabel,
+  multiplication, and run-length owner.
 - `self/self_improvement_tasks.py`: explicit compatibility import surface for
   the old task-module path, backed by canonical `self/tasks/*` and
   `self/core/*` modules. Its public compatibility exports now come from

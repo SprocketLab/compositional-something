@@ -9,7 +9,6 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from self.core.task_protocols import JsonDict
 from self.tasks.bit_common import (
-    build_direct_pseudo_examples,
     normalize_bit_target_mode,
 )
 from self.tasks.bit_parsing import (
@@ -18,6 +17,7 @@ from self.tasks.bit_parsing import (
     parse_run_length_prediction,
     parse_run_length_run_state_prediction,
 )
+from self.tasks.bit_pseudolabels import build_direct_pseudo_examples
 from self.tasks.run_length_data import (
     RunLengthExample,
     clone_run_length_with_override,
