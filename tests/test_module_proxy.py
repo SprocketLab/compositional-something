@@ -12,7 +12,7 @@ from self.tasks import rectangular_composition
 from self.tasks import rectangular_multiplication
 
 
-STAR_CLI_PROXY_PAIRS = (
+STAR_PROXY_PAIRS = (
     ("self.addition_recipe_diagnostic", "self.diagnostics.addition_recipe_diagnostic"),
     ("self.analyze_symbolic_training_dynamics", "self.diagnostics.analyze_symbolic_training_dynamics"),
     ("self.check_self_improvement_overfit", "self.diagnostics.check_self_improvement_overfit"),
@@ -23,18 +23,25 @@ STAR_CLI_PROXY_PAIRS = (
     ("self.figure3_seed_quality_sweep", "self.experiments.figure3_seed_quality_sweep"),
     ("self.multiplication_rectangular_tune", "self.experiments.multiplication_rectangular_tune"),
     ("self.multiplication_self_improvement", "self.legacy.multiplication_self_improvement"),
+    ("self.paper_schedule_selection", "self.experiments.paper_schedule_selection"),
     ("self.plot_appendix_baseline_heatmaps", "self.analysis.plot_appendix_baseline_heatmaps"),
     ("self.plot_self_improvement_figure", "self.analysis.plot_self_improvement_figure"),
+    (
+        "self.rectangular_multiplication_compose_diagnostic",
+        "self.diagnostics.rectangular_multiplication_compose_diagnostic",
+    ),
     ("self.rectangular_multiplication_recipe_seed_fit", "self.experiments.rectangular_multiplication_recipe_seed_fit"),
     ("self.rectangular_multiplication_seed_fit", "self.experiments.rectangular_multiplication_seed_fit"),
     ("self.rectangular_multiplication_self_improvement", "self.experiments.rectangular_multiplication_self_improvement"),
     ("self.run_length_self_improvement", "self.legacy.run_length_self_improvement"),
     ("self.seed_fit_experiment", "self.experiments.seed_fit_experiment"),
+    ("self.seed_fit_curve_notebook_utils", "self.analysis.seed_fit_curve_notebook_utils"),
     (
         "self.self_improvement_multiplication_cot_pseudo_addition",
         "self.legacy.multiplication_cot_pseudo_addition",
     ),
     ("self.summarize_seed_fit_grid", "self.analysis.summarize_seed_fit_grid"),
+    ("self.training_curve_notebook_utils", "self.analysis.training_curve_notebook_utils"),
     ("self.run_length_balanced_eval", "self.diagnostics.run_length_balanced_eval"),
 )
 
@@ -96,10 +103,11 @@ def test_module_star_export_names_matches_star_import_policy():
     assert module_star_export_names(WithAll) == ["public", "_explicit_private"]
 
 
-def test_star_cli_wrappers_proxy_canonical_modules():
-    for wrapper_name, impl_name in STAR_CLI_PROXY_PAIRS:
+def test_star_wrappers_proxy_canonical_modules():
+    for wrapper_name, impl_name in STAR_PROXY_PAIRS:
         wrapper = importlib.import_module(wrapper_name)
         impl = importlib.import_module(impl_name)
 
-        assert wrapper.main is impl.main
         assert wrapper.__all__ == module_star_export_names(impl)
+        if hasattr(impl, "main"):
+            assert wrapper.main is impl.main

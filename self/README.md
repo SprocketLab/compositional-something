@@ -665,7 +665,9 @@ new implementation code:
   wrappers can use `module_star_export_names(...)` with the same helper to
   preserve old `from self.wrapper import *` behavior while avoiding repeated
   local wrapper boilerplate; current analysis, diagnostic, experiment, and
-  legacy CLI wrappers follow this pattern.
+  legacy CLI wrappers follow this pattern. `self/self_improvement.py` remains
+  the one special legacy wrapper that keeps eager star-import globals while also
+  forwarding writes through the proxy.
 - Tokenizer helpers now live in `self/core/tokenizers.py`; `self/task_tokenizer.py`
   is a compatibility wrapper. Current core modules import tokenizer helpers
   from the canonical core module, while legacy scripts and old tests can keep
