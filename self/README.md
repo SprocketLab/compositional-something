@@ -966,11 +966,13 @@ new implementation code:
 - Keep source/artifact hygiene conservative: source notebooks and report
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.
-- Optimize candidate training to avoid repeated full model reloads for each
-  local candidate worker where semantics allow it. Current packed-local workers
-  reduce subprocess and shared-input IO/parsing overhead by default through
-  `self/core/candidate_worker_inputs.py`, reuse tokenizer bootstrap work inside
-  each pack, and report bootstrap cache hit/miss counters. With
-  `--candidate-local-cache-base-state`, packed workers also avoid repeated disk
-  reads of the shared source checkpoint while still instantiating a fresh model
-  object per candidate from an unmodified cached CPU state.
+- Optimize candidate training to avoid repeated full model reloads where
+  semantics allow it. Serial candidate dispatch now reuses one process-local
+  bootstrap cache across candidates, so tokenizer bootstrap work is shared and
+  `--candidate-local-cache-base-state` also reuses an unmodified CPU copy of the
+  source checkpoint state while still instantiating a fresh model object per
+  candidate. Packed-local workers reduce subprocess and shared-input
+  IO/parsing overhead by default through `self/core/candidate_worker_inputs.py`,
+  reuse tokenizer bootstrap work inside each pack, and report bootstrap cache
+  hit/miss counters. With `--candidate-local-cache-base-state`, packed workers
+  also avoid repeated disk reads of the shared source checkpoint.

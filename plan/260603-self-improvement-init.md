@@ -4019,3 +4019,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_figure2_recipe_aggressive_launchers.py` with config-file coverage plus runner and submitter dry-run checks for `FIGURE2_RECIPE_CONFIG`.
 - Updated `self/README.md` with the new Figure 2 aggressive recipe config boundary.
 - Verification: `bash -n launchers/self/run_figure2_recipe_aggressive.sh launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/config/figure2_recipe_aggressive.env launchers/self/lib/figure2_recipe_common.sh launchers/self/config/figure2_run_length.env launchers/self/run_figure2_paper_retune.sh`; `python -m py_compile tests/test_figure2_recipe_aggressive_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_recipe_aggressive_config tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`13 passed`).
+
+### Implementation Log: 2026-06-18 18:06:06 UTC
+
+- Added serial candidate-dispatch bootstrap-cache reuse in `self/core/candidate_dispatch_runtime.py`.
+- Serial candidate mode now creates one `ModelBootstrapCache` per dispatch call and passes it to candidate scoring functions that accept `model_bootstrap_cache`, matching the existing train/checkpoint API and preserving per-candidate fresh model instantiation.
+- Without `--candidate-local-cache-base-state`, serial mode shares tokenizer bootstrap work only; with the flag, it can also reuse an unmodified CPU copy of the source checkpoint state across candidates.
+- Extended `tests/test_candidate_dispatch_runtime.py` to verify that serial candidates receive the same cache object when the scorer supports it, that `cache_base_state` follows the existing flag, and that legacy injected scorers without the cache keyword remain compatible.
+- Updated `self/README.md` runtime notes with the serial-cache behavior.
+- Verification: `python -m py_compile self/core/candidate_dispatch_runtime.py tests/test_candidate_dispatch_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_serial_candidate_cache tests/test_candidate_dispatch_runtime.py tests/test_candidate_training_runtime.py tests/test_model_io_bootstrap_cache.py -q` (`11 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_serial_candidate_adaptive tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).
