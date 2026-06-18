@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-from self.experiments.figure3_real_seed_data_ablation import *  # noqa: F401,F403
-from self.experiments.figure3_real_seed_data_ablation import main as _main
+from self.core.module_proxy import install_module_proxy, module_star_export_names
+from self.experiments import figure3_real_seed_data_ablation as _impl
+
+install_module_proxy(__name__, _impl, export_names=module_star_export_names(_impl))
 
 
 if __name__ == "__main__":
-    _main()
+    _impl.main()

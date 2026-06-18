@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-from self.legacy.multiplication_cot_pseudo_addition import *  # noqa: F401,F403
-from self.legacy.multiplication_cot_pseudo_addition import main as _main
+from self.core.module_proxy import install_module_proxy, module_star_export_names
+from self.legacy import multiplication_cot_pseudo_addition as _impl
+
+install_module_proxy(__name__, _impl, export_names=module_star_export_names(_impl))
 
 
 if __name__ == "__main__":
-    _main()
+    _impl.main()
