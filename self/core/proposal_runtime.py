@@ -10,6 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from self.core.models import ExecutableProposal
 from self.core.program_sandbox import ProgramValidationResult, validate_program_with_repair
+from self.core.proposal_config_validation import _raw_output, validate_config_rows
 from self.core.proposal_prompts import (
     choose_default_program_pair,
     component_prediction_examples_for_task,
@@ -23,29 +24,13 @@ from self.core.proposals import (
     PromptBundle,
     extract_json_object,
     load_fixture_proposals,
-    normalized_config_completion,
-    parse_config_proposal,
-    proposal_output_schema,
-    proposal_payload_for_schema,
     render_program_repair_prompt,
-    validate_config_prediction,
 )
 from self.core.evaluation import build_generation_encodings
 from self.core.model_io import instantiate_model_and_tokenizer
 from self.core.data_io import sanitize_json_value
 
 JsonDict = Dict[str, Any]
-
-
-def _raw_output(row: Mapping[str, Any]) -> Any:
-    if "code_lines" in row:
-        code_lines = row["code_lines"]
-        if isinstance(code_lines, list):
-            return "\n".join(str(line) for line in code_lines)
-    for key in ("raw_output", "output", "completion", "proposal", "code"):
-        if key in row:
-            return row[key]
-    return row
 
 
 def _extract_python_code(raw: Any, payload: Optional[Mapping[str, Any]] = None) -> str:
@@ -169,113 +154,6 @@ def generate_proposals_from_model(
     if model_was_training:
         model.train()
     return rows
-
-
-def validate_config_rows(
-    *,
-    rows: Sequence[Mapping[str, Any]],
-    args: argparse.Namespace,
-    source_sizes: set[int],
-    frontier_min: int,
-    frontier_max: int,
-) -> List[JsonDict]:
-    source_min = min(source_sizes) if source_sizes else args.initial_min_size
-    source_max = max(source_sizes) if source_sizes else args.initial_max_size
-    guards = DEFAULT_CONFIG_SEARCH_SPACES[args.task]["guards"]
-    schema = proposal_output_schema(args)
-    results: List[JsonDict] = []
-    seen: set[str] = set()
-    for index, row in enumerate(rows):
-        raw = _raw_output(row)
-        proposal_raw, prediction_payload, pre_category, pre_message = proposal_payload_for_schema(
-            raw,
-            schema,
-        )
-        if pre_category is not None:
-            completion = ""
-            validation_valid = False
-            category = pre_category
-            message = str(pre_message)
-            proposal_payload = None
-            parsed_prediction = None
-            duplicate = False
-            repeat_target = False
-            results.append(
-                sanitize_json_value(
-                    {
-                        "proposal_index": index,
-                        "id": row.get("id"),
-                        "raw_output": raw,
-                        "valid": validation_valid,
-                        "validation_category": category,
-                        "validation_message": message,
-                        "parsed_proposal": proposal_payload,
-                        "parsed_prediction": parsed_prediction,
-                        "proposal_output_schema": schema,
-                        "completion": completion,
-                        "duplicate": duplicate,
-                        "repeat_target": repeat_target,
-                    }
-                )
-            )
-            continue
-        validation = parse_config_proposal(
-            proposal_raw,
-            task_name=args.task,
-            source_min_allowed=source_min,
-            source_max_allowed=source_max,
-            source_sizes_allowed=sorted(source_sizes),
-            frontier_min_allowed=frontier_min,
-            frontier_max_allowed=frontier_max,
-            guards=guards,
-        )
-        parsed_prediction = None
-        prediction_error = None
-        if validation.valid:
-            parsed_prediction, prediction_error = validate_config_prediction(
-                prediction_payload=prediction_payload,
-                proposal=validation.proposal,
-                schema=schema,
-            )
-        validation_valid = bool(validation.valid and prediction_error is None)
-        category = validation.category
-        message = validation.message
-        if validation.valid and prediction_error is not None:
-            category = "schema_error"
-            message = prediction_error
-        completion = (
-            normalized_config_completion(
-                proposal=validation.proposal,
-                prediction=parsed_prediction,
-                schema=schema,
-            )
-            if validation_valid
-            else ""
-        )
-        duplicate = bool(completion and completion in seen)
-        if completion:
-            seen.add(completion)
-        repeat_target = bool(validation_valid and validation.proposal.target in source_sizes)
-        proposal_payload = validation.proposal.to_json_dict() if validation.valid else None
-        results.append(
-            sanitize_json_value(
-                {
-                    "proposal_index": index,
-                    "id": row.get("id"),
-                    "raw_output": raw,
-                    "valid": validation_valid,
-                    "validation_category": category,
-                    "validation_message": message,
-                    "parsed_proposal": proposal_payload,
-                    "parsed_prediction": parsed_prediction,
-                    "proposal_output_schema": schema,
-                    "completion": completion,
-                    "duplicate": duplicate,
-                    "repeat_target": repeat_target,
-                }
-            )
-        )
-    return results
 
 
 def validate_executable_rows(

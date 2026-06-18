@@ -94,9 +94,11 @@ tests, notebooks, and older artifacts.
 - `self/core/proposal_prompts.py`: task-specific proposal target formats,
   default executable source-pair selection, sandbox validation-case selection,
   and executable program/policy/meta prompt rendering.
+- `self/core/proposal_config_validation.py`: config proposal row output
+  normalization, schema/action-prediction validation, duplicate marking, and
+  repeat-target annotation.
 - `self/core/proposal_runtime.py`: runtime proposal loading/generation,
-  config validation, executable program/policy validation, and program-repair
-  dispatch.
+  executable program/policy validation, and program-repair dispatch.
 - `self/core/proposal_grpo_dispatch.py`: local-vs-Slurm proposal-GRPO update
   dispatch and proposal-GRPO worker input artifact writing.
 - `self/core/proposal_grpo.py`: proposal-GRPO rewards, trace construction,
