@@ -423,8 +423,8 @@ tests, notebooks, and older artifacts.
   verification.
 - `launchers/self/run_task_self_improvement.sbatch` and
   `launchers/self/submit_budget_grid_self_improvement.sh` use the generic
-  helper for repo-root/Python setup where needed, boolean parsing, and
-  self-improvement budget-grid dry-run verification.
+  helper for repo-root/Python setup where needed, boolean parsing, context
+  printing, and self-improvement budget-grid dry-run verification.
 - `launchers/self/submit_figure2_condition_sweep_mig.sh`,
   `launchers/self/submit_figure3_seed_quality_sweep_mig.sh`, and
   `launchers/self/submit_figure3_real_seed_data_ablation_mig.sh` use the
@@ -650,7 +650,8 @@ new implementation code:
   and staged dry-run command-printing helpers;
   the seed-fit grid runner/submitter share generic repo-root/Python/boolean
   helpers and now have a dry-run verification path; the generic task
-  self-improvement budget-grid runner/submitter share the same helper pattern;
+  self-improvement budget-grid runner/submitter share the same helper pattern,
+  including context printing;
   the small Figure 2/3 submitter wrappers share the helper path, including
   shared dry-run flag insertion and context printing, before delegating to
   their Python experiment CLIs; the Figure 2 recipe

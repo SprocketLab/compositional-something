@@ -3116,3 +3116,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_addition_fullpack_filtered.sbatch` and `launchers/self/submit_addition_fullpack_filtered_mig.sh` to route their repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving seed-link setup, preflight behavior, per-baseline status output, Slurm submission, and dry-run behavior.
 - Updated `self/README.md` to note that the addition fullpack-filtered launcher pair now shares context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fullpack_filtered.sbatch launchers/self/submit_addition_fullpack_filtered_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_fullpack_context tests/test_addition_fullpack_filtered_launcher.py -q` (`5 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:25:10 UTC
+
+- Extended shared context-banner printing to the generic task self-improvement runner.
+- Updated `launchers/self/run_task_self_improvement.sbatch` to route its repeated task/module/budget/model context output through `self_print_context(...)` while preserving output directory creation, preflight behavior, launch command printing, and dry-run behavior.
+- Updated `self/README.md` to note that the generic task self-improvement budget-grid runner/submitter now shares context-printing helpers in addition to repo-root/Python/boolean and dry-run helper behavior.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_task_self_improvement.sbatch launchers/self/submit_budget_grid_self_improvement.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_task_context tests/test_task_self_improvement_launchers.py -q` (`3 passed`); `git diff --check`.

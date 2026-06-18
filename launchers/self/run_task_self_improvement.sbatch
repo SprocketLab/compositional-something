@@ -69,16 +69,17 @@ if [[ -n "${EXTRA_ARGS:-}" ]]; then
   COMMON_ARGS+=(${EXTRA_ARGS})
 fi
 
-echo "[INFO] Task: ${TASK_TAG}"
-echo "[INFO] Module: ${TASK_MODULE}"
-echo "[INFO] Budget: ${BUDGET_TAG}"
-echo "[INFO] Mode: ${MODE_TAG}"
-echo "[INFO] Output dir: ${OUT_ROOT}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Model: ${MODEL_NAME}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Slurm Job ID: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Task" "${TASK_TAG}" \
+  "Module" "${TASK_MODULE}" \
+  "Budget" "${BUDGET_TAG}" \
+  "Mode" "${MODE_TAG}" \
+  "Output dir" "${OUT_ROOT}" \
+  "Python" "${PYTHON_BIN}" \
+  "Model" "${MODEL_NAME}" \
+  "Dry run" "${DRY_RUN}" \
+  "Slurm Job ID" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 if self_parse_bool "${DRY_RUN}"; then
   echo "[INFO] DRY_RUN=1; skipping CUDA and model/tokenizer preflight."
 else
