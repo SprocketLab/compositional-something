@@ -2830,3 +2830,12 @@ Acceptance criteria for first pilot:
 - Updated `tests/test_analysis_artifacts.py` to cover candidate per-size record loading from the synthetic adaptive-run fixture.
 - Updated `self/README.md` to document adaptive candidate per-size records in the current analysis module map.
 - Verification: `python -m py_compile self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`6 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 05:17:14 UTC
+
+- Extended `self/analysis/artifacts.py` with `adaptive_selected_per_size_timeline_records(...)`, a stable notebook-facing helper for selected-checkpoint heatmaps.
+- The helper starts from `round_00/metrics.json`, updates the checkpoint state on attempts with a selected candidate carrying `per_size_accuracy`, and carries that state forward through no-selection attempts.
+- Added selected-payload fallback handling across `selected_candidate.json`, `round_summary.selected`, and `attempt_summary.selected`, preserving compatibility with older adaptive artifacts.
+- Updated `tests/test_analysis_artifacts.py` with a two-attempt fixture covering selected-candidate update and no-selection carry-forward behavior.
+- Updated `self/README.md` to document selected-checkpoint per-size timelines in the current analysis module map.
+- Verification: `python -m py_compile self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`7 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.

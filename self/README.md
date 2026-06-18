@@ -266,8 +266,9 @@ tests, notebooks, and older artifacts.
 
 - `self/analysis/artifacts.py`: stable JSON/JSONL loaders for notebooks,
   adaptive-run discovery, attempt/proposal/candidate record flattening, trace
-  loading, adaptive candidate per-size records, proposal-GRPO metric records,
-  and non-adaptive per-size accuracy records.
+  loading, adaptive candidate per-size records, selected-checkpoint per-size
+  timelines, proposal-GRPO metric records, and non-adaptive per-size accuracy
+  records.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   training-curve parsing, per-size heatmaps, and paper-style curve plots.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for

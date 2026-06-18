@@ -7,6 +7,7 @@ from self.analysis.artifacts import (
     adaptive_candidate_records,
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
+    adaptive_selected_per_size_timeline_records,
     adaptive_trace_rows,
     discover_adaptive_runs,
     load_adaptive_run,
@@ -208,4 +209,76 @@ def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
         {"round": 0, "size": 3, "accuracy": 0.9, "run_name": "classic"},
         {"round": 0, "size": 4, "accuracy": 0.8, "run_name": "classic"},
         {"round": 1, "size": 5, "accuracy": 0.7, "run_name": "classic"},
+    ]
+
+
+def test_adaptive_selected_per_size_timeline_records_carries_forward(tmp_path: Path):
+    run_dir = tmp_path / "root" / "addition-config"
+    attempt1 = run_dir / "attempt_0001"
+    attempt2 = run_dir / "attempt_0002"
+    _write_json(
+        run_dir / "summary.json",
+        {
+            "task": "addition",
+            "condition": "config",
+            "attempts_completed": 2,
+            "selected_rounds_completed": 1,
+            "init_final_accuracy": 0.4,
+        },
+    )
+    _write_json(
+        run_dir / "round_00" / "metrics.json",
+        {
+            "eval_accuracy": 0.4,
+            "per_size_accuracy": {"9": 0.5, "10": 0.1},
+        },
+    )
+    _write_json(
+        attempt1 / "attempt_summary.json",
+        {
+            "attempt": 1,
+            "selected_round": 1,
+            "selected": {"id": "model_candidate_0"},
+        },
+    )
+    _write_json(
+        attempt1 / "selected_candidate.json",
+        {
+            "id": "model_candidate_0",
+            "final_accuracy": 0.52,
+            "parsed_proposal": {"left": 3, "right": 7, "target": 10, "guard": "none"},
+            "per_size_accuracy": {"10": 0.8, "11": 0.2},
+        },
+    )
+    _write_json(
+        attempt2 / "attempt_summary.json",
+        {
+            "attempt": 2,
+            "selected_round": 1,
+            "no_selection": True,
+        },
+    )
+
+    rows = adaptive_selected_per_size_timeline_records(run_dir)
+    compact = [
+        (
+            row["attempt"],
+            row["selected_round"],
+            row["selected_this_attempt"],
+            row["checkpoint_source"],
+            row["selected_id"],
+            row.get("proposal_target"),
+            row["size"],
+            row["accuracy"],
+            row["checkpoint_final_accuracy"],
+        )
+        for row in rows
+    ]
+    assert compact == [
+        (0, 0, False, "seed", None, None, 9, 0.5, 0.4),
+        (0, 0, False, "seed", None, None, 10, 0.1, 0.4),
+        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 10, 0.8, 0.52),
+        (1, 1, True, "selected_candidate", "model_candidate_0", 10, 11, 0.2, 0.52),
+        (2, 1, False, "carried_forward", None, None, 10, 0.8, 0.52),
+        (2, 1, False, "carried_forward", None, None, 11, 0.2, 0.52),
     ]

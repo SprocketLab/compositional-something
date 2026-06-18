@@ -92,6 +92,17 @@ def _selected_id(selected: Any) -> Any:
     return selected
 
 
+def _attempt_selected_payload(attempt: "AdaptiveAttemptArtifacts") -> JsonDict | None:
+    for selected in (
+        attempt.selected_candidate,
+        attempt.round_summary.get("selected"),
+        attempt.attempt_summary.get("selected"),
+    ):
+        if isinstance(selected, Mapping):
+            return dict(selected)
+    return None
+
+
 @dataclass(frozen=True)
 class AdaptiveAttemptArtifacts:
     path: Path
@@ -308,6 +319,84 @@ def adaptive_candidate_per_size_records(
                         "accuracy": accuracy,
                     }
                 )
+    return rows
+
+
+def adaptive_selected_per_size_timeline_records(
+    run: AdaptiveRunArtifacts | Path | str,
+    *,
+    metric_key: str = "per_size_accuracy",
+) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    current_accuracy = artifacts.seed_metrics.get(metric_key) or {}
+    if not isinstance(current_accuracy, Mapping):
+        current_accuracy = {}
+    current_final_accuracy = artifacts.seed_metrics.get("eval_accuracy")
+    selected_round = 0
+
+    def append_rows(
+        *,
+        attempt_index: int | None,
+        attempt_dir: str | None,
+        selected_this_attempt: bool,
+        checkpoint_source: str,
+        selected: Mapping[str, Any] | None,
+    ) -> None:
+        base: JsonDict = {
+            **context,
+            "attempt_dir": attempt_dir,
+            "attempt": attempt_index,
+            "selected_round": selected_round,
+            "selected_this_attempt": selected_this_attempt,
+            "checkpoint_source": checkpoint_source,
+            "checkpoint_final_accuracy": current_final_accuracy,
+            "selected_id": selected.get("id") if selected is not None else None,
+            "metric_key": metric_key,
+        }
+        if selected is not None:
+            base.update(_proposal_fields(selected))
+        for size, accuracy in sorted(current_accuracy.items(), key=lambda item: int(item[0])):
+            rows.append(
+                {
+                    **base,
+                    "size": int(size),
+                    "accuracy": accuracy,
+                }
+            )
+
+    append_rows(
+        attempt_index=0,
+        attempt_dir=None,
+        selected_this_attempt=False,
+        checkpoint_source="seed",
+        selected=None,
+    )
+    for attempt in artifacts.attempts:
+        selected = _attempt_selected_payload(attempt)
+        selected_accuracy = selected.get(metric_key) if selected is not None else None
+        selected_this_attempt = isinstance(selected_accuracy, Mapping)
+        checkpoint_source = "carried_forward"
+        if selected_this_attempt:
+            current_accuracy = selected_accuracy
+            selected_round = int(
+                attempt.attempt_summary.get("selected_round")
+                or attempt.round_summary.get("selected_round")
+                or selected_round + 1
+            )
+            current_final_accuracy = selected.get(
+                "final_accuracy",
+                selected.get("eval_accuracy", current_final_accuracy),
+            )
+            checkpoint_source = "selected_candidate"
+        append_rows(
+            attempt_index=attempt.attempt,
+            attempt_dir=str(attempt.path),
+            selected_this_attempt=selected_this_attempt,
+            checkpoint_source=checkpoint_source,
+            selected=selected if selected_this_attempt else None,
+        )
     return rows
 
 
