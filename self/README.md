@@ -210,6 +210,10 @@ the supported public surface.
 - `self/core/slurm.py`: small Slurm submission/polling helpers.
 - `self/core/summaries.py`: non-adaptive round summary containers, metrics
   payload conversion, accuracy formatting, and console summary printing.
+- `self/core/nonadaptive_compat.py`: compatibility helper for syncing patched
+  `self.self_improvement_core` facade globals into the canonical
+  non-adaptive loop before execution, preserving old monkeypatch-based tests
+  and scripts without making implementation modules import through the facade.
 - `self/core/task_protocols.py`: shared task/example protocols and type
   aliases used by task-agnostic self-improvement code.
 - `self/core/task_registry.py`: adaptive task-name lookup for concrete task
@@ -229,8 +233,8 @@ the supported public surface.
 - `self/self_improvement_core.py`: compatibility import surface for legacy
   scripts, launchers, notebooks, and tests. Model IO, example/data IO,
   evaluation/generation helpers, training construction, summary helpers, task
-  protocols, and the non-adaptive loop have moved into focused `self/core/`
-  modules.
+  protocols, non-adaptive loop execution, and non-adaptive monkeypatch sync
+  policy have moved into focused `self/core/` modules.
 
 ## Current Tasks
 

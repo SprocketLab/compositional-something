@@ -43,6 +43,17 @@ from self.core.model_io import (
     lookup_single_token_id,
     sync_model_special_token_ids,
 )
+from self.core.nonadaptive_compat import (
+    NONADAPTIVE_PATCHABLE_NAMES,
+    sync_nonadaptive_loop_globals,
+)
+from self.core.recipes import (
+    PaddingAwareCausalLMDataCollator,
+    instantiate_recipe_model,
+    load_recipe_model,
+    recipe_enabled,
+    resolve_self_improvement_recipe,
+)
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -71,62 +82,13 @@ from self.core.training import (
     training_arg_supported,
 )
 
-from self.core.recipes import (
-    PaddingAwareCausalLMDataCollator,
-    instantiate_recipe_model,
-    load_recipe_model,
-    recipe_enabled,
-    resolve_self_improvement_recipe,
-)
-
-
-
-_NONADAPTIVE_PATCHABLE_NAMES = (
-    "json",
-    "math",
-    "random",
-    "Path",
-    "torch",
-    "set_seed",
-    "cleanup_round_checkpoints",
-    "decode_rng_state",
-    "encode_rng_state",
-    "ensure_dir",
-    "load_examples",
-    "load_summary_records",
-    "resolve_save_model_policy",
-    "sanitize_json_value",
-    "save_examples",
-    "write_summary_records",
-    "evaluate_accuracy_with_breakdown",
-    "resolve_max_new_tokens",
-    "write_prediction_debug_samples",
-    "instantiate_model_and_tokenizer",
-    "instantiate_recipe_model",
-    "load_recipe_model",
-    "load_model_for_tokenizer",
-    "recipe_enabled",
-    "resolve_self_improvement_recipe",
-    "PaddingAwareCausalLMDataCollator",
-    "CausalLMDataCollator",
-    "TokenizedPromptTargetDataset",
-    "TrainingConfig",
-    "SliceMetric",
-    "RoundSummary",
-    "summarize_round",
-    "summary_to_payload",
-    "make_training_args",
-    "build_trainer",
-)
-
-
-def _sync_nonadaptive_loop_globals() -> None:
-    """Preserve old monkeypatch/import behavior for run_self_improvement."""
-
-    for name in _NONADAPTIVE_PATCHABLE_NAMES:
-        setattr(_nonadaptive_loop, name, globals()[name])
+_NONADAPTIVE_PATCHABLE_NAMES = NONADAPTIVE_PATCHABLE_NAMES
 
 
 def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
-    _sync_nonadaptive_loop_globals()
+    sync_nonadaptive_loop_globals(
+        source_globals=globals(),
+        target_module=_nonadaptive_loop,
+        names=_NONADAPTIVE_PATCHABLE_NAMES,
+    )
     return _nonadaptive_loop.run_self_improvement(args, task)

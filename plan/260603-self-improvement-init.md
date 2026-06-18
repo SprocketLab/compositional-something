@@ -3274,3 +3274,11 @@ Acceptance criteria for first pilot:
 - Left `driver.py` responsible for lazy default/compat exports, `_default_bf16_on_cuda`, `main(...)`, and module execution only.
 - Updated `self/README.md` to document the new public-delegate installer.
 - Verification: `python -m py_compile self/core/driver.py self/core/driver_public_api.py self/core/driver_wiring.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env python - <<'PY' ...` public-delegate probe; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_public tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 09:54:13 UTC
+
+- Continued shrinking the old non-adaptive compatibility facade by moving its monkeypatch sync policy into `self/core/nonadaptive_compat.py`.
+- Preserved the private `_NONADAPTIVE_PATCHABLE_NAMES` alias on `self/self_improvement_core.py`, but the canonical patchable-name list and sync helper now live in the focused core compatibility module.
+- Added `tests/test_nonadaptive_compat.py` to pin the helper's direct behavior, while existing non-adaptive tests continue to verify old facade monkeypatch paths.
+- Updated `self/README.md` to document `self/core/nonadaptive_compat.py` and clarify that non-adaptive monkeypatch sync policy has moved out of the facade.
+- Verification: `python -m py_compile self/self_improvement_core.py self/core/nonadaptive_compat.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_nonadaptive_compat tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py -q` (`44 passed`).
