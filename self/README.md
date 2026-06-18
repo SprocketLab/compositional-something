@@ -115,6 +115,8 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
   self-improvement loop runtime, including round-by-round orchestration,
   training/evaluation dispatch, pseudo-label handoff, and summary writing.
+- `self/core/nonadaptive_metadata_runtime.py`: non-adaptive RNG seeding,
+  resumed RNG-state restoration, and metadata persistence runtime.
 - `self/core/nonadaptive_pseudo.py`: non-adaptive dynamic composed-pool
   refresh, next-round pseudo-label generation, pseudo-generation diagnostics,
   and per-round pseudo/composed artifact snapshots.
@@ -542,6 +544,8 @@ new implementation code:
   training setup and execution lives in `self/core/nonadaptive_training.py`;
   dataset generation/loading lives in `self/core/nonadaptive_datasets.py`;
   resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;
+  RNG-state and metadata persistence lives in
+  `self/core/nonadaptive_metadata_runtime.py`;
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
   IO and loaded-metadata compatibility checks live in

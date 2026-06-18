@@ -46,6 +46,7 @@ from self.core.nonadaptive_dataset_context import prepare_nonadaptive_dataset_co
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
+from self.core.nonadaptive_metadata_runtime import prepare_nonadaptive_metadata_runtime
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
 from self.core.nonadaptive_results import record_nonadaptive_round_summary
 from self.core.nonadaptive_round_setup import (
@@ -131,22 +132,19 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     metadata = run_state.metadata
     existing_summaries = run_state.existing_summaries
 
-    set_seed(args.seed)
-    rng = random.Random(args.seed)
-
-    def persist_metadata(target_metadata: JsonDict | None = None) -> None:
-        metadata_to_persist = metadata if target_metadata is None else target_metadata
-        persist_nonadaptive_metadata(
-            metadata_to_persist,
-            metadata_path,
-            rng.getstate(),
-            json_module=json,
-            encode_rng_state_fn=encode_rng_state,
-            sanitize_json_value_fn=sanitize_json_value,
-        )
-
-    if metadata and "rng_state" in metadata:
-        rng.setstate(decode_rng_state(metadata["rng_state"]))
+    metadata_runtime = prepare_nonadaptive_metadata_runtime(
+        seed=args.seed,
+        metadata=metadata,
+        metadata_path=metadata_path,
+        set_seed_fn=set_seed,
+        random_cls=random.Random,
+        decode_rng_state_fn=decode_rng_state,
+        persist_metadata_fn=persist_nonadaptive_metadata,
+        json_module=json,
+        encode_rng_state_fn=encode_rng_state,
+        sanitize_json_value_fn=sanitize_json_value,
+    )
+    rng = metadata_runtime.rng
 
     composed_pool_path = paths.composed_pool_path
     component_map_path = paths.component_map_path
@@ -163,7 +161,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         frontier_min_size=frontier_min_size,
         reset_each_round=reset_each_round,
         dynamic_composed=dynamic_composed,
-        persist_metadata_fn=persist_metadata,
+        persist_metadata_fn=metadata_runtime.persist_metadata,
         write_config_args_fn=lambda: write_nonadaptive_config_args(
             args,
             base_output_dir,
@@ -174,6 +172,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         load_examples_fn=load_examples,
     )
     metadata = datasets.metadata
+    metadata_runtime.set_metadata(metadata)
     base_splits = datasets.base_splits
     base_records = datasets.base_records
     composed_examples = datasets.composed_examples
@@ -315,7 +314,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             config_decode_max_new_tokens=config.decode_max_new_tokens,
             eval_batch_size=config.per_device_eval_batch_size,
             dynamic_composed=dynamic_composed,
-            persist_metadata_fn=persist_metadata,
+            persist_metadata_fn=metadata_runtime.persist_metadata,
             save_examples_fn=save_examples,
             resolve_max_new_tokens_fn=resolve_max_new_tokens,
             random_cls=random.Random,
