@@ -635,7 +635,8 @@ new implementation code:
   plain-output bit diagnostic runner and submitter share generic
   repo-root/Python/command-printing helpers; the rectangular square
   seed/diagnostic runners and probe/resweep submitters share generic
-  repo-root/Python/boolean/command-printing helpers; the rectangular non-square
+  repo-root/Python/boolean/context-printing/command-printing helpers; the
+  rectangular non-square
   seed/self-improvement runners and seed/fullpack submitters share generic
   repo-root/Python/boolean/context-printing/stdout-or-stderr command-printing
   helpers; the
