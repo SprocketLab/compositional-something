@@ -8,11 +8,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_seed_mig.sbatch"
 FULLPACK = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_recipe_fullpack.sh"
+MIXED_SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_mixed_mig.sh"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_moredata_mig.sh"
 
 
 def test_addition_fixedwidth_moredata_launchers_have_valid_bash_syntax():
-    for launcher in (SEED, FULLPACK, SUBMITTER):
+    for launcher in (SEED, FULLPACK, MIXED_SUBMITTER, SUBMITTER):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
 
@@ -77,6 +78,31 @@ def test_addition_fixedwidth_fullpack_dry_run_forwards_moredata_overrides(tmp_pa
     assert "--self-improve-stable-steps 3500" in stdout
     assert "--self-improve-decay-steps 1000" in stdout
     assert "--composed-strategy with_carry_filtered" in stdout
+
+
+def test_addition_fixedwidth_mixed_submitter_dry_run_runs_three_branches(tmp_path: Path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["RUN_ROOT"] = str(tmp_path / "mixed")
+    env["TRAIN_PER_DIGIT"] = "321"
+    env["EXPAND_TRAIN_PER_DIGIT"] = "654"
+
+    result = subprocess.run(
+        ["bash", str(MIXED_SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "[INFO] Seed dry-run:" in stdout
+    assert "[INFO] Fullpack dry-run:" in stdout
+    assert "[INFO] Original-composition dry-run:" in stdout
+    assert "--initial-train-per-size 321" in stdout
+    assert "--expand-train-per-digit 654" in stdout
+    assert "--addition-composition-path-mode random" in stdout
 
 
 def test_addition_fixedwidth_moredata_submitter_dry_run_emits_stage1_grid(tmp_path: Path):

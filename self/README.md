@@ -379,7 +379,8 @@ tests, notebooks, and older artifacts.
   `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh`, and
   `launchers/self/submit_addition_fixedwidth_mixed_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
-  dry-run command printing.
+  dry-run command printing, with dry-run coverage for the submitter's
+  seed/fullpack/original-composition branches.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and

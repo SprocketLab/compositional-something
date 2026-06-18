@@ -30,12 +30,13 @@ FULLPACK_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_fixedwidth_mixed_reci
 BASELINES=(short_only direct with_carry with_carry_filtered)
 ORIGINAL_COMPOSITION_BASELINES=(direct with_carry with_carry_filtered)
 
-echo "[INFO] Run root: ${RUN_ROOT}"
-echo "[INFO] Seed output: ${SEED_OUT_ROOT}"
-echo "[INFO] Fullpack output: ${FULLPACK_OUT_ROOT}"
-echo "[INFO] Stable seed model: ${SEED_MODEL}"
-echo "[INFO] Addition sampling mode: ${ADDITION_SAMPLING_MODE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Run root" "${RUN_ROOT}" \
+  "Seed output" "${SEED_OUT_ROOT}" \
+  "Fullpack output" "${FULLPACK_OUT_ROOT}" \
+  "Stable seed model" "${SEED_MODEL}" \
+  "Addition sampling mode" "${ADDITION_SAMPLING_MODE}" \
+  "Dry run" "${DRY_RUN}"
 
 mkdir -p "${RUN_ROOT}"
 
