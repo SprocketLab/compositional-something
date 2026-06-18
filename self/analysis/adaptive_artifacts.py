@@ -23,6 +23,10 @@ DEFAULT_ADAPTIVE_TRACE_FILES = (
     "proposal_grpo/proposal_grpo_traces.jsonl",
 )
 
+ADAPTIVE_CANDIDATE_METRICS_FILE = "candidate_metrics.json"
+ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE = "train_mix_summary.json"
+ADAPTIVE_CANDIDATE_FAILURE_FILE = "worker_failure.json"
+
 
 def _attempt_index(path: Path, summary: Mapping[str, Any] | None = None) -> int | None:
     if summary and summary.get("attempt") is not None:
@@ -117,6 +121,34 @@ class AdaptiveAttemptArtifacts:
 
 
 @dataclass(frozen=True)
+class AdaptiveCandidateArtifacts:
+    path: Path
+    metrics: JsonDict
+    train_mix_summary: JsonDict
+    worker_failure: JsonDict | None
+
+    @property
+    def candidate_index(self) -> int | None:
+        return _candidate_index(self.path, self.metrics)
+
+    @property
+    def candidate_id(self) -> Any:
+        return self.metrics.get("id", self.path.name)
+
+    @property
+    def metrics_path(self) -> Path:
+        return self.path / ADAPTIVE_CANDIDATE_METRICS_FILE
+
+    @property
+    def train_mix_summary_path(self) -> Path:
+        return self.path / ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE
+
+    @property
+    def worker_failure_path(self) -> Path:
+        return self.path / ADAPTIVE_CANDIDATE_FAILURE_FILE
+
+
+@dataclass(frozen=True)
 class AdaptiveRunArtifacts:
     path: Path
     summary: JsonDict
@@ -161,6 +193,14 @@ def iter_attempt_dirs(run_dir: Path | str) -> list[Path]:
     )
 
 
+def iter_candidate_dirs(attempt: AdaptiveAttemptArtifacts | Path | str) -> list[Path]:
+    attempt_dir = attempt.path if isinstance(attempt, AdaptiveAttemptArtifacts) else Path(attempt)
+    return sorted(
+        [path for path in (attempt_dir / "candidates").glob("candidate_*") if path.is_dir()],
+        key=natural_sort_key,
+    )
+
+
 def load_adaptive_attempt(attempt_dir: Path | str) -> AdaptiveAttemptArtifacts:
     resolved = Path(attempt_dir)
     selected = read_json(resolved / "selected_candidate.json", None)
@@ -173,6 +213,37 @@ def load_adaptive_attempt(attempt_dir: Path | str) -> AdaptiveAttemptArtifacts:
         proposal_results=read_json(resolved / "proposal_results.json", []) or [],
         candidate_metrics=read_json(resolved / "candidate_metrics.json", []) or [],
         selected_candidate=selected,
+    )
+
+
+def load_adaptive_candidate(
+    candidate_dir: Path | str,
+    *,
+    attempt: AdaptiveAttemptArtifacts | None = None,
+) -> AdaptiveCandidateArtifacts:
+    resolved = Path(candidate_dir)
+    worker_failure = read_json(resolved / ADAPTIVE_CANDIDATE_FAILURE_FILE, None)
+    if worker_failure is not None and not isinstance(worker_failure, Mapping):
+        worker_failure = {"value": worker_failure}
+    return AdaptiveCandidateArtifacts(
+        path=resolved,
+        metrics=(
+            _candidate_metric_for_dir(attempt, resolved)
+            if attempt is not None
+            else read_json(resolved / ADAPTIVE_CANDIDATE_METRICS_FILE, {}) or {}
+        ),
+        train_mix_summary=read_json(resolved / ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE, {}) or {},
+        worker_failure=worker_failure,
+    )
+
+
+def load_adaptive_candidates(
+    attempt: AdaptiveAttemptArtifacts | Path | str,
+) -> tuple[AdaptiveCandidateArtifacts, ...]:
+    artifacts = load_adaptive_attempt(attempt) if not isinstance(attempt, AdaptiveAttemptArtifacts) else attempt
+    return tuple(
+        load_adaptive_candidate(candidate_dir, attempt=artifacts)
+        for candidate_dir in iter_candidate_dirs(artifacts)
     )
 
 
@@ -313,30 +384,22 @@ def adaptive_candidate_records(run: AdaptiveRunArtifacts | Path | str) -> list[J
     return rows
 
 
-def adaptive_candidate_train_mix_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+def adaptive_candidate_artifact_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
     artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
     context = _run_context(artifacts)
     rows: list[JsonDict] = []
     for attempt in artifacts.attempts:
         selected_id = _selected_id(attempt.attempt_summary.get("selected"))
-        for candidate_dir in sorted(
-            [path for path in (attempt.path / "candidates").glob("candidate_*") if path.is_dir()],
-            key=natural_sort_key,
-        ):
-            train_mix_path = candidate_dir / "train_mix_summary.json"
-            train_mix = read_json(train_mix_path, None)
-            if not isinstance(train_mix, Mapping):
-                continue
-            metric = _candidate_metric_for_dir(attempt, candidate_dir)
-            candidate_id = metric.get("id", candidate_dir.name)
-            candidate_index = _candidate_index(candidate_dir, metric)
+        for candidate in load_adaptive_candidates(attempt):
+            candidate_id = candidate.candidate_id
+            metric = candidate.metrics
             row: JsonDict = {
                 **context,
                 "attempt_dir": str(attempt.path),
                 "attempt": attempt.attempt,
                 "selected_round": attempt.attempt_summary.get("selected_round"),
-                "candidate_dir": str(candidate_dir),
-                "candidate_index": candidate_index,
+                "candidate_dir": str(candidate.path),
+                "candidate_index": candidate.candidate_index,
                 "candidate_id": candidate_id,
                 "selected_candidate": (
                     candidate_id == selected_id if selected_id is not None else None
@@ -345,7 +408,47 @@ def adaptive_candidate_train_mix_records(run: AdaptiveRunArtifacts | Path | str)
                 "reward": metric.get("reward"),
                 "final_accuracy": metric.get("final_accuracy"),
                 "frontier_delta": metric.get("frontier_delta"),
-                "train_mix_summary_path": str(train_mix_path),
+                "metrics_path": str(candidate.metrics_path),
+                "train_mix_summary_path": str(candidate.train_mix_summary_path),
+                "worker_failure_path": str(candidate.worker_failure_path),
+                "has_metrics": bool(metric),
+                "has_train_mix_summary": bool(candidate.train_mix_summary),
+                "has_worker_failure": candidate.worker_failure is not None,
+                "worker_failure": candidate.worker_failure,
+            }
+            row.update(_proposal_fields(metric))
+            rows.append(row)
+    return rows
+
+
+def adaptive_candidate_train_mix_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        selected_id = _selected_id(attempt.attempt_summary.get("selected"))
+        for candidate in load_adaptive_candidates(attempt):
+            train_mix = candidate.train_mix_summary
+            if not train_mix:
+                continue
+            metric = candidate.metrics
+            candidate_id = candidate.candidate_id
+            row: JsonDict = {
+                **context,
+                "attempt_dir": str(attempt.path),
+                "attempt": attempt.attempt,
+                "selected_round": attempt.attempt_summary.get("selected_round"),
+                "candidate_dir": str(candidate.path),
+                "candidate_index": candidate.candidate_index,
+                "candidate_id": candidate_id,
+                "selected_candidate": (
+                    candidate_id == selected_id if selected_id is not None else None
+                ),
+                "valid": metric.get("valid"),
+                "reward": metric.get("reward"),
+                "final_accuracy": metric.get("final_accuracy"),
+                "frontier_delta": metric.get("frontier_delta"),
+                "train_mix_summary_path": str(candidate.train_mix_summary_path),
             }
             row.update(_proposal_fields(metric))
             row.update(dict(train_mix))

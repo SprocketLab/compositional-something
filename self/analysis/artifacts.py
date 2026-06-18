@@ -9,10 +9,15 @@ optional. Adaptive-run helpers are implemented in
 from __future__ import annotations
 
 from self.analysis.adaptive_artifacts import (
+    ADAPTIVE_CANDIDATE_FAILURE_FILE,
+    ADAPTIVE_CANDIDATE_METRICS_FILE,
+    ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE,
     AdaptiveAttemptArtifacts,
+    AdaptiveCandidateArtifacts,
     AdaptiveRunArtifacts,
     DEFAULT_ADAPTIVE_TRACE_FILES,
     adaptive_attempt_records,
+    adaptive_candidate_artifact_records,
     adaptive_candidate_per_size_records,
     adaptive_candidate_records,
     adaptive_candidate_train_mix_records,
@@ -25,7 +30,10 @@ from self.analysis.adaptive_artifacts import (
     discover_adaptive_runs,
     is_adaptive_run_dir,
     iter_attempt_dirs,
+    iter_candidate_dirs,
     load_adaptive_attempt,
+    load_adaptive_candidate,
+    load_adaptive_candidates,
     load_adaptive_run,
     load_adaptive_runs,
 )

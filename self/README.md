@@ -339,10 +339,10 @@ the supported public surface.
 
 - `self/analysis/artifact_io.py`: shared JSON/JSONL readers and artifact
   filename constants for analysis loaders.
-- `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt
-  loading, prompt/proposal/candidate/train-mix/trace record flattening,
-  adaptive candidate per-size records, selected-checkpoint per-size timelines,
-  and proposal-GRPO metric records.
+- `self/analysis/adaptive_artifacts.py`: adaptive-run discovery, attempt and
+  candidate artifact loading, prompt/proposal/candidate/train-mix/trace record
+  flattening, adaptive candidate per-size records, selected-checkpoint per-size
+  timelines, and proposal-GRPO metric records.
 - `self/analysis/nonadaptive_artifacts.py`: non-adaptive result-path
   resolution, round loading, per-size accuracy row construction, and
   records-to-DataFrame conversion.
@@ -750,7 +750,10 @@ new implementation code:
   `launchers/self/config/adaptive_candidate_*.env`.
 - Use `self/analysis/adaptive_artifacts.py` for new adaptive notebooks and
   keep `self/analysis/artifacts.py` as the compatibility surface for older
-  notebooks while migrating direct raw JSON parsing when files are edited.
+  notebooks while migrating direct raw JSON parsing when files are edited. The
+  adaptive loader now exposes candidate artifact helpers for per-candidate
+  metrics, train-mix summaries, and worker-failure files, so notebooks should
+  not glob `attempt_*/candidates/candidate_*` directly.
 - Keep source/artifact hygiene conservative: source notebooks and report
   sources remain visible, while executed notebooks, heavyweight model/run
   bundles, local cache/editor state, and command/LaTeX logs are ignored.

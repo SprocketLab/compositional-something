@@ -3392,3 +3392,13 @@ Acceptance criteria for first pilot:
 - Added `test_nonadaptive_facade_exports_are_available_and_patchable_names_are_public`, which guards duplicate/missing facade exports, requires all non-adaptive patchable names to be public, and pins representative exports to canonical `self/core/*` modules.
 - Updated `self/README.md` to document the grouped core-facade export surface and patchable-name guard.
 - Verification: `python -m py_compile self/self_improvement_core.py self/core/nonadaptive_compat.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_run_length_recipe.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_core_facade tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_self_improvement_launchers.py tests/test_run_length_recipe.py tests/test_self_improvement_tasks.py -q` (`46 passed`).
+
+### Implementation Log: 2026-06-18 11:07:21 UTC
+
+- Extended `self/analysis/adaptive_artifacts.py` with stable per-candidate artifact loaders: `AdaptiveCandidateArtifacts`, `iter_candidate_dirs(...)`, `load_adaptive_candidate(...)`, `load_adaptive_candidates(...)`, and `adaptive_candidate_artifact_records(...)`.
+- Centralized adaptive candidate artifact filenames for metrics, train-mix summaries, and worker-failure files so notebooks do not need to hard-code `attempt_*/candidates/candidate_*` layouts when inspecting candidate artifacts.
+- Refactored `adaptive_candidate_train_mix_records(...)` to use the candidate artifact loader while preserving the existing row schema and artifact paths.
+- Reexported the new candidate artifact helpers through `self/analysis/artifacts.py` for the notebook compatibility surface.
+- Extended `tests/test_analysis_artifacts.py` with a failure-only candidate directory to cover incomplete candidate artifacts, worker-failure loading, candidate sorting, train-mix loading, and compatibility identity for the new loader.
+- Updated `self/README.md` to document candidate artifact loading in the current analysis layer and remaining cleanup guidance.
+- Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_candidate_artifacts tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`); `git diff --check`. The temporary `.pytest_tmp_analysis_candidate_artifacts` directory was removed after verification.

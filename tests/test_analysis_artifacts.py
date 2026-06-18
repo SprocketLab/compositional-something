@@ -4,6 +4,7 @@ from pathlib import Path
 from self.analysis import adaptive_artifacts, nonadaptive_artifacts
 from self.analysis.artifacts import (
     adaptive_attempt_records,
+    adaptive_candidate_artifact_records,
     adaptive_candidate_per_size_records,
     adaptive_candidate_records,
     adaptive_candidate_train_mix_records,
@@ -14,6 +15,8 @@ from self.analysis.artifacts import (
     adaptive_trace_records,
     adaptive_trace_rows,
     discover_adaptive_runs,
+    iter_candidate_dirs,
+    load_adaptive_candidates,
     load_adaptive_run,
     load_self_improvement_rounds,
     per_size_accuracy_records,
@@ -37,10 +40,12 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp_path: Path):
     assert adaptive_attempt_records is adaptive_artifacts.adaptive_attempt_records
     assert load_adaptive_run is adaptive_artifacts.load_adaptive_run
+    assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates
 
     run_dir = tmp_path / "root" / "addition-config"
     attempt_dir = run_dir / "attempt_0001"
     candidate_dir = attempt_dir / "candidates" / "candidate_00"
+    failed_candidate_dir = attempt_dir / "candidates" / "candidate_01"
     _write_json(
         run_dir / "summary.json",
         {
@@ -124,6 +129,12 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
             "total_train_examples": 14,
         },
     )
+    _write_json(
+        failed_candidate_dir / "worker_failure.json",
+        {
+            "error": "worker OOM",
+        },
+    )
     _write_jsonl(attempt_dir / "trace_examples.jsonl", [{"prompt": "p", "target": "t"}])
     _write_jsonl(attempt_dir / "selected_proposal_trace.jsonl", [{"prompt": "sp", "target": "st"}])
     _write_jsonl(attempt_dir / "outcome_trace_examples.jsonl", [{"prompt": "op", "target": "ot"}])
@@ -146,6 +157,7 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert run.results[0]["round"] == 0
     assert run.seed_metrics["eval_accuracy"] == 0.4
     assert len(run.attempts) == 1
+    assert iter_candidate_dirs(run.attempts[0]) == [candidate_dir, failed_candidate_dir]
 
     attempt_rows = adaptive_attempt_records(run)
     assert attempt_rows == [
@@ -203,6 +215,27 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert candidate_rows[0]["selected_candidate"] is True
     assert candidate_rows[0]["proposal_guard"] == "none"
     assert candidate_rows[0]["per_size_accuracy"] == {"10": 0.8}
+    candidate_artifacts = load_adaptive_candidates(run.attempts[0])
+    assert [candidate.candidate_index for candidate in candidate_artifacts] == [0, 1]
+    assert candidate_artifacts[0].candidate_id == "model_candidate_0"
+    assert candidate_artifacts[0].train_mix_summary["total_train_examples"] == 14
+    assert candidate_artifacts[1].candidate_id == "candidate_01"
+    assert candidate_artifacts[1].worker_failure == {"error": "worker OOM"}
+    artifact_rows = adaptive_candidate_artifact_records(run)
+    assert [
+        (
+            row["candidate_id"],
+            row["candidate_index"],
+            row["has_metrics"],
+            row["has_train_mix_summary"],
+            row["has_worker_failure"],
+            row["worker_failure"],
+        )
+        for row in artifact_rows
+    ] == [
+        ("model_candidate_0", 0, True, True, False, None),
+        ("candidate_01", 1, False, False, True, {"error": "worker OOM"}),
+    ]
     candidate_size_rows = adaptive_candidate_per_size_records(run)
     assert candidate_size_rows == [
         {
