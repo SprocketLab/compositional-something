@@ -386,8 +386,9 @@ tests, notebooks, and older artifacts.
   helper for repo-root/Python setup, boolean parsing, context printing, and
   dry-run command printing.
 - `launchers/self/run_addition_their_recipe_diagnostic.sh` uses the generic
-  helper for repo-root/Python setup, boolean parsing, and dry-run command
-  printing before delegating to the addition recipe diagnostic CLI.
+  helper for repo-root/Python setup, boolean parsing, context printing, and
+  dry-run command printing before delegating to the addition recipe diagnostic
+  CLI.
 - `launchers/self/run_addition_recipe_focused.sh`,
   `launchers/self/run_addition_recipe_fullpack.sh`, and
   `launchers/self/run_addition_recipe_recovery.sh` use the generic helper for

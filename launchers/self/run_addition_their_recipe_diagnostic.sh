@@ -39,11 +39,12 @@ if self_parse_bool "${DRY_RUN}"; then
   CMD+=(--dry-run)
 fi
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Device target: ${DEVICE_TARGET}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Device target" "${DEVICE_TARGET}" \
+  "Dry run" "${DRY_RUN}"
 self_print_command_stdout "${CMD[@]}"
 
 if self_parse_bool "${DRY_RUN}"; then
