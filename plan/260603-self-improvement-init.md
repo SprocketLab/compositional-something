@@ -4573,3 +4573,25 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_self_improvement_controller.py
   tests/test_adaptive_candidate_training.py -q` (`44 passed`, `3` existing
   multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:46:47 UTC
+
+- Created and pushed checkpoint tag
+  `pre-outdated-cleanup-20260618-204614` at commit `c4ab771` before deleting
+  any tracked legacy code.
+- Removed the unreferenced old weak-to-strong standalone addition monolith
+  `legacy/weak_to_strong/weak_to_strong_addition_experiment_old.py`.
+- Kept the active archived weak-to-strong entry point
+  `legacy/weak_to_strong/weak_to_strong_addition_experiment_v2.py`, which
+  delegates to the canonical `core.addition_pipeline` implementation used by
+  the archived weak-to-strong shell scripts.
+- Added `legacy/weak_to_strong/README.md` and updated the root `README.md` so
+  future readers know where the removed monolith can be recovered.
+- Removed ignored generated `__pycache__` directories under `self/core`,
+  `self/tasks`, `self/analysis`, and `launchers/self` from the working tree.
+- Verification: `python -m py_compile
+  legacy/weak_to_strong/weak_to_strong_addition_experiment_v2.py
+  legacy/weak_to_strong/weak_to_strong_composition_error_experiment.py`;
+  `bash -n` over the archived weak-to-strong shell launchers; tracked grep for
+  the deleted filename outside this plan log returned no matches; generated
+  `__pycache__` directories were removed after verification.

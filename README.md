@@ -6,7 +6,10 @@ Repository modules are organized into:
 - `self`: self-improvement experiment entrypoints
 - `meta`: meta self-improvement experiment entrypoints
 - `launchers`: Slurm/shell launch scripts
-- `legacy/weak_to_strong`: archived weak-to-strong scripts
+- `legacy/weak_to_strong`: archived weak-to-strong launch scripts and wrappers
+  around the canonical addition pipeline. The pre-refactor standalone addition
+  monolith was removed after checkpoint tag
+  `pre-outdated-cleanup-20260618-204614`.
 
 ## Canonical Commands
 
