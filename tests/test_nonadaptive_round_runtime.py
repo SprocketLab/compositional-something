@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from self.core import nonadaptive_round_models
 from self.core.nonadaptive_round_runtime import (
     NonAdaptiveRoundRuntimeContext,
+    NonAdaptiveRoundRuntimeResult,
     NonAdaptiveRoundRuntimeState,
     run_nonadaptive_round,
 )
@@ -19,6 +21,12 @@ class _Task:
     @staticmethod
     def serialize_example(example):
         return {"value": example}
+
+
+def test_nonadaptive_round_runtime_reexports_round_models():
+    assert NonAdaptiveRoundRuntimeContext is nonadaptive_round_models.NonAdaptiveRoundRuntimeContext
+    assert NonAdaptiveRoundRuntimeState is nonadaptive_round_models.NonAdaptiveRoundRuntimeState
+    assert NonAdaptiveRoundRuntimeResult is nonadaptive_round_models.NonAdaptiveRoundRuntimeResult
 
 
 def _context(tmp_path: Path, **overrides):

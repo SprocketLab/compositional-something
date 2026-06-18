@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from self.core.data_io import JsonDict, ensure_dir, save_examples, write_summary_records
 from self.core.evaluation import (
@@ -18,6 +17,11 @@ from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
 from self.core.nonadaptive_results import record_nonadaptive_round_summary
+from self.core.nonadaptive_round_models import (
+    NonAdaptiveRoundRuntimeContext,
+    NonAdaptiveRoundRuntimeResult,
+    NonAdaptiveRoundRuntimeState,
+)
 from self.core.nonadaptive_round_setup import (
     prepare_nonadaptive_round_plan,
     prepare_nonadaptive_round_training_data,
@@ -26,60 +30,6 @@ from self.core.nonadaptive_training import train_nonadaptive_round_model
 from self.core.recipe_models import instantiate_recipe_model, load_recipe_model
 from self.core.summaries import RoundSummary, SliceMetric, summarize_round, summary_to_payload
 from self.core.training import TokenizedPromptTargetDataset, build_trainer, make_training_args
-
-
-@dataclass(frozen=True)
-class NonAdaptiveRoundRuntimeContext:
-    args: Any
-    task: Any
-    base_output_dir: Path
-    base_splits: Dict[str, List[Any]]
-    base_records: Dict[str, Any]
-    eval_examples: List[Any]
-    composed_eval_slices: Dict[str, List[Any]]
-    composed_eval_component_map: Any
-    composed_pool_path: Path
-    component_map_path: Path
-    metadata: JsonDict
-    eval_keys: set[Any]
-    size_schedule: Any
-    composed_min_size: int
-    final_max_size: int
-    train_base_decode_tokens: int
-    eval_decode_tokens: int
-    composed_eval_decode_tokens: int
-    config: Any
-    data_collator: Any
-    tokenizer: Any
-    rng: Any
-    new_run: bool
-    dynamic_composed: bool
-    save_model_policy: str
-    resume_requested: bool
-    resume_round: int
-    stop_after_round: Optional[int]
-    reset_each_round: bool
-    use_recipe: bool
-    recipe_name: str
-    recipe_preset: Any
-    summary_records: Dict[int, JsonDict]
-    results_path: Path
-    persist_metadata_fn: Callable[[], None]
-
-
-@dataclass
-class NonAdaptiveRoundRuntimeState:
-    model: Any
-    composed_examples: List[Any]
-    component_map: Any
-    pseudo_examples: List[Any]
-
-
-@dataclass(frozen=True)
-class NonAdaptiveRoundRuntimeResult:
-    round_dir: Path
-    skipped: bool
-    should_break: bool
 
 
 def run_nonadaptive_round(

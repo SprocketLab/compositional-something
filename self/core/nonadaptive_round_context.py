@@ -9,7 +9,7 @@ from self.core.nonadaptive_bootstrap import NonAdaptiveBootstrap
 from self.core.nonadaptive_dataset_context import NonAdaptiveDatasetContext
 from self.core.nonadaptive_datasets import NonAdaptiveDatasets
 from self.core.nonadaptive_metadata_runtime import NonAdaptiveMetadataRuntime
-from self.core.nonadaptive_round_runtime import (
+from self.core.nonadaptive_round_models import (
     NonAdaptiveRoundRuntimeContext,
     NonAdaptiveRoundRuntimeState,
 )

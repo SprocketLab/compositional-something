@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from self.core.nonadaptive_round_runtime import (
+from self.core.nonadaptive_round_models import (
     NonAdaptiveRoundRuntimeContext,
     NonAdaptiveRoundRuntimeState,
 )

@@ -4498,3 +4498,26 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
   existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:25:40 UTC
+
+- Split non-adaptive round data contracts from
+  `self/core/nonadaptive_round_runtime.py` into
+  `self/core/nonadaptive_round_models.py`.
+- The new module owns `NonAdaptiveRoundRuntimeContext`,
+  `NonAdaptiveRoundRuntimeState`, and `NonAdaptiveRoundRuntimeResult`; the old
+  runtime module still reexports those names for compatibility.
+- Updated `self/core/nonadaptive_round_context.py` and
+  `self/core/nonadaptive_round_loop.py` to import the round contracts from the
+  lightweight models module instead of loading the single-round runtime.
+- Verification: `python -m py_compile self/core/nonadaptive_round_models.py
+  self/core/nonadaptive_round_runtime.py self/core/nonadaptive_round_context.py
+  self/core/nonadaptive_round_loop.py tests/test_nonadaptive_round_runtime.py
+  tests/test_nonadaptive_round_context.py tests/test_nonadaptive_round_loop.py`;
+  first pytest attempt included a stale filename and failed before collection;
+  corrected command `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_nonadaptive_round_models
+  tests/test_nonadaptive_round_runtime.py tests/test_nonadaptive_round_context.py
+  tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_round_setup.py
+  tests/test_nonadaptive_seed_round_zero.py -q` passed (`14 passed`);
+  `git diff --check`.
