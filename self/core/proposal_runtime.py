@@ -18,6 +18,7 @@ from self.core.proposal_generation import (
     load_or_generate_proposal_rows,
 )
 from self.core.proposal_config_validation import _raw_output, validate_config_rows
+from self.core.proposal_config_schema import ConfigProposal
 from self.core.proposal_prompts import (
     choose_default_program_pair,
     component_prediction_examples_for_task,
@@ -25,7 +26,7 @@ from self.core.proposal_prompts import (
     render_program_candidate_prompt,
     target_format_for_task,
 )
-from self.core.proposals import ConfigProposal, render_program_repair_prompt
+from self.core.proposals import render_program_repair_prompt
 
 JsonDict = Dict[str, Any]
 

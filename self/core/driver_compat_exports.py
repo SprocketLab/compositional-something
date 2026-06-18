@@ -78,12 +78,7 @@ from self.core.proposal_executable_validation import (
     validate_executable_rows,
 )
 from self.core.proposal_generation import load_or_generate_proposal_rows
-from self.core.proposal_prompts import (
-    component_prediction_examples_for_task,
-    program_validation_cases,
-    target_format_for_task,
-)
-from self.core.proposals import (
+from self.core.proposal_config_schema import (
     DEFAULT_CONFIG_SEARCH_SPACES,
     ConfigProposal,
     extract_json_object,
@@ -91,8 +86,15 @@ from self.core.proposals import (
     parse_config_proposal,
     proposal_output_schema,
     proposal_payload_for_schema,
-    render_program_repair_prompt,
     validate_config_prediction,
+)
+from self.core.proposal_prompts import (
+    component_prediction_examples_for_task,
+    program_validation_cases,
+    target_format_for_task,
+)
+from self.core.proposals import (
+    render_program_repair_prompt,
 )
 from self.core.run_setup import source_sizes_from_examples
 from self.core.training import TrainingConfig

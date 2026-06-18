@@ -10,12 +10,14 @@ from self.core.models import ExecutableProposal
 from self.core.program_sandbox import validate_program_with_repair
 from self.core.program_sandbox_models import ProgramValidationResult
 from self.core.proposal_config_validation import _raw_output
-from self.core.proposal_generation import generate_proposals_from_model
-from self.core.proposal_prompts import program_validation_cases, target_format_for_task
-from self.core.proposals import (
+from self.core.proposal_config_schema import (
     DEFAULT_CONFIG_SEARCH_SPACES,
     ConfigProposal,
     extract_json_object,
+)
+from self.core.proposal_generation import generate_proposals_from_model
+from self.core.proposal_prompts import program_validation_cases, target_format_for_task
+from self.core.proposals import (
     render_program_repair_prompt,
 )
 

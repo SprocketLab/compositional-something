@@ -10,8 +10,8 @@ from core.addition_pipeline import (
     ADDITION_SAMPLING_NATURAL,
     ADDITION_WIDTH_EXACT_DIGITS,
 )
+from self.core.proposal_config_schema import PROPOSAL_OUTPUT_SCHEMAS
 from self.core.proposal_grpo import PROPOSAL_GRPO_REWARD_MODES, PROPOSAL_GRPO_ZERO_VARIANCE_MODES
-from self.core.proposals import PROPOSAL_OUTPUT_SCHEMAS
 from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE
 
 

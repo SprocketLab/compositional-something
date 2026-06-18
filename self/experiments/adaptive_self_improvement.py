@@ -14,10 +14,9 @@ from self.core.frontier import (
     proposal_quality_metrics,
     select_frontier,
 )
+from self.core.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, parse_config_proposal
 from self.core.proposals import (
-    DEFAULT_CONFIG_SEARCH_SPACES,
     PromptBundle,
-    parse_config_proposal,
     render_config_prompt,
     render_program_prompt,
     render_program_repair_prompt,

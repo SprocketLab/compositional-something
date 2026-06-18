@@ -14,7 +14,8 @@ from self.core.program_sandbox_cases import (
 from self.core.program_sandbox_models import (
     SandboxCase,
 )
-from self.core.proposals import ConfigProposal, PromptBundle
+from self.core.proposal_config_schema import ConfigProposal
+from self.core.proposals import PromptBundle
 from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE, normalize_bit_target_mode
 
 

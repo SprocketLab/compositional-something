@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from self.core.data_io import sanitize_json_value
-from self.core.proposals import ConfigProposal
+from self.core.proposal_config_schema import ConfigProposal
 
 
 JsonDict = Dict[str, Any]

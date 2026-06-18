@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
 from self.core.experience_trace_models import OutcomeTraceExample
-from self.core.proposals import extract_json_object
+from self.core.proposal_config_schema import extract_json_object
 
 
 JsonDict = Dict[str, Any]

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from self import adaptive_proposals as proposals
 from self import program_sandbox
+from self.core import driver_compat_exports, proposal_config_schema
 from self.core import proposal_io
 
 
@@ -99,6 +100,15 @@ def test_proposal_io_owner_reexports() -> None:
     assert proposals.load_fixture_proposals is proposal_io.load_fixture_proposals
     assert proposals.build_trace_row is proposal_io.build_trace_row
     assert proposals.write_trace_jsonl is proposal_io.write_trace_jsonl
+
+
+def test_config_schema_owner_reexports() -> None:
+    assert proposals.ConfigProposal is proposal_config_schema.ConfigProposal
+    assert proposals.DEFAULT_CONFIG_SEARCH_SPACES is proposal_config_schema.DEFAULT_CONFIG_SEARCH_SPACES
+    assert proposals.parse_config_proposal is proposal_config_schema.parse_config_proposal
+    assert proposals.normalized_config_completion is proposal_config_schema.normalized_config_completion
+    assert driver_compat_exports.ConfigProposal is proposal_config_schema.ConfigProposal
+    assert driver_compat_exports.validate_config_prediction is proposal_config_schema.validate_config_prediction
 
 
 def test_config_proposal_schema_rejects_ranges_and_enums():

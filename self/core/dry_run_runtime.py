@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
-from self.core.proposals import ConfigProposal
+from self.core.proposal_config_schema import ConfigProposal
 
 
 JsonDict = Dict[str, Any]

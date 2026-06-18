@@ -10,7 +10,7 @@ from core.addition_pipeline import AdditionExample, build_composed_pseudo_map, e
 from self.core.models import ExecutableProposal
 from self.core.program_sandbox import execute_program_cases
 from self.core.program_sandbox_models import SandboxCase
-from self.core.proposals import ConfigProposal
+from self.core.proposal_config_schema import ConfigProposal
 from self.tasks.bit_common import (
     RUN_LENGTH_TARGET_RUN_STATE,
     normalize_bit_target_mode,

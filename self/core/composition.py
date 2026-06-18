@@ -20,7 +20,7 @@ from self.core.composition_pseudolabels import (
     target_pattern_for_task,
 )
 from self.core.models import ExactPairDataset
-from self.core.proposals import ConfigProposal
+from self.core.proposal_config_schema import ConfigProposal
 from self.tasks.run_length_data import (
     RunLengthExample,
     bucket_run_length_by_bits,
