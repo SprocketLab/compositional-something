@@ -5,12 +5,12 @@ from __future__ import annotations
 import argparse
 from typing import List
 
-from self.adaptive.sandbox.program_sandbox import (
+from self.adaptive.program_sandbox import (
     build_addition_program_cases,
     build_run_length_program_cases,
 )
-from self.adaptive.sandbox.program_sandbox import SandboxCase
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.program_sandbox import SandboxCase
+from self.adaptive.proposal_config_schema import ConfigProposal
 
 RUN_LENGTH_TARGET_RUN_STATE = "run_state"
 
@@ -84,7 +84,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_config_schema import ConfigProposal
 
 
 @dataclass(frozen=True)

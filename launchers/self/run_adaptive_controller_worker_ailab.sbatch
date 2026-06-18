@@ -29,6 +29,6 @@ fi
 echo "[INFO] Controller worker spec: ${CONTROLLER_WORKER_SPEC}"
 adaptive_print_worker_context "Adaptive controller worker"
 
-"${PYTHON_BIN}" -m self.adaptive.run.driver \
+"${PYTHON_BIN}" -m self.adaptive.driver \
   --run-controller-worker \
   --controller-worker-spec "${CONTROLLER_WORKER_SPEC}"

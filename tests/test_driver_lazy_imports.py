@@ -17,12 +17,12 @@ def test_driver_facade_does_not_import_heavy_bindings_for_public_api_listing() -
         import json
         import sys
 
-        driver = importlib.import_module("self.adaptive.run.driver")
-        wrapper = importlib.import_module("self.adaptive.run.driver")
+        driver = importlib.import_module("self.adaptive.driver")
+        wrapper = importlib.import_module("self.adaptive.driver")
         print(json.dumps({
-            "driver_default_bindings_loaded": "self.adaptive.run.driver_default_bindings" in sys.modules,
-            "driver_wiring_loaded": "self.adaptive.run.driver_wiring" in sys.modules,
-            "run_orchestration_loaded": "self.adaptive.run.run_orchestration" in sys.modules,
+            "driver_default_bindings_loaded": "self.adaptive.driver_default_bindings" in sys.modules,
+            "driver_wiring_loaded": "self.adaptive.driver_wiring" in sys.modules,
+            "run_orchestration_loaded": "self.adaptive.run_orchestration" in sys.modules,
             "driver_has_build_parser": "build_parser" in dir(driver),
             "wrapper_exports_build_parser": "build_parser" in wrapper.__all__,
             "wrapper_exports_run": "run" in wrapper.__all__,
@@ -57,13 +57,13 @@ def test_adaptive_runtime_contract_modules_do_not_import_training_stack() -> Non
         import sys
 
         modules = [
-            "self.adaptive.proposals.proposal_prompts",
-            "self.adaptive.proposals.proposal_prompts",
-            "self.adaptive.run.round_model_dispatch_runtime",
-            "self.adaptive.run.seed_dispatch_runtime",
-            "self.adaptive.run.run_initialization_runtime",
-            "self.adaptive.attempts.attempts",
-            "self.adaptive.attempts.attempts",
+            "self.adaptive.proposal_prompts",
+            "self.adaptive.proposal_prompts",
+            "self.adaptive.round_model_dispatch",
+            "self.adaptive.seed_dispatch",
+            "self.adaptive.run_initialization",
+            "self.adaptive.attempts",
+            "self.adaptive.attempts",
         ]
         for module_name in modules:
             importlib.import_module(module_name)

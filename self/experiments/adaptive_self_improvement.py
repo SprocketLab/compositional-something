@@ -9,12 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-from self.adaptive.frontier.frontier import (
+from self.adaptive.frontier import (
     load_diagnostics_payload,
     proposal_quality_metrics,
     select_frontier,
 )
-from self.adaptive.proposals.proposal_pilot_runtime import (
+from self.adaptive.proposal_pilot_runtime import (
     build_pilot_trace_rows as _trace_rows,
     completion_for_pilot_trace as _completion_for_trace,
     component_prediction_examples_for_pilot_task as _component_prediction_examples,
@@ -29,7 +29,7 @@ from self.adaptive.proposals.proposal_pilot_runtime import (
     validate_config_pilot_row as _validate_config_row,
     validate_program_pilot_row as _validate_program_row,
 )
-from self.adaptive.proposals.proposal_io import load_fixture_proposals, write_trace_jsonl
+from self.adaptive.proposal_io import load_fixture_proposals, write_trace_jsonl
 from self.core.data_io import ensure_dir, sanitize_json_value
 
 

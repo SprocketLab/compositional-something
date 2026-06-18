@@ -8,18 +8,18 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from core.addition_pipeline import AdditionExample, compose_examples, example_key, has_component_boundary_carry
-from self.adaptive.candidates import dispatch as candidate_dispatch
-from self.adaptive.candidates import training as candidate_training
-from self.adaptive.proposals.proposal_config_validation import validate_config_rows
-from self.adaptive.proposals.proposal_grpo_traces import (
+from self.adaptive import candidate_dispatch
+from self.adaptive import candidate_training
+from self.adaptive.proposal_config_validation import validate_config_rows
+from self.adaptive.proposal_grpo_traces import (
     build_proposal_grpo_traces,
     proposal_grpo_advantages,
     proposal_grpo_reward,
 )
-from self.adaptive.proposals.proposal_prompts import choose_default_program_pair
-from self.adaptive.proposals.proposal_runtime import validate_proposal_rows
-from self.adaptive.run import driver_default_bindings, driver_wiring
-from self.adaptive.traces import traces as adaptive_traces
+from self.adaptive.proposal_prompts import choose_default_program_pair
+from self.adaptive.proposal_runtime import validate_proposal_rows
+from self.adaptive import driver_default_bindings, driver_wiring
+from self.adaptive import traces as adaptive_traces
 from self.core import composition
 from self.core.data_io import save_examples
 from self.core.models import (

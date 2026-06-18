@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Sequence
 
-from self.adaptive.controller import PHASE_SEED
+from self.adaptive.phases import PHASE_SEED
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig

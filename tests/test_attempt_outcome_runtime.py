@@ -4,13 +4,13 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Sequence
 
-from self.adaptive.attempts import attempts
-from self.adaptive.attempts.attempts import AttemptOutcomeDeps, handle_attempt_outcome
+from self.adaptive import attempts
+from self.adaptive.attempts import AttemptOutcomeDeps, handle_attempt_outcome
 from self.core.data_io import save_examples, write_json
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
-from self.adaptive.proposals.proposal_io import write_trace_jsonl
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_io import write_trace_jsonl
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 @dataclass(frozen=True)
@@ -57,8 +57,8 @@ def _candidate_metric() -> CandidateMetrics:
 def test_attempt_outcome_helpers_live_in_merged_module() -> None:
     assert attempts.AttemptOutcomeDeps is attempts.AttemptOutcomeDeps
     assert attempts.AttemptOutcomeResult is attempts.AttemptOutcomeResult
-    assert attempts.handle_no_selection_attempt.__module__ == "self.adaptive.attempts.attempts"
-    assert attempts.handle_selected_attempt.__module__ == "self.adaptive.attempts.attempts"
+    assert attempts.handle_no_selection_attempt.__module__ == "self.adaptive.attempts"
+    assert attempts.handle_selected_attempt.__module__ == "self.adaptive.attempts"
 
 
 def test_no_selection_attempt_writes_summary_and_updates_proposal_model(tmp_path: Path) -> None:

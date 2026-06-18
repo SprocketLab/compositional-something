@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Sequence
 
-from self.adaptive.controller import PHASE_PROPOSAL_GRPO
+from self.adaptive.phases import PHASE_PROPOSAL_GRPO
 from self.core.models import CandidateMetrics
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

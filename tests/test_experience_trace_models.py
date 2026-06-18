@@ -4,8 +4,8 @@ import math
 import random
 from types import SimpleNamespace
 
-from self.adaptive.traces import traces
-from self.adaptive.traces.traces import (
+from self.adaptive import traces
+from self.adaptive.traces import (
     OutcomeTraceExample,
     ProposalTraceExample,
     build_post_task_proposal_rehearsal_examples,

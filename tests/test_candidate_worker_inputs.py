@@ -4,7 +4,7 @@ import json
 from argparse import Namespace
 from pathlib import Path
 
-from self.adaptive.candidates.workers import (
+from self.adaptive.candidate_workers import (
     CandidateWorkerRuntimeDeps,
     load_candidate_worker_shared_inputs,
 )

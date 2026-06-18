@@ -2,12 +2,12 @@ import argparse
 from pathlib import Path
 from typing import Any, Sequence
 
-from self.adaptive.attempts.attempts import CandidateAttemptDeps, run_candidate_attempt
-from self.adaptive.attempts.attempts import AttemptOutcomeResult
+from self.adaptive.attempts import CandidateAttemptDeps, run_candidate_attempt
+from self.adaptive.attempts import AttemptOutcomeResult
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
-from self.adaptive.proposals.proposal_prompts import PromptBundle
-from self.adaptive.run.round_model_dispatch_runtime import RoundModelDispatchResult
+from self.adaptive.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_prompts import PromptBundle
+from self.adaptive.round_model_dispatch import RoundModelDispatchResult
 
 
 class _CheckpointManager:

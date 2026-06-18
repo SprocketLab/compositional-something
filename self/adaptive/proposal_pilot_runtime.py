@@ -7,20 +7,20 @@ import json
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
-from self.adaptive.proposals.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, parse_config_proposal
-from self.adaptive.proposals.proposal_io import build_trace_row
-from self.adaptive.proposals.proposal_prompts import (
+from self.adaptive.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, parse_config_proposal
+from self.adaptive.proposal_io import build_trace_row
+from self.adaptive.proposal_prompts import (
     PromptBundle,
     render_config_prompt,
     render_program_prompt,
     render_program_repair_prompt,
 )
-from self.adaptive.sandbox.program_sandbox import validate_program_with_repair
-from self.adaptive.sandbox.program_sandbox import (
+from self.adaptive.program_sandbox import validate_program_with_repair
+from self.adaptive.program_sandbox import (
     build_addition_program_cases,
     build_run_length_program_cases,
 )
-from self.adaptive.sandbox.program_sandbox import ProgramValidationResult
+from self.adaptive.program_sandbox import ProgramValidationResult
 
 
 JsonDict = Dict[str, Any]

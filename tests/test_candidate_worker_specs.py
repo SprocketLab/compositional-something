@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.adaptive.candidates import workers
+from self.adaptive import candidate_workers as workers
 from self.adaptive.proposals import PromptBundle
 
 

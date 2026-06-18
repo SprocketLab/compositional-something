@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.adaptive.candidates.training import (
+from self.adaptive.candidate_training import (
     build_no_pseudo_candidate_metrics,
     build_trained_candidate_metrics,
     mean_accuracy_for_sizes,

@@ -6,7 +6,7 @@ import argparse
 from typing import Any, Dict, List, Mapping, Sequence
 
 from self.core.data_io import sanitize_json_value
-from self.adaptive.proposals.proposal_config_schema import (
+from self.adaptive.proposal_config_schema import (
     DEFAULT_CONFIG_SEARCH_SPACES,
     normalized_config_completion,
     parse_config_proposal,

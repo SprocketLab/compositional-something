@@ -547,17 +547,17 @@ from typing import Any, Callable, List, Sequence
 
 from self.core import worker_io
 from self.core.data_io import save_examples
-from self.adaptive.traces.traces import (
+from self.adaptive.traces import (
     OutcomeTraceExample,
     ProposalTraceExample,
     build_post_task_proposal_rehearsal_examples,
     sample_outcome_trace_replay,
     sample_proposal_trace_replay,
 )
-from self.adaptive.traces.traces import build_candidate_proposal_trace_example
+from self.adaptive.traces import build_candidate_proposal_trace_example
 from self.core.models import CandidateWorkItem
-from self.adaptive.proposals.proposal_io import write_trace_jsonl
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_io import write_trace_jsonl
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 @dataclass(frozen=True)
@@ -706,10 +706,10 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from self.core import worker_io
-from self.adaptive.traces.traces import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive.traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 

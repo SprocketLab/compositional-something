@@ -1,4 +1,4 @@
-from self.adaptive.sandbox import program_sandbox
+from self.adaptive import program_sandbox
 
 
 def test_program_sandbox_case_builders_produce_cases() -> None:

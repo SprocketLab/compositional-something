@@ -4647,7 +4647,7 @@ Acceptance criteria for first pilot:
   stale `self.core.*` references to moved adaptive/nonadaptive modules;
   `~/.conda/envs/torch-env/bin/python -m compileall -q self tests`; `bash -n`
   for the touched adaptive Slurm launchers; `python -m
-  self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
+  self.adaptive_candidate_training --help`; `python -m self.adaptive.driver
   --help`; `git diff --check`.
 
 ### Implementation Log: 2026-06-18 21:41:02 UTC
@@ -4682,7 +4682,7 @@ Acceptance criteria for first pilot:
   touched tests, `tests/test_run_models.py`, and `tests/test_module_proxy.py`)
   passed; stale deleted-module grep found no live references; `compileall`;
   `bash -n` for touched adaptive launchers; `python -m
-  self.adaptive_candidate_training --help`; `python -m self.adaptive.run.driver
+  self.adaptive_candidate_training --help`; `python -m self.adaptive.driver
   --help`; `git diff --check`.
 
 ### Implementation Log: 2026-06-19 02:38 UTC
@@ -4718,3 +4718,19 @@ Acceptance criteria for first pilot:
 - Verification so far: `compileall -q self tests`; stale deleted-module grep
   over tracked source/docs; focused refactor suite (`157 passed`, with existing
   multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 23:22 UTC
+
+- Created and pushed checkpoint tag `pre-adaptive-flatten-20260618-191056` at
+  commit `c913c79` before flattening `self/adaptive`.
+- Removed adaptive subpackages and moved their contents into flat
+  `self/adaptive/*.py` modules: driver/run orchestration, attempts,
+  candidates, controller, frontier, proposals, sandbox, and traces now share a
+  single package level.
+- Updated tracked imports and adaptive Slurm/worker command paths from
+  `python -m self.adaptive.run.driver` to `python -m self.adaptive.driver`.
+- Added lightweight `self/adaptive/phases.py` so seed/round/proposal dispatch
+  can import phase names without loading the full controller or training stack.
+- Verification so far: deleted adaptive subpackage grep is clean; focused
+  adaptive suite passed (`108 passed`, with existing multiprocessing fork
+  warnings).

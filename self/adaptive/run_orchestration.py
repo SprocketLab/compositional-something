@@ -9,15 +9,15 @@ from typing import Any, Dict
 import torch
 from transformers import set_seed
 
-from self.adaptive.attempts.attempts import AttemptLoopDeps, run_adaptive_attempt_loop
-from self.adaptive.attempts.attempts import AttemptPromptDeps
-from self.adaptive.attempts.attempts import AttemptOutcomeDeps
-from self.adaptive.attempts.attempts import DryRunAttemptDeps
-from self.adaptive.run.round_model_dispatch_runtime import RoundModelDispatchDeps
-from self.adaptive.run.run_finalization import finalize_adaptive_run
-from self.adaptive.run.run_initialization_runtime import RunInitializationDeps, initialize_adaptive_run
-from self.adaptive.run.driver_wiring import AdaptiveRunDeps
-from self.adaptive.run.seed_dispatch_runtime import SeedDispatchDeps, run_seed_dispatch
+from self.adaptive.attempts import AttemptLoopDeps, run_adaptive_attempt_loop
+from self.adaptive.attempts import AttemptPromptDeps
+from self.adaptive.attempts import AttemptOutcomeDeps
+from self.adaptive.attempts import DryRunAttemptDeps
+from self.adaptive.round_model_dispatch import RoundModelDispatchDeps
+from self.adaptive.run_finalization import finalize_adaptive_run
+from self.adaptive.run_initialization import RunInitializationDeps, initialize_adaptive_run
+from self.adaptive.driver_wiring import AdaptiveRunDeps
+from self.adaptive.seed_dispatch import SeedDispatchDeps, run_seed_dispatch
 
 
 JsonDict = Dict[str, Any]

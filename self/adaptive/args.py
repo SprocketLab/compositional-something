@@ -10,8 +10,8 @@ from core.addition_pipeline import (
     ADDITION_SAMPLING_NATURAL,
     ADDITION_WIDTH_EXACT_DIGITS,
 )
-from self.adaptive.proposals.proposal_config_schema import PROPOSAL_OUTPUT_SCHEMAS
-from self.adaptive.proposals.proposal_grpo_traces import PROPOSAL_GRPO_REWARD_MODES, PROPOSAL_GRPO_ZERO_VARIANCE_MODES
+from self.adaptive.proposal_config_schema import PROPOSAL_OUTPUT_SCHEMAS
+from self.adaptive.proposal_grpo_traces import PROPOSAL_GRPO_REWARD_MODES, PROPOSAL_GRPO_ZERO_VARIANCE_MODES
 from self.tasks.bit import RUN_LENGTH_TARGET_RUN_STATE
 
 

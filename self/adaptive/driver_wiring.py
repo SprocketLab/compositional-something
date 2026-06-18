@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
-from self.adaptive.run.entrypoint import DriverEntrypointDeps, run_driver_entrypoint
+from self.adaptive.entrypoint import DriverEntrypointDeps, run_driver_entrypoint
 
 
 JsonDict = Dict[str, Any]
@@ -52,13 +52,13 @@ class AdaptiveRunDeps:
 
 
 def candidate_dispatch_deps(bindings: Any) -> CandidateDispatchEntrypointDeps:
-    from self.adaptive.candidates.dispatch import build_candidate_dispatch_deps
+    from self.adaptive.candidate_dispatch import build_candidate_dispatch_deps
 
     return build_candidate_dispatch_deps(bindings)
 
 
 def candidate_failure_metrics(bindings: Any, **kwargs: Any) -> CandidateMetrics:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         candidate_failure_metrics_with_deps as _candidate_failure_metrics_entrypoint,
     )
 
@@ -66,7 +66,7 @@ def candidate_failure_metrics(bindings: Any, **kwargs: Any) -> CandidateMetrics:
 
 
 def train_candidates_serial(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         train_candidates_serial_with_deps as _train_candidates_serial_entrypoint,
     )
 
@@ -74,7 +74,7 @@ def train_candidates_serial(bindings: Any, **kwargs: Any) -> list[CandidateMetri
 
 
 def collect_candidate_array_metrics(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         collect_candidate_array_metrics_with_deps as _collect_candidate_array_metrics_entrypoint,
     )
 
@@ -82,7 +82,7 @@ def collect_candidate_array_metrics(bindings: Any, **kwargs: Any) -> list[Candid
 
 
 def train_candidates_slurm_array(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         train_candidates_slurm_array_with_deps as _train_candidates_slurm_array_entrypoint,
     )
 
@@ -90,7 +90,7 @@ def train_candidates_slurm_array(bindings: Any, **kwargs: Any) -> list[Candidate
 
 
 def train_candidates_local_parallel(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         train_candidates_local_parallel_with_deps as _train_candidates_local_parallel_entrypoint,
     )
 
@@ -98,7 +98,7 @@ def train_candidates_local_parallel(bindings: Any, **kwargs: Any) -> list[Candid
 
 
 def train_candidate_metrics(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidates.dispatch import (
+    from self.adaptive.candidate_dispatch import (
         train_candidate_metrics_with_deps as _train_candidate_metrics_entrypoint,
     )
 
@@ -106,7 +106,7 @@ def train_candidate_metrics(bindings: Any, **kwargs: Any) -> list[CandidateMetri
 
 
 def worker_entrypoint_deps(bindings: Any) -> WorkerEntrypointDeps:
-    from self.adaptive.controller.controller import WorkerEntrypointDeps
+    from self.adaptive.controller import WorkerEntrypointDeps
 
     return WorkerEntrypointDeps(
         load_json=bindings._load_json,
@@ -133,7 +133,7 @@ def run_candidate_worker_from_spec(
     spec_path: Path,
     shared_cache: Optional[MutableMapping[str, Any]] = None,
 ) -> CandidateMetrics:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_candidate_worker_from_spec as _run_candidate_worker_from_spec_entrypoint,
     )
 
@@ -145,7 +145,7 @@ def run_candidate_worker_from_spec(
 
 
 def run_candidate_worker(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_candidate_worker as _run_candidate_worker_entrypoint,
     )
 
@@ -157,7 +157,7 @@ def run_candidate_worker(bindings: Any, spec_path: Path) -> JsonDict:
 
 
 def run_candidate_worker_pack_from_spec(bindings: Any, pack_spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_candidate_worker_pack_from_spec as _run_candidate_worker_pack_from_spec_entrypoint,
     )
 
@@ -169,7 +169,7 @@ def run_candidate_worker_pack_from_spec(bindings: Any, pack_spec_path: Path) -> 
 
 
 def run_candidate_pack_worker(bindings: Any, pack_spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_candidate_pack_worker as _run_candidate_pack_worker_entrypoint,
     )
 
@@ -181,7 +181,7 @@ def run_candidate_pack_worker(bindings: Any, pack_spec_path: Path) -> JsonDict:
 
 
 def run_seed_controller_worker_from_spec(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_seed_controller_worker_from_spec as _run_seed_controller_worker_from_spec_entrypoint,
     )
 
@@ -192,7 +192,7 @@ def run_seed_controller_worker_from_spec(bindings: Any, spec_path: Path) -> Json
 
 
 def run_round_model_controller_worker_from_spec(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_round_model_controller_worker_from_spec as _run_round_model_controller_worker_from_spec_entrypoint,
     )
 
@@ -203,7 +203,7 @@ def run_round_model_controller_worker_from_spec(bindings: Any, spec_path: Path) 
 
 
 def run_proposal_grpo_controller_worker_from_spec(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_proposal_grpo_controller_worker_from_spec as _run_proposal_grpo_controller_worker_from_spec_entrypoint,
     )
 
@@ -214,7 +214,7 @@ def run_proposal_grpo_controller_worker_from_spec(bindings: Any, spec_path: Path
 
 
 def run_controller_worker_from_spec(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_controller_worker_from_spec as _run_controller_worker_from_spec_entrypoint,
     )
 
@@ -225,7 +225,7 @@ def run_controller_worker_from_spec(bindings: Any, spec_path: Path) -> JsonDict:
 
 
 def run_controller_worker(bindings: Any, spec_path: Path) -> JsonDict:
-    from self.adaptive.controller.controller import (
+    from self.adaptive.controller import (
         run_controller_worker as _run_controller_worker_entrypoint,
     )
 
@@ -237,7 +237,7 @@ def run_controller_worker(bindings: Any, spec_path: Path) -> JsonDict:
 
 
 def proposal_grpo_dispatch_deps(bindings: Any) -> ProposalGrpoDispatchDeps:
-    from self.adaptive.proposals.proposal_grpo_dispatch import ProposalGrpoDispatchDeps
+    from self.adaptive.proposal_grpo_dispatch import ProposalGrpoDispatchDeps
 
     return ProposalGrpoDispatchDeps(
         apply_proposal_grpo_update=bindings.apply_proposal_grpo_update,
@@ -258,7 +258,7 @@ def apply_or_dispatch_proposal_grpo_update(
     candidate_metrics: Sequence[CandidateMetrics],
     seed: int,
 ) -> tuple[str, JsonDict]:
-    from self.adaptive.proposals.proposal_grpo_dispatch import (
+    from self.adaptive.proposal_grpo_dispatch import (
         apply_or_dispatch_proposal_grpo_update as _apply_or_dispatch_proposal_grpo_update_impl,
     )
 
@@ -314,7 +314,7 @@ def adaptive_run_deps(bindings: Any) -> AdaptiveRunDeps:
 
 
 def run(bindings: Any, args: argparse.Namespace) -> JsonDict:
-    from self.adaptive.run.run_orchestration import run_adaptive_candidate_training
+    from self.adaptive.run_orchestration import run_adaptive_candidate_training
 
     return run_adaptive_candidate_training(args=args, deps=adaptive_run_deps(bindings))
 

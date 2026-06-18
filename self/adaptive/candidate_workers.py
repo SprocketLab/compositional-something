@@ -143,10 +143,10 @@ from typing import Any, Callable, Dict, MutableMapping, Optional, Sequence
 import torch
 
 from self.core.data_io import load_examples
-from self.adaptive.traces.traces import outcome_trace_from_json, proposal_trace_from_json
+from self.adaptive.traces import outcome_trace_from_json, proposal_trace_from_json
 from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]
@@ -539,7 +539,7 @@ def train_candidates_local_parallel_from_specs(
                     command = [
                         executable,
                         "-m",
-                        "self.adaptive.run.driver",
+                        "self.adaptive.driver",
                         "--run-candidate-pack-worker",
                         "--candidate-worker-pack-spec",
                         str(unit["spec_path"]),
@@ -548,7 +548,7 @@ def train_candidates_local_parallel_from_specs(
                     command = [
                         executable,
                         "-m",
-                        "self.adaptive.run.driver",
+                        "self.adaptive.driver",
                         "--run-candidate-worker",
                         "--candidate-worker-spec",
                         str(unit["spec_path"]),
@@ -865,8 +865,8 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from self.core import worker_io
 from self.core.data_io import ensure_dir, save_examples
-from self.adaptive.proposals.proposal_io import write_trace_jsonl
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_io import write_trace_jsonl
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]
@@ -1010,7 +1010,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Sequence
 
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 from self.core.slurm import cancel_job, slurm_job_active, submit_sbatch
 
 

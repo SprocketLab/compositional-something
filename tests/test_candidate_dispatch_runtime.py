@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.candidates import dispatch, workers
+from self.adaptive import candidate_dispatch as dispatch, candidate_workers as workers
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.adaptive.proposals import ConfigProposal, PromptBundle
 
@@ -237,10 +237,10 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
 
 
 def test_candidate_dispatch_helpers_live_in_merged_module():
-    assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidates.dispatch"
-    assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidates.dispatch"
-    assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidates.dispatch"
-    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidates.dispatch"
+    assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidate_dispatch"
+    assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidate_dispatch"
+    assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidate_dispatch"
+    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidate_dispatch"
 
 
 def test_build_candidate_dispatch_deps_reads_driver_bindings():

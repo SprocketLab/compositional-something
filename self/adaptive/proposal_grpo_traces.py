@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from self.core.data_io import sanitize_json_value
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

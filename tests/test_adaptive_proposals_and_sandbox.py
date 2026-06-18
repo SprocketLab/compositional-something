@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 from self.adaptive import proposals
-from self.adaptive.sandbox import program_sandbox
-from self.adaptive.proposals import proposal_config_schema, proposal_prompts
-from self.adaptive.proposals import proposal_io
+from self.adaptive import program_sandbox
+from self.adaptive import proposal_config_schema, proposal_prompts
+from self.adaptive import proposal_io
 
 
 VALID_RUN_LENGTH_PROGRAM = '''def compose(components, metadata):

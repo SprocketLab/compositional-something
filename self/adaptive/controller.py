@@ -8,10 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-PHASE_SEED = "seed"
-PHASE_ROUND_MODEL = "round_model"
-PHASE_PROPOSAL_GRPO = "proposal_grpo"
+from self.adaptive.phases import PHASE_PROPOSAL_GRPO, PHASE_ROUND_MODEL, PHASE_SEED
 
 
 @dataclass(frozen=True)
@@ -193,7 +190,7 @@ from typing import Any, Callable, Dict
 from transformers import set_seed
 
 from self.core.data_io import load_examples
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]
@@ -379,15 +376,15 @@ from typing import Any, Dict, Optional, Sequence
 import torch
 from transformers import set_seed
 
-from self.adaptive.attempts.attempts import build_attempt_prompt
-from self.adaptive.candidates.training import (
+from self.adaptive.attempts import build_attempt_prompt
+from self.adaptive.candidate_training import (
     attach_pseudo_labels,
     build_candidate_work_items,
     evaluate_model,
     train_checkpoint,
 )
-from self.adaptive.proposals.proposal_generation import load_or_generate_proposal_rows
-from self.adaptive.proposals.proposal_runtime import validate_proposal_rows
+from self.adaptive.proposal_generation import load_or_generate_proposal_rows
+from self.adaptive.proposal_runtime import validate_proposal_rows
 from self.core import worker_io
 from self.core.data_io import ensure_dir
 from self.core.model_io import instantiate_model_and_tokenizer
@@ -597,12 +594,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, MutableMapping, Optional
 
-from self.adaptive.candidates.workers import (
+from self.adaptive.candidate_workers import (
     CandidateWorkerRuntimeDeps,
     run_candidate_worker as _run_candidate_worker_impl,
     run_candidate_worker_from_spec as _run_candidate_worker_from_spec_impl,
 )
-from self.adaptive.candidates.workers import (
+from self.adaptive.candidate_workers import (
     run_candidate_worker_pack_from_spec as _run_candidate_worker_pack_from_spec_impl,
 )
 from self.core.models import CandidateMetrics

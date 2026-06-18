@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from self.core import worker_io
-from self.adaptive.candidates import workers
+from self.adaptive import candidate_workers as workers
 from self.core.models import (
     CandidateMetrics,
     CandidateWorkItem,
@@ -103,10 +103,10 @@ import inspect
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from self.adaptive.traces.traces import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive.traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 
@@ -182,10 +182,10 @@ import argparse
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from self.adaptive.candidates import workers
-from self.adaptive.traces.traces import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive import candidate_workers as workers
+from self.adaptive.traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 def train_candidates_slurm_array(
@@ -274,9 +274,9 @@ import argparse
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from self.adaptive.traces.traces import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive.traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 
@@ -402,9 +402,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Sequence
 
-from self.adaptive.traces.traces import OutcomeTraceExample, ProposalTraceExample
+from self.adaptive.traces import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 from self.core.training import TrainingConfig
 
 

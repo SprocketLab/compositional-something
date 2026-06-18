@@ -288,7 +288,7 @@ if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
     self/self_improvement_tasks.py
 fi
 
-"${PYTHON_BIN}" -m self.adaptive.run.driver \
+"${PYTHON_BIN}" -m self.adaptive.driver \
   --task "${TASK}" \
   --condition "${CONDITION}" \
   --model-name "${MODEL_NAME}" \

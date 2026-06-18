@@ -13,7 +13,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 
 from self.core.data_io import sanitize_json_value
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.adaptive.proposals.proposal_grpo_traces import (
+from self.adaptive.proposal_grpo_traces import (
     PROPOSAL_GRPO_OUTCOME_INVALID_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_MODES,
@@ -25,8 +25,8 @@ from self.adaptive.proposals.proposal_grpo_traces import (
     proposal_grpo_reward,
     proposal_grpo_reward_for_result,
 )
-from self.adaptive.proposals.proposal_io import write_trace_jsonl
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_io import write_trace_jsonl
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 JsonDict = Dict[str, Any]

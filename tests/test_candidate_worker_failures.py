@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from self.adaptive.candidates.workers import (
+from self.adaptive.candidate_workers import (
     candidate_worker_failure_path_from_payload,
     candidate_worker_failure_payload,
     write_candidate_worker_failure_from_spec,

@@ -8,9 +8,9 @@ import argparse
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Mapping, Optional
 
-from self.adaptive.proposals.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal
-from self.adaptive.proposals.proposal_prompts import choose_default_program_pair
-from self.adaptive.proposals.proposal_prompts import (
+from self.adaptive.proposal_config_schema import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal
+from self.adaptive.proposal_prompts import choose_default_program_pair
+from self.adaptive.proposal_prompts import (
     PromptBundle,
     render_config_prompt,
     render_program_candidate_prompt,
@@ -132,7 +132,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_config_schema import ConfigProposal
 
 
 JsonDict = Dict[str, Any]
@@ -247,7 +247,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Sequence
 from self.core.models import CandidateMetrics
 
 if TYPE_CHECKING:
-    from self.adaptive.run.round_model_dispatch_runtime import RoundModelDispatchDeps, RoundModelDispatchResult
+    from self.adaptive.round_model_dispatch import RoundModelDispatchDeps, RoundModelDispatchResult
 
 
 JsonDict = Dict[str, Any]
@@ -331,7 +331,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 from self.core.models import CandidateMetrics
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 def handle_no_selection_attempt(
@@ -446,7 +446,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 def handle_selected_attempt(
@@ -592,7 +592,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 from self.core.models import CandidateMetrics, CandidateWorkItem
-from self.adaptive.proposals.proposal_prompts import PromptBundle
+from self.adaptive.proposal_prompts import PromptBundle
 
 
 def handle_attempt_outcome(

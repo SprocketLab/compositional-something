@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from self.adaptive.traces import traces
-from self.adaptive.traces.traces import build_outcome_trace_example, build_round_outcome_trace_examples
+from self.adaptive import traces
+from self.adaptive.traces import build_outcome_trace_example, build_round_outcome_trace_examples
 
 
 def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity():

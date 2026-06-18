@@ -19,25 +19,14 @@ part of the supported surface.
 
 ## Implementation Map
 
-- `self/adaptive/run/`: adaptive CLI driver, argument parsing, initialization,
-  seed/round dispatch, finalization, and lazy driver wiring.
-- `self/adaptive/attempts/attempts.py`: attempt prompts, dry runs, candidate
-  attempt execution, and selected/no-selection outcome handling.
-- `self/adaptive/candidates/`: candidate work split into three files:
-  `training.py` for data/pseudolabel attachment, training mix, rewards,
-  scoring, and selection; `workers.py` for worker payloads/specs and
-  local/Slurm execution; `dispatch.py` for serial/local/slurm dispatch wiring.
-- `self/adaptive/proposals/`: proposal schemas, prompts, generation,
-  validation, executable-program repair/validation, IO, pilot processing, and
-  proposal-GRPO updates.
-- `self/adaptive/traces/traces.py`: proposal/outcome trace data models,
-  rendering, replay sampling, and trace artifact writing.
-- `self/adaptive/frontier/frontier.py`: frontier candidate extraction and
-  selection helpers.
-- `self/adaptive/controller/controller.py`: controller phases, controller
-  worker runtime, Slurm dispatch, and worker entrypoint wiring.
-- `self/adaptive/sandbox/program_sandbox.py`: generated-program sandbox
-  models, AST checks, execution, and property tests.
+- `self/adaptive/`: flat adaptive implementation modules. Use `driver.py` for
+  the CLI, `args.py` for argument parsing, `run_*.py` plus `*_dispatch.py` for
+  orchestration/dispatch, `attempts.py` for attempt-loop behavior,
+  `candidate_*.py` for candidate data/training/worker execution,
+  `proposal_*.py` plus `proposals.py` for proposal schemas/prompts/validation
+  and GRPO, `traces.py` for proposal and outcome traces, `frontier.py` for
+  frontier helpers, `controller.py` for controller workers, and
+  `program_sandbox.py` for generated-program checks.
 - `self/nonadaptive/`: nonadaptive setup, lifecycle, per-round runtime,
   pseudolabel generation, results, and the public `nonadaptive_loop` facade.
 - `self/core/`: shared utilities only: composition, data/model IO, evaluation,
@@ -64,12 +53,14 @@ python -m self.experiments.figure2_condition_sweep --help
 python -m self.experiments.figure3_seed_quality_sweep --help
 python -m self.diagnostics.check_self_improvement_overfit --help
 python -m self.analysis.plot_self_improvement_figure --help
-python -m self.adaptive.run.driver --help
+python -m self.adaptive.driver --help
 ```
 
 ## Cleanup Policy
 
 - Do not add new top-level `self/*.py` wrappers for implementation modules.
+- Do not add adaptive subpackages; keep `self/adaptive` flat unless there is a
+  strong reason to reintroduce a directory.
 - Prefer task-owned or subsystem-owned modules over prefix-split helper files.
 - Keep compatibility only when a tracked launcher or current notebook needs it;
   otherwise migrate the caller to the canonical module.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from self.adaptive.run import args as adaptive_args
+from self.adaptive import args as adaptive_args
 
 
 def test_args_normalization_preserves_task_defaults() -> None:

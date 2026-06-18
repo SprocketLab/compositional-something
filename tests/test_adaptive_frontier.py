@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from self.adaptive.frontier import frontier
-from self.adaptive.frontier.frontier import build_frontier_candidates
-from self.adaptive.frontier.frontier import FrontierCandidate, FrontierSelection
+from self.adaptive import frontier
+from self.adaptive.frontier import build_frontier_candidates
+from self.adaptive.frontier import FrontierCandidate, FrontierSelection
 
 
 proposal_quality_metrics = frontier.proposal_quality_metrics

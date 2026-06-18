@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from self.adaptive.proposals import proposal_executable_validation, proposal_runtime
+from self.adaptive import proposal_executable_validation, proposal_runtime
 
 
 def test_extract_python_code_handles_markdown_fences_and_prefix_text():

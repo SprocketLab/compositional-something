@@ -7,8 +7,8 @@ import math
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from self.core.models import ExecutableProposal
-from self.adaptive.sandbox.program_sandbox import execute_program_cases
-from self.adaptive.sandbox.program_sandbox import SandboxCase
+from self.adaptive.program_sandbox import execute_program_cases
+from self.adaptive.program_sandbox import SandboxCase
 from self.tasks.bit import normalize_bit_target_mode
 from self.tasks.bit import RUN_LENGTH_TARGET_RUN_STATE
 
@@ -186,7 +186,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from core.addition_pipeline import AdditionExample, build_composed_pseudo_map, example_key
 from self.core.models import ExecutableProposal
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_config_schema import ConfigProposal
 from self.tasks.bit import (
     normalize_bit_target_mode,
 )
@@ -431,7 +431,7 @@ from core.addition_pipeline import (
     has_component_boundary_carry,
 )
 from self.core.models import ExactPairDataset
-from self.adaptive.proposals.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal_config_schema import ConfigProposal
 from self.tasks.run_length import (
     RunLengthExample,
     bucket_run_length_by_bits,

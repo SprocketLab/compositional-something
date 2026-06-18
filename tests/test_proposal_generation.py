@@ -4,14 +4,14 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive.attempts import attempts
-from self.adaptive.proposals import (
+from self.adaptive import attempts
+from self.adaptive import (
     proposal_executable_validation,
     proposal_generation,
     proposal_prompts,
     proposal_runtime,
 )
-from self.adaptive.run import driver_default_bindings
+from self.adaptive import driver_default_bindings
 from self.adaptive.proposals import PromptBundle
 
 
