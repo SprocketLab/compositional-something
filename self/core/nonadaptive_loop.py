@@ -47,6 +47,10 @@ from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
 from self.core.nonadaptive_results import record_nonadaptive_round_summary
+from self.core.nonadaptive_round_setup import (
+    prepare_nonadaptive_round_plan,
+    prepare_nonadaptive_round_training_data,
+)
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
@@ -229,24 +233,34 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     round_dirs: List[Path] = []
 
     for round_idx in range(args.num_expand_rounds + 1):
-        max_size = size_schedule.round_max_size_for_index(round_idx)
-        round_dir = base_output_dir / f"round_{round_idx:02d}"
-        ensure_dir(round_dir)
-        round_dirs.append(round_dir)
-        save_model_this_round = save_model_policy == "all_rounds" or (
-            save_model_policy == "final_only" and round_idx == args.num_expand_rounds
+        round_plan = prepare_nonadaptive_round_plan(
+            base_output_dir=base_output_dir,
+            round_idx=round_idx,
+            size_schedule=size_schedule,
+            save_model_policy=save_model_policy,
+            num_expand_rounds=args.num_expand_rounds,
+            resume_requested=resume_requested,
+            resume_round=resume_round,
+            ensure_dir_fn=ensure_dir,
         )
+        max_size = round_plan.max_size
+        round_dir = round_plan.round_dir
+        round_dirs.append(round_dir)
+        save_model_this_round = round_plan.save_model_this_round
 
-        if resume_requested and round_idx < resume_round:
+        if round_plan.should_skip_completed_round:
             print(f"[INFO] Skipping already completed round {round_idx}.", flush=True)
             continue
 
-        train_examples = list(base_splits["train"])
-        train_examples.extend(pseudo_examples)
-        pseudo_used_count = len(pseudo_examples)
-
-        save_examples(round_dir / "train_examples.jsonl", train_examples, task.serialize_example)
-        save_examples(round_dir / "pseudo_examples_used.jsonl", pseudo_examples, task.serialize_example)
+        round_training_data = prepare_nonadaptive_round_training_data(
+            round_dir=round_dir,
+            base_train_examples=base_splits["train"],
+            pseudo_examples=pseudo_examples,
+            task=task,
+            save_examples_fn=save_examples,
+        )
+        train_examples = round_training_data.train_examples
+        pseudo_used_count = round_training_data.pseudo_used_count
 
         round_training = train_nonadaptive_round_model(
             args=args,

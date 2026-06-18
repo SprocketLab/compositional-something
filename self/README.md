@@ -119,6 +119,8 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_results.py`: non-adaptive round summary creation,
   console summary dispatch, `metrics.json` writing, run-level summary-record
   updates, and compatibility-injected summary/payload bindings.
+- `self/core/nonadaptive_round_setup.py`: per-round directory/save-policy
+  planning plus round training/pseudo-example artifact persistence.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
   for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path
@@ -540,9 +542,11 @@ new implementation code:
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
   IO and loaded-metadata compatibility checks live in
-  `self/core/nonadaptive_state.py`; and deterministic size/frontier
-  arithmetic lives in `self/core/nonadaptive_schedule.py`. These helpers have
-  direct unit coverage.
+  `self/core/nonadaptive_state.py`; deterministic size/frontier arithmetic
+  lives in `self/core/nonadaptive_schedule.py`; and per-round directory,
+  save-policy, and round input artifact setup lives in
+  `self/core/nonadaptive_round_setup.py`. These helpers have direct unit
+  coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
   is a compatibility wrapper. Current `self/core`, `self/experiments`, and
   `self/diagnostics` modules import recipe helpers from the canonical core
