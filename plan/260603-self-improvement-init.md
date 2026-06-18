@@ -3291,3 +3291,11 @@ Acceptance criteria for first pilot:
 - Added `tests/test_bit_composition.py` to pin direct behavior and old reexport compatibility.
 - Updated `self/README.md` to document the new bit-composition task helper.
 - Verification: `python -m py_compile self/tasks/bit_composition.py self/tasks/bit_common.py self/tasks/run_length.py self/tasks/run_length_data.py self/self_improvement_tasks.py tests/test_bit_composition.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_bit_composition tests/test_bit_composition.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py -q` (`41 passed`).
+
+### Implementation Log: 2026-06-18 10:04:01 UTC
+
+- Split rectangular multiplication partition aliases/defaults/parsing/grid helpers out of `self/tasks/rectangular_multiplication.py` into `self/tasks/rectangular_partitions.py`.
+- Preserved old `self.tasks.rectangular_multiplication` and top-level `self.multiplication_rectangular` imports by reexporting the partition helpers through the existing module.
+- Added `tests/test_rectangular_partitions.py` to pin direct helper behavior and old-path reexport compatibility.
+- Updated `self/README.md` to document the rectangular partition helper module.
+- Verification: `python -m py_compile self/tasks/rectangular_partitions.py self/tasks/rectangular_multiplication.py self/multiplication_rectangular.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_partitions tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`30 passed`).

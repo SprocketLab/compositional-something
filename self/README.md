@@ -256,9 +256,12 @@ the supported public surface.
 - `self/tasks/multiplication_data.py`: multiplication example container, key
   encoding, seed/long dataset construction, blocked component payloads, slice
   naming, and override cloning.
+- `self/tasks/rectangular_partitions.py`: rectangular multiplication partition
+  aliases, edge partition defaults, partition parsing/labels, partition-grid
+  construction, and partition bucket IDs.
 - `self/tasks/rectangular_multiplication.py`: rectangular multiplication
-  example formats, partition parsing, sampled partition datasets, supported
-  component construction, and composition helpers for rectangular experiments.
+  example formats, sampled partition datasets, supported component
+  construction, and composition helpers for rectangular experiments.
 - `self/tasks/run_length.py`: run-length task orchestration, metadata
   validation, and `RunLengthTask`.
 - `self/tasks/run_length_data.py`: run-length example container, key
@@ -599,8 +602,9 @@ new implementation code:
   path helpers into `self/tasks/bit_composition.py`, and round-target
   pseudolabel derivation into `self/tasks/run_length_pseudolabels.py`.
   Multiplication example/data construction now lives in
-  `self/tasks/multiplication_data.py`, while `MultiplicationTask` remains the
-  orchestration layer.
+  `self/tasks/multiplication_data.py`, rectangular partition helpers live in
+  `self/tasks/rectangular_partitions.py`, while `MultiplicationTask` remains
+  the orchestration layer.
 - `self/self_improvement_core.py` is now a compatibility facade. Continue
   migrating internal imports to canonical `self/core/*` modules when touching
   old top-level scripts, but preserve the facade for old imports and
