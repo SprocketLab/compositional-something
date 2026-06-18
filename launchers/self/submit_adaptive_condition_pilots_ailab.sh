@@ -40,22 +40,16 @@ submit_condition() {
   if [[ -n "${FRONTIER_DIAGNOSTICS_PATH:-}" ]]; then
     export_vars="${export_vars},FRONTIER_DIAGNOSTICS_PATH=${FRONTIER_DIAGNOSTICS_PATH}"
   fi
-  local -a sbatch_cmd=(
-    sbatch
-    --parsable
-    --job-name "adapt-${job_key}"
-    --output "${LOG_DIR}/adapt-${job_key}-%j.out"
-    --error "${LOG_DIR}/adapt-${job_key}-%j.err"
-    --export "${export_vars}"
-  )
-  adaptive_add_sbatch_resources sbatch_cmd
-  sbatch_cmd+=("${RUNNER}")
-  adaptive_print_command "${sbatch_cmd[@]}"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "dryrun-adapt-${job_key}"
-  else
-    "${sbatch_cmd[@]}" | cut -d';' -f1
-  fi
+  local -a resource_args=()
+  adaptive_add_sbatch_resources resource_args
+  self_submit_sbatch_script \
+    "dryrun-adapt-${job_key}" \
+    "adapt-${job_key}" \
+    "${LOG_DIR}/adapt-${job_key}-%j.out" \
+    "${LOG_DIR}/adapt-${job_key}-%j.err" \
+    "${export_vars}" \
+    "${resource_args[@]}" \
+    "${RUNNER}"
 }
 
 ADDITION_CONFIG_FIXTURE="${ADDITION_CONFIG_FIXTURE:-${ROOT_DIR}/tests/fixtures/adaptive_addition_config_fixture.jsonl}"

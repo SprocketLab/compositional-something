@@ -38,24 +38,14 @@ submit_cell() {
   local zero_slug
   zero_slug="${zero_variance//_/-}"
   local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-grpo-${zero_slug}"
-  local -a cmd=(
-    sbatch
-    --parsable
-    --job-name "adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}"
-    --output "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.out"
-    --error "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.err"
-    --mem "${SBATCH_MEM}"
-    --export "ALL,TASK=${task},CONDITION=${condition},OUTCOME_TRACE_TARGET_MODE=${outcome_mode},PROPOSAL_GRPO_ZERO_VARIANCE=${zero_variance},NUM_CANDIDATES=${num_candidates},OUT_DIR=${out_dir},ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}"
+  self_submit_sbatch_script \
+    "dryrun-adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}" \
+    "adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}" \
+    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.out" \
+    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}-%j.err" \
+    "ALL,TASK=${task},CONDITION=${condition},OUTCOME_TRACE_TARGET_MODE=${outcome_mode},PROPOSAL_GRPO_ZERO_VARIANCE=${zero_variance},NUM_CANDIDATES=${num_candidates},OUT_DIR=${out_dir},ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}" \
+    --mem "${SBATCH_MEM}" \
     "${SBATCH_SCRIPT}"
-  )
-  printf '[INFO] Command:' >&2
-  printf ' %q' "${cmd[@]}" >&2
-  printf '\n' >&2
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "dryrun-adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${zero_slug}"
-  else
-    "${cmd[@]}" | cut -d';' -f1
-  fi
 }
 
 declare -a MANIFEST_ARGS=()

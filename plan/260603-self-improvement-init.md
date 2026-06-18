@@ -3598,3 +3598,12 @@ Acceptance criteria for first pilot:
 - Kept `self/self_improvement_tasks.py` and `self/self_improvement_core.py` as thin old-path facades with the same public `__all__` names and the same non-adaptive monkeypatch sync behavior.
 - Updated `self/README.md` to document the manifest modules and the thinner facade ownership boundary.
 - Verification: `python -m py_compile self/tasks/compat_exports.py self/self_improvement_tasks.py self/core/nonadaptive_facade_exports.py self/self_improvement_core.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_facade_exports tests/test_self_improvement_tasks.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_run_length_recipe.py -q` (`43 passed`).
+
+### Implementation Log: 2026-06-18 13:30:26 UTC
+
+- Continued Slurm launcher consolidation by adding `self_submit_sbatch_script(...)` to `launchers/self/lib/self_common.sh` for submitters that launch an sbatch script with shared job/log/export metadata plus extra sbatch arguments.
+- Updated `launchers/self/submit_adaptive_candidate_training_ailab.sh` to use the shared sbatch-script helper while preserving its matrix loops, dry-run job IDs, environment export payload, and submission manifest schema.
+- Updated `launchers/self/submit_adaptive_condition_pilots_ailab.sh` to use the same helper together with the existing shared resource-default helper while preserving its four condition jobs and manifest schema.
+- Added dry-run manifest tests for both adaptive submitters so the shared helper is covered through real launcher entry points.
+- Updated `self/README.md` to document that the adaptive candidate and condition-pilot submitters now share sbatch-script submission plumbing.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/lib/adaptive_common.sh launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/submit_adaptive_condition_pilots_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch launchers/self/run_adaptive_condition_ailab.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_launcher_helper tests/test_adaptive_candidate_launcher.py tests/test_adaptive_condition_launcher.py tests/test_main_experiments_launcher.py -q` (`8 passed`); `git diff --check`.

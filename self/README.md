@@ -481,8 +481,10 @@ the supported public surface.
   `launchers/self/submit_main_experiments_ailab.sh` source the shared helper
   before building Slurm command matrices and manifests. The condition-pilot
   and main-experiment submitters use the shared Slurm resource/default helpers
-  rather than hand-assembling the common resource arguments; the
-  main-experiment submitter also uses the shared wrapped-job submission helper.
+  rather than hand-assembling the common resource arguments. The adaptive
+  candidate and condition-pilot submitters use the shared sbatch-script
+  submission helper, while the main-experiment submitter uses the shared
+  wrapped-job submission helper.
 - `launchers/self/config/adaptive_candidate_*.env`: default-only config files
   for adaptive candidate-training runs. Source them through
   `ADAPTIVE_CONFIG_FILE` or colon-separated `ADAPTIVE_CONFIG_FILES`; explicit

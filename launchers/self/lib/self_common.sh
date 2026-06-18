@@ -146,6 +146,32 @@ self_submit_sbatch_command() {
   fi
 }
 
+self_submit_sbatch_script() {
+  local dry_run_job_id="$1"
+  local job_name="$2"
+  local stdout_log="$3"
+  local stderr_log="$4"
+  local export_vars="$5"
+  shift 5
+  local -a sbatch_cmd=(
+    sbatch
+    --parsable
+    --job-name "${job_name}"
+    --output "${stdout_log}"
+    --error "${stderr_log}"
+  )
+  if [[ -n "${export_vars}" ]]; then
+    sbatch_cmd+=(--export "${export_vars}")
+  fi
+  sbatch_cmd+=("$@")
+  self_print_command "${sbatch_cmd[@]}"
+  if self_parse_bool "${DRY_RUN:-0}"; then
+    echo "${dry_run_job_id}"
+  else
+    "${sbatch_cmd[@]}" | cut -d';' -f1
+  fi
+}
+
 self_print_command() {
   printf '[INFO] Command:' >&2
   printf ' %q' "$@" >&2
