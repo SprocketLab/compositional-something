@@ -145,10 +145,12 @@ tests, notebooks, and older artifacts.
 ## Current Tasks
 
 - `self/tasks/addition.py`: addition task orchestration, compose/direct
-  pseudolabel derivation, metadata validation, and `AdditionTask`.
+  pseudolabel dispatch, metadata validation, and `AdditionTask`.
 - `self/tasks/addition_data.py`: addition example/data helper surface,
   canonical addition pipeline reexports, initial/composed/eval dataset
   preparation, boundary-carry slicing, and numeric-target corruption helper.
+- `self/tasks/addition_pseudolabels.py`: addition direct/compose/corrupt
+  pseudolabel derivation and pseudolabel diagnostics.
 - `self/tasks/bit_common.py`: shared bit-task constants, parsers,
   composition-size helpers, guarded pseudolabel refill, and direct
   pseudolabel utilities.
@@ -447,7 +449,8 @@ new implementation code:
   run-length. `self/self_improvement_tasks.py` is now an explicit
   compatibility facade over canonical `self/tasks/*` and `self/core/*`
   imports; keep it facade-only. Addition data and slice helpers live in
-  `self/tasks/addition_data.py`, while `AdditionTask` remains the
+  `self/tasks/addition_data.py`, pseudolabel derivation lives in
+  `self/tasks/addition_pseudolabels.py`, and `AdditionTask` remains the
   orchestration layer. The large run-length adapter has split pure
   state/target logic into `self/tasks/run_length_logic.py`, data/example
   construction into `self/tasks/run_length_data.py`, and round-target
