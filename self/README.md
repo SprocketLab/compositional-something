@@ -625,7 +625,9 @@ new implementation code:
   condition-pilot, main-experiment, exact-digit addition, and fixed-width
   more-data addition submitters use common Slurm resource/default helpers; the
   fixed-width mixed-prompt addition seed/fullpack runners and mixed submitter
-  share generic repo-root/Python/boolean/command-printing helpers; the addition
+  share generic repo-root/Python/boolean/command-printing helpers, with the
+  fullpack and more-data sweep context banners routed through
+  `self_print_context`; the addition
   fullpack-filtered runner/submitter share generic
   repo-root/Python/boolean/command-printing helpers; the addition recipe
   diagnostic launcher and recipe focused/fullpack/recovery workflow share the

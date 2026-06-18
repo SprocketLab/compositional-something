@@ -93,16 +93,17 @@ run_baseline() {
   "${cmd[@]}"
 }
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Seed model: ${SEED_MODEL}"
-echo "[INFO] Baseline selector: ${ONLY_BASELINE:-all}"
-echo "[INFO] Addition width mode: ${ADDITION_WIDTH_MODE}"
-echo "[INFO] Addition sampling mode: ${ADDITION_SAMPLING_MODE}"
-echo "[INFO] Addition composition path mode: ${ADDITION_COMPOSITION_PATH_MODE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Schedule: rounds=${NUM_EXPAND_ROUNDS} expand_num_digits=${EXPAND_NUM_DIGITS} seed_replay_train_per_digit=${SEED_REPLAY_TRAIN_PER_DIGIT} expand_train_per_digit=${EXPAND_TRAIN_PER_DIGIT}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Seed model" "${SEED_MODEL}" \
+  "Baseline selector" "${ONLY_BASELINE:-all}" \
+  "Addition width mode" "${ADDITION_WIDTH_MODE}" \
+  "Addition sampling mode" "${ADDITION_SAMPLING_MODE}" \
+  "Addition composition path mode" "${ADDITION_COMPOSITION_PATH_MODE}" \
+  "Dry run" "${DRY_RUN}" \
+  "Schedule" "rounds=${NUM_EXPAND_ROUNDS} expand_num_digits=${EXPAND_NUM_DIGITS} seed_replay_train_per_digit=${SEED_REPLAY_TRAIN_PER_DIGIT} expand_train_per_digit=${EXPAND_TRAIN_PER_DIGIT}"
 
 run_baseline short_only --pseudo-label-mode none
 run_baseline direct --pseudo-label-mode direct

@@ -3073,3 +3073,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_multiplication_rectangular_square_seed_mig.sbatch` and `launchers/self/run_multiplication_rectangular_square_compose_diagnostic_mig.sbatch` to route repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving CUDA dry-run status lines, command construction, and wrapper submission behavior.
 - Updated `self/README.md` to note that rectangular square runners now share context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_multiplication_rectangular_square_seed_mig.sbatch launchers/self/run_multiplication_rectangular_square_compose_diagnostic_mig.sbatch launchers/self/submit_multiplication_rectangular_square_probe_mig.sh launchers/self/submit_multiplication_rectangular_square_seed_resweep_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_square_helpers tests/test_multiplication_rectangular_square_launchers.py -q` (`6 passed`).
+
+### Implementation Log: 2026-06-18 08:04:51 UTC
+
+- Extended shared context-banner printing to the tested fixed-width mixed-prompt addition fullpack and more-data sweep launchers.
+- Updated `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh` and `launchers/self/submit_addition_fixedwidth_moredata_mig.sh` to route repeated top-level `[INFO]` context output through `self_print_context(...)` while preserving baseline command construction, Slurm manifest writing, and dry-run grid output.
+- Updated `self/README.md` to note that the fixed-width fullpack and more-data sweep context banners now use the shared helper path.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh launchers/self/submit_addition_fixedwidth_moredata_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_fixedwidth_helpers tests/test_addition_fixedwidth_moredata_launcher.py -q` (`3 passed`).
