@@ -102,6 +102,8 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_bootstrap.py`: non-adaptive resume checkpoint
   selection, model/tokenizer instantiation, training config/collator setup,
   decode-budget derivation, and resumed pseudo-seed loading.
+- `self/core/nonadaptive_dataset_context.py`: non-adaptive loaded-dataset
+  validation/reporting, composed-eval slice reporting, and eval-key context.
 - `self/core/nonadaptive_datasets.py`: non-adaptive initial/composed/eval
   dataset generation and persisted dataset loading.
 - `self/core/nonadaptive_evaluation.py`: non-adaptive base/composed round
@@ -534,8 +536,9 @@ new implementation code:
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
-  dynamic refresh, pseudo-label, and summary loop. Base/composed round
-  evaluation now lives in `self/core/nonadaptive_evaluation.py`; per-round
+  dynamic refresh, pseudo-label, and summary loop. Dataset-context validation
+  and reporting now live in `self/core/nonadaptive_dataset_context.py`;
+  base/composed round evaluation now lives in `self/core/nonadaptive_evaluation.py`; per-round
   training setup and execution lives in `self/core/nonadaptive_training.py`;
   dataset generation/loading lives in `self/core/nonadaptive_datasets.py`;
   resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;

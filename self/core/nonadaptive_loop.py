@@ -42,6 +42,7 @@ from self.core.model_io import (
     sync_model_special_token_ids,
 )
 from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
+from self.core.nonadaptive_dataset_context import prepare_nonadaptive_dataset_context
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
@@ -181,25 +182,16 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     composed_eval_examples = datasets.composed_eval_examples
     composed_eval_component_map = datasets.composed_eval_component_map
 
-    if not base_splits["train"]:
-        raise ValueError("Base training split is empty; cannot proceed.")
-
-    print(
-        "[INFO] Dataset sizes -- base train: {} | composed pool: {} | eval: {} | composed eval: {}".format(
-            len(base_splits["train"]),
-            len(composed_examples),
-            len(eval_examples),
-            len(composed_eval_examples),
-        ),
-        flush=True,
+    dataset_context = prepare_nonadaptive_dataset_context(
+        task=task,
+        base_splits=base_splits,
+        composed_examples=composed_examples,
+        eval_examples=eval_examples,
+        composed_eval_examples=composed_eval_examples,
+        composed_eval_component_map=composed_eval_component_map,
     )
-
-    composed_eval_slices = task.split_composed_eval_slices(composed_eval_examples, composed_eval_component_map)
-    if composed_eval_examples and composed_eval_slices:
-        counts_text = " | ".join(f"{name}: {len(examples)}" for name, examples in composed_eval_slices.items())
-        print(f"[INFO] Composed eval slices -- {counts_text}", flush=True)
-
-    eval_keys = task.keys_for_examples(eval_examples)
+    composed_eval_slices = dataset_context.composed_eval_slices
+    eval_keys = dataset_context.eval_keys
 
     bootstrap = prepare_nonadaptive_bootstrap(
         args,
