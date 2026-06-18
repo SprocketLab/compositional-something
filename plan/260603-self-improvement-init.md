@@ -3917,3 +3917,11 @@ Acceptance criteria for first pilot:
 - Migrated `launchers/self/run_figure2_recipe_aggressive.sh` off its local task-default case blocks and onto the shared helper/config while preserving existing environment overrides, dry-run command output, gates, and stage/baseline behavior.
 - Added launcher coverage for custom `FIGURE2_TASK_CONFIG` sourcing and updated `self/README.md` with the new Figure 2 task-config/helper boundary.
 - Verification: `bash -n launchers/self/run_figure2_recipe_aggressive.sh launchers/self/lib/figure2_recipe_common.sh launchers/self/config/figure2_run_length.env launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_recipe_config tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`10 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:10:12 UTC
+
+- Added `launchers/self/config/multiplication_rectangular_seed_sweep.env` as the explicit rectangular multiplication seed-sweep matrix/default file for stage-0 sanity training, stage-1 train-count/LR grid, and stage-3 escalation size.
+- Updated `launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh` to source the config, parse the Stage 1 matrix from string variables, and print the resolved matrix in its context banner.
+- Preserved the default six Stage 1 dry-run jobs, stage-0 export payload, polling/selection flow, and model-link behavior while allowing alternate matrices through `SEED_SWEEP_CONFIG`.
+- Added launcher coverage for custom seed-sweep config sourcing and updated `self/README.md` with the new config boundary.
+- Verification: `bash -n launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh launchers/self/config/multiplication_rectangular_seed_sweep.env launchers/self/run_multiplication_rectangular_seed_mig.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rect_seed_sweep_config tests/test_multiplication_rectangular_seed_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.

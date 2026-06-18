@@ -6,6 +6,9 @@ source "${SCRIPT_DIR}/lib/self_common.sh"
 self_cd_repo_root
 self_resolve_python
 
+SEED_SWEEP_CONFIG="${SEED_SWEEP_CONFIG:-${ROOT_DIR}/launchers/self/config/multiplication_rectangular_seed_sweep.env}"
+self_source_config_file "${SEED_SWEEP_CONFIG}" "multiplication rectangular seed-sweep config"
+
 LAUNCHER="${ROOT_DIR}/launchers/self/run_multiplication_rectangular_seed_mig.sbatch"
 MODEL_LINK="${ROOT_DIR}/artifacts/models/multiplication_rectangular_seed_best"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-60}"
@@ -18,11 +21,12 @@ MAX_STEPS="${MAX_STEPS:-10000}"
 TS="$(date +%Y%m%d_%H%M%S)"
 OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/multiplication_rectangular_seed_search_${TS}}"
 
-STAGE0_TRAIN_PER_PARTITION=10
-STAGE0_MAX_STEPS=1000
-STAGE1_TRAIN_COUNTS=(25000 50000)
-STAGE1_LRS=(2e-5 5e-5 1e-4)
-STAGE3_TRAIN_PER_PARTITION=100000
+read -r -a STAGE1_TRAIN_COUNTS <<< "${STAGE1_TRAIN_COUNTS_RAW}"
+read -r -a STAGE1_LRS <<< "${STAGE1_LRS_RAW}"
+if (( ${#STAGE1_TRAIN_COUNTS[@]} == 0 || ${#STAGE1_LRS[@]} == 0 )); then
+  echo "[ERROR] Stage 1 sweep matrix cannot be empty." >&2
+  exit 2
+fi
 
 mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 mkdir -p "$(dirname "${MODEL_LINK}")"
@@ -33,7 +37,10 @@ self_print_context \
   "Output root" "${OUT_ROOT}" \
   "Log dir" "${LOG_DIR}" \
   "Launcher" "${LAUNCHER}" \
+  "Seed sweep config" "${SEED_SWEEP_CONFIG}" \
   "Stable model link" "${MODEL_LINK}" \
+  "Stage 1 train counts" "${STAGE1_TRAIN_COUNTS[*]}" \
+  "Stage 1 learning rates" "${STAGE1_LRS[*]}" \
   "Dry run" "${DRY_RUN}"
 
 write_status() {

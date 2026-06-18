@@ -8,10 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "launchers" / "self" / "run_multiplication_rectangular_seed_mig.sbatch"
 WRAPPER = ROOT / "launchers" / "self" / "submit_multiplication_rectangular_seed_sweep_mig.sh"
+SEED_SWEEP_CONFIG = ROOT / "launchers" / "self" / "config" / "multiplication_rectangular_seed_sweep.env"
 
 
 def test_multiplication_seed_launchers_have_valid_bash_syntax():
-    for script in (LAUNCHER, WRAPPER):
+    for script in (LAUNCHER, WRAPPER, SEED_SWEEP_CONFIG):
         assert script.exists()
         subprocess.run(["bash", "-n", str(script)], check=True)
 
@@ -107,3 +108,44 @@ def test_multiplication_seed_wrapper_dry_run_emits_six_stage1_jobs(tmp_path):
     assert "--error" in combined
     assert r"--export ALL\,OUT_ROOT=" in combined
     assert r"\,TRAIN_PER_PARTITION=10\," in combined
+
+
+def test_multiplication_seed_wrapper_can_source_custom_sweep_config(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "seed_wrapper_custom")
+    env["LOG_DIR"] = str(tmp_path / "logs")
+    env["SEED_SWEEP_CONFIG"] = str(tmp_path / "seed_sweep.env")
+    Path(env["SEED_SWEEP_CONFIG"]).write_text(
+        "\n".join(
+            [
+                "STAGE0_TRAIN_PER_PARTITION=3",
+                "STAGE0_MAX_STEPS=17",
+                "STAGE1_TRAIN_COUNTS_RAW='111 222'",
+                "STAGE1_LRS_RAW='7e-5'",
+                "STAGE3_TRAIN_PER_PARTITION=333",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    combined = result.stdout + result.stderr
+    assert "Loaded multiplication rectangular seed-sweep config" in stdout
+    assert "Stage 1 train counts: 111 222" in stdout
+    assert "Stage 1 learning rates: 7e-5" in stdout
+    assert stdout.count("[INFO] Stage 1 dry-run job=") == 2
+    assert "train_111_lr_7em5" in stdout
+    assert "train_222_lr_7em5" in stdout
+    assert r"\,TRAIN_PER_PARTITION=3\," in combined
+    assert r"\,MAX_STEPS=17\," in combined
