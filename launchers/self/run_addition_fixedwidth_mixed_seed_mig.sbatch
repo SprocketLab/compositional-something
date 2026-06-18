@@ -127,8 +127,7 @@ if self_parse_bool "${SAVE_MODEL}"; then
     echo "[ERROR] Expected saved model at ${OUT_ROOT}/model" >&2
     exit 1
   fi
-  ln -sfn "${OUT_ROOT}/model" "${SEED_MODEL_LINK}"
-  echo "[INFO] Updated ${SEED_MODEL_LINK} -> ${OUT_ROOT}/model"
+  self_update_symlink "${OUT_ROOT}/model" "${SEED_MODEL_LINK}"
 fi
 
 echo "[INFO] Finished fixed-width mixed-prompt addition seed."

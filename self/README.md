@@ -545,8 +545,9 @@ the supported public surface.
   printing to stdout or stderr, shell-quoted env-wrapped and repo-root
   command construction, colon-separated config-file sourcing, shared
   Torch/CUDA probe printing, Hugging Face/local model-snapshot preflight with
-  optional tokenizer-mode checks, and small shell utilities such as boolean
-  parsing for launcher flags.
+  optional tokenizer-mode checks, stable model/seed symlink updates with
+  dry-run reporting, and small shell utilities such as boolean parsing for
+  launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive-labeled config-file sourcing wrappers, worker
@@ -595,8 +596,9 @@ the supported public surface.
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
   dry-run command printing. The runner also uses the shared model-snapshot
-  preflight with `TOKENIZER_MODE`, including the fixed-char tokenizer branch.
-  The submitter also uses the shared sbatch-script submission helper for
+  preflight with `TOKENIZER_MODE`, including the fixed-char tokenizer branch,
+  and the shared dry-run-aware seed-model symlink updater. The submitter also
+  uses the shared sbatch-script submission helper for
   per-baseline Slurm metadata and explicit environment export payloads. Its
   default baseline list lives in
   `launchers/self/config/addition_fullpack_filtered.env`.
@@ -608,11 +610,13 @@ the supported public surface.
   `launchers/self/run_addition_recipe_fullpack.sh`, and
   `launchers/self/run_addition_recipe_recovery.sh` use the generic helper for
   repo-root/Python setup where needed, boolean parsing, and dry-run command
-  printing across the recipe recovery workflow.
+  printing across the recipe recovery workflow. The recovery launcher uses the
+  shared stable seed-model symlink updater after selecting the recovered seed.
 - `launchers/self/run_addition_tiny_seed_mig.sbatch` and
   `launchers/self/run_addition_seed_shared.sbatch` use the generic helper for
   repo-root/Python setup, boolean parsing, context printing, and staged
-  dry-run command printing across the addition seed workflows.
+  dry-run command printing across the addition seed workflows, with final seed
+  checkpoint symlink updates routed through the shared helper.
 - `launchers/self/submit_run_length_fixed_binary_mig.sh` uses the generic
   helper for repo-root/Python setup and per-job explicit Slurm resource
   argument construction across GPU and CPU jobs. It now launches the alpha-10
@@ -641,7 +645,8 @@ the supported public surface.
   generic helper for repo-root/Python setup, boolean parsing, and stdout/stderr
   command-printing helpers while preserving their existing dry-run streams.
   The seed-sweep and fullpack submitters also use the shared sbatch-script
-  submission helper for per-job names, logs, and explicit export payloads.
+  submission helper for per-job names, logs, and explicit export payloads; the
+  seed-sweep winner model link is updated through the shared symlink helper.
   The seed-sweep matrix defaults live in
   `launchers/self/config/multiplication_rectangular_seed_sweep.env`, and the
   fullpack baseline/training defaults live in

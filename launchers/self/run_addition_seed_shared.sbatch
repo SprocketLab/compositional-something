@@ -86,5 +86,5 @@ fi
 
 "${CMD[@]}"
 
-ln -sfn "${OUT_ROOT}/round_00" "${OUT_ROOT}/seed_model"
+self_update_symlink "${OUT_ROOT}/round_00" "${OUT_ROOT}/seed_model"
 echo "[INFO] Seed checkpoint ready at ${OUT_ROOT}/seed_model"

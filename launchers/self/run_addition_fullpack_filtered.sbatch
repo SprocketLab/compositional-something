@@ -88,12 +88,7 @@ self_print_context \
   "Slurm job id" "${SLURM_JOB_ID:-unknown}" \
   "Hostname" "$(hostname)"
 if [[ "${MODEL_NAME}" == "${SEED_MODEL_LINK}" ]]; then
-  mkdir -p "$(dirname "${SEED_MODEL_LINK}")"
-  if self_parse_bool "${DRY_RUN}"; then
-    echo "[INFO] DRY_RUN=1; would update ${SEED_MODEL_LINK} -> ${SEED_MODEL_TARGET}"
-  else
-    ln -sfn "${SEED_MODEL_TARGET}" "${SEED_MODEL_LINK}"
-  fi
+  self_update_symlink_or_dry_run "${SEED_MODEL_TARGET}" "${SEED_MODEL_LINK}" "${DRY_RUN}"
 fi
 
 if self_parse_bool "${DRY_RUN}"; then

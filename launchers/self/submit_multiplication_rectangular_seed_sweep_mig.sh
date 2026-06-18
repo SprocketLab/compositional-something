@@ -302,10 +302,9 @@ import sys
 raise SystemExit(0 if float(sys.argv[1]) >= 0.95 else 1)
 PY
 then
-  ln -sfn "${stage2_model_dir}" "${MODEL_LINK}"
+  self_update_symlink "${stage2_model_dir}" "${MODEL_LINK}"
   write_best_summary "stage2" "${stage2_summary}" "${stage2_model_dir}"
   write_status "completed_stage2"
-  echo "[INFO] Updated ${MODEL_LINK} -> ${stage2_model_dir}"
   exit 0
 fi
 
@@ -334,10 +333,9 @@ raise SystemExit(0 if float(sys.argv[1]) >= 0.95 else 1)
 PY
   then
     cleanup_model_dir "${stage2_model_dir}"
-    ln -sfn "${stage3_model_dir}" "${MODEL_LINK}"
+    self_update_symlink "${stage3_model_dir}" "${MODEL_LINK}"
     write_best_summary "stage3" "${stage3_summary}" "${stage3_model_dir}"
     write_status "completed_stage3"
-    echo "[INFO] Updated ${MODEL_LINK} -> ${stage3_model_dir}"
     exit 0
   fi
 

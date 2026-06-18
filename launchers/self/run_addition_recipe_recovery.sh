@@ -89,9 +89,7 @@ summary = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 print(summary["seed"]["model_dir"])
 PY
 )"
-mkdir -p "$(dirname "${SEED_MODEL_LINK}")"
-ln -sfn "${SEED_MODEL_TARGET}" "${SEED_MODEL_LINK}"
-echo "[INFO] Updated recipe seed link: ${SEED_MODEL_LINK} -> ${SEED_MODEL_TARGET}"
+self_update_symlink "${SEED_MODEL_TARGET}" "${SEED_MODEL_LINK}"
 
 env \
   OUT_ROOT="${OUT_ROOT}/focused" \

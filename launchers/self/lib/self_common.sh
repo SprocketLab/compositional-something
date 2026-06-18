@@ -268,6 +268,26 @@ self_print_context() {
   done
 }
 
+self_update_symlink() {
+  local target_path="${1:?target path is required}"
+  local link_path="${2:?link path is required}"
+  mkdir -p "$(dirname "${link_path}")"
+  ln -sfn "${target_path}" "${link_path}"
+  echo "[INFO] Updated ${link_path} -> ${target_path}"
+}
+
+self_update_symlink_or_dry_run() {
+  local target_path="${1:?target path is required}"
+  local link_path="${2:?link path is required}"
+  local dry_run_value="${3:-${DRY_RUN:-0}}"
+  mkdir -p "$(dirname "${link_path}")"
+  if self_parse_bool "${dry_run_value}"; then
+    echo "[INFO] DRY_RUN=1; would update ${link_path} -> ${target_path}"
+  else
+    self_update_symlink "${target_path}" "${link_path}"
+  fi
+}
+
 self_print_python_launcher_context() {
   local out_root="$1"
   shift

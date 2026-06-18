@@ -396,7 +396,7 @@ if [[ ! -d "${WINNER_MODEL_DIR}" ]]; then
 fi
 
 cleanup_saved_models "${WINNER_MODEL_DIR}" "${STAGE2_MODEL_DIR}" "${STAGE3_MODEL_DIR}"
-ln -sfn "${WINNER_MODEL_DIR}" "${OUT_ROOT}/seed_model"
+self_update_symlink "${WINNER_MODEL_DIR}" "${OUT_ROOT}/seed_model"
 printf '%s\n' "${WINNER_MODEL_DIR}" > "${OUT_ROOT}/winner_model_path.txt"
 printf '%s\n' "${WINNER_STAGE}" > "${OUT_ROOT}/winner_stage.txt"
 write_status "${WINNER_STAGE}_success"

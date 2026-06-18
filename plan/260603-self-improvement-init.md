@@ -4099,3 +4099,32 @@ Acceptance criteria for first pilot:
   it differs from the standard AutoTokenizer-only launchers.
 - Updated launcher helper tests and `self/README.md` for the optional
   tokenizer-mode preflight path.
+
+### Implementation Log: 2026-06-18 18:49:37 UTC
+
+- Added shared stable symlink helpers to `launchers/self/lib/self_common.sh`:
+  `self_update_symlink(...)` and `self_update_symlink_or_dry_run(...)`.
+- Migrated addition seed/fullpack/recovery launchers and the rectangular
+  multiplication seed-sweep winner-link updates from hand-written
+  `mkdir`/`ln -sfn`/`echo` blocks to the shared helper without changing their
+  acceptance, status-file, or dry-run semantics.
+- Added direct helper tests covering parent-directory creation, real symlink
+  updates, and dry-run-only reporting; updated the tiny addition seed launcher
+  test to assert the shared helper boundary.
+- Updated `self/README.md` with the new launcher helper responsibility.
+- Verification: `bash -n launchers/self/lib/self_common.sh
+  launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch
+  launchers/self/run_addition_fullpack_filtered.sbatch
+  launchers/self/run_addition_recipe_recovery.sh
+  launchers/self/run_addition_seed_shared.sbatch
+  launchers/self/run_addition_tiny_seed_mig.sbatch
+  launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh`;
+  `python -m py_compile tests/test_self_common_launcher_helpers.py
+  tests/test_addition_tiny_seed_mig_launcher.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_symlink_helper
+  tests/test_self_common_launcher_helpers.py
+  tests/test_addition_tiny_seed_mig_launcher.py
+  tests/test_addition_fullpack_filtered_launcher.py
+  tests/test_addition_fixedwidth_moredata_launcher.py
+  tests/test_addition_recipe_recovery_launchers.py
+  tests/test_multiplication_rectangular_seed_launchers.py -q` (`40 passed`).

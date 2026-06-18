@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -73,6 +74,54 @@ def test_self_common_wraps_repo_command_with_pythonpath_and_quotes(tmp_path: Pat
     assert result.stdout.startswith("cd ")
     assert "&& PYTHONPATH=. python -m self.run_length_self_improvement" in result.stdout
     assert "path\\ with\\ spaces" in result.stdout
+
+
+def test_self_common_updates_symlink_and_creates_parent(tmp_path: Path):
+    target = tmp_path / "model target"
+    link = tmp_path / "artifacts" / "models" / "seed_best"
+    target.mkdir()
+
+    script = (
+        "set -euo pipefail\n"
+        f"source {SELF_COMMON}\n"
+        f"self_update_symlink {shlex.quote(str(target))} {shlex.quote(str(link))}\n"
+    )
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert f"[INFO] Updated {link} -> {target}" in result.stdout
+    assert link.is_symlink()
+    assert os.readlink(link) == str(target)
+
+
+def test_self_common_symlink_dry_run_only_reports_update(tmp_path: Path):
+    target = tmp_path / "model target"
+    link = tmp_path / "artifacts" / "models" / "seed_best"
+    target.mkdir()
+
+    script = (
+        "set -euo pipefail\n"
+        f"source {SELF_COMMON}\n"
+        f"self_update_symlink_or_dry_run {shlex.quote(str(target))} {shlex.quote(str(link))} 1\n"
+    )
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert f"[INFO] DRY_RUN=1; would update {link} -> {target}" in result.stdout
+    assert link.parent.is_dir()
+    assert not link.exists()
 
 
 def test_self_common_model_preflight_uses_configured_python_and_model_name(tmp_path: Path):

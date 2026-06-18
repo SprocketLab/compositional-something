@@ -35,7 +35,7 @@ def test_addition_tiny_seed_mig_launcher_uses_expected_seed_fit_pipeline():
     assert 'STAGE3_TRAIN_PER_DIGIT=$(( TRAIN_PER_DIGIT * 2 ))' in text
     assert 'STAGE3_MAX_STEPS=$(( MAX_STEPS * 2 ))' in text
     assert 'write_status "non_viable_stage1"' in text
-    assert 'ln -sfn "${WINNER_MODEL_DIR}" "${OUT_ROOT}/seed_model"' in text
+    assert 'self_update_symlink "${WINNER_MODEL_DIR}" "${OUT_ROOT}/seed_model"' in text
 
 
 def test_addition_tiny_seed_mig_launcher_dry_run_prints_expected_commands(tmp_path):
