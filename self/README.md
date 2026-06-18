@@ -471,9 +471,12 @@ new implementation code:
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
-- `self/core/nonadaptive_loop.py` still owns the main non-adaptive training
-  loop, but deterministic size/frontier arithmetic now lives in
-  `self/core/nonadaptive_schedule.py` with direct unit coverage.
+- `self/core/nonadaptive_loop.py` still owns the main non-adaptive dataset,
+  resume, training, evaluation, and pseudo-label loop. Preflight/default
+  normalization and derived setup values now live in
+  `self/core/nonadaptive_setup.py`, while deterministic size/frontier
+  arithmetic lives in `self/core/nonadaptive_schedule.py`; both have direct
+  unit coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
   is a compatibility wrapper. Current `self/core`, `self/experiments`, and
   `self/diagnostics` modules import recipe helpers from the canonical core

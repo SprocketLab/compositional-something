@@ -42,7 +42,7 @@ from self.core.model_io import (
     lookup_single_token_id,
     sync_model_special_token_ids,
 )
-from self.core.nonadaptive_schedule import build_nonadaptive_size_schedule, normalize_frontier_min_size
+from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -80,54 +80,25 @@ from self.core.recipes import (
 )
 
 def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
-    if not args.bf16 and not args.fp16 and torch.cuda.is_available():
-        args.bf16 = True
-        print("[INFO] No precision flag provided; defaulting to bf16 on CUDA.", flush=True)
-    if args.initial_min_size < 1:
-        raise ValueError("initial_min_size must be at least 1.")
-    if args.initial_max_size < args.initial_min_size:
-        raise ValueError("initial_max_size must be >= initial_min_size.")
-    if args.eval_per_size < 0:
-        raise ValueError("eval_per_size must be non-negative.")
-    if args.composed_eval_per_size < 0:
-        raise ValueError("composed_eval_per_size must be non-negative.")
-    if args.expand_num_size < 1 and args.num_expand_rounds > 0:
-        raise ValueError("expand_num_size must be positive when num_expand_rounds > 0.")
-    if args.num_expand_rounds < 0:
-        raise ValueError("num_expand_rounds cannot be negative.")
-    if args.bf16 and args.fp16:
-        raise ValueError("Choose only one of bf16 or fp16.")
-    if args.resume_from_round is not None and args.resume_from_round < 0:
-        raise ValueError("resume_from_round must be non-negative if provided.")
-    stop_after_round = getattr(args, "stop_after_round", None)
-    if stop_after_round is not None:
-        if stop_after_round < 0:
-            raise ValueError("stop_after_round must be non-negative if provided.")
-        if args.resume_from_round is not None and stop_after_round < args.resume_from_round:
-            raise ValueError("stop_after_round must be greater than or equal to resume_from_round.")
-    save_model_policy = resolve_save_model_policy(args)
-    args.skip_save_model = save_model_policy == "none"
-    frontier_min_size = normalize_frontier_min_size(args)
-    task.validate_args(args)
-
-    recipe_name = str(getattr(args, "recipe", "none"))
-    use_recipe = recipe_enabled(recipe_name)
-    recipe_preset = resolve_self_improvement_recipe(recipe_name) if use_recipe else None
-    if use_recipe and getattr(args, "tokenizer_mode", "auto") != "auto":
-        print("[INFO] Recipe-backed bit-task path ignores --tokenizer-mode and uses the recipe tokenizer.", flush=True)
-    if use_recipe and not args.bf16 and not args.fp16 and recipe_preset is not None:
-        args.bf16 = bool(recipe_preset.bf16)
-    if use_recipe and recipe_preset is not None:
-        if args.per_device_train_batch_size == 4:
-            args.per_device_train_batch_size = recipe_preset.per_device_train_batch_size
-        if args.per_device_eval_batch_size == 4:
-            args.per_device_eval_batch_size = recipe_preset.per_device_eval_batch_size
-
-    dynamic_composed = args.composed_refresh_mode == "dynamic"
-    size_schedule = build_nonadaptive_size_schedule(args, frontier_min_size)
-    final_max_size = size_schedule.final_max_size
-    composed_min_size = size_schedule.composed_min_size
-    reset_each_round = args.reset_in_each_round
+    setup = prepare_nonadaptive_run_setup(
+        args,
+        task,
+        cuda_available_fn=torch.cuda.is_available,
+        resolve_save_model_policy_fn=resolve_save_model_policy,
+        recipe_enabled_fn=recipe_enabled,
+        resolve_recipe_fn=resolve_self_improvement_recipe,
+    )
+    stop_after_round = setup.stop_after_round
+    save_model_policy = setup.save_model_policy
+    frontier_min_size = setup.frontier_min_size
+    recipe_name = setup.recipe_name
+    use_recipe = setup.use_recipe
+    recipe_preset = setup.recipe_preset
+    dynamic_composed = setup.dynamic_composed
+    size_schedule = setup.size_schedule
+    final_max_size = setup.final_max_size
+    composed_min_size = setup.composed_min_size
+    reset_each_round = setup.reset_each_round
 
     original_output_dir = Path(args.output_dir)
     if reset_each_round:
