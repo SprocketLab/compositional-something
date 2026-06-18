@@ -106,8 +106,15 @@ def test_multiplication_self_improvement_wrapper_dry_run_emits_four_baselines(tm
     )
 
     stdout = result.stdout
+    combined = result.stdout + result.stderr
     assert stdout.count("[INFO] baseline=") == 4
     assert "baseline=short_only" in stdout
     assert "baseline=direct" in stdout
     assert "baseline=compose" in stdout
     assert "baseline=compose_corrupt" in stdout
+    assert "--job-name mult-rect-si-short-only" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert r"--export ALL\,OUT_ROOT=" in combined
+    assert r"\,BASELINE=compose_corrupt\," in combined
+    assert "job_id=dryrun" in stdout

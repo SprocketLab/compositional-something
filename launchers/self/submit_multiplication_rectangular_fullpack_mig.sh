@@ -9,6 +9,7 @@ LAUNCHER="${ROOT_DIR}/launchers/self/run_multiplication_rectangular_self_improve
 SEED_MODEL="${SEED_MODEL:-${ROOT_DIR}/artifacts/models/multiplication_rectangular_seed_best}"
 TS="$(date +%Y%m%d_%H%M%S)"
 OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/multiplication_rectangular_self_improvement_pack_${TS}}"
+LOG_DIR="${LOG_DIR:-${ROOT_DIR}/artifacts/logs}"
 BASELINES=(${BASELINES:-short_only direct compose compose_corrupt})
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-256}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-256}"
@@ -25,7 +26,7 @@ SAVE_MODEL="${SAVE_MODEL:-1}"
 SEED="${SEED:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 
-mkdir -p "${OUT_ROOT}"
+mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 
 if [[ "${DRY_RUN}" != "1" && ! -e "${SEED_MODEL}" ]]; then
   echo "[ERROR] Seed model path does not exist: ${SEED_MODEL}" >&2
@@ -39,17 +40,21 @@ else
 fi
 
 for baseline in "${BASELINES[@]}"; do
-  cmd=(
-    sbatch
-    --parsable
-    --export "ALL,OUT_ROOT=${OUT_ROOT},BASELINE=${baseline},SEED_MODEL=${SEED_MODEL},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED_REPLAY_TRAIN_PER_PARTITION=${SEED_REPLAY_TRAIN_PER_PARTITION},EXPAND_TRAIN_PER_PARTITION=${EXPAND_TRAIN_PER_PARTITION},FRONTIER_ROW_PROFILE=${FRONTIER_ROW_PROFILE},INITIAL_MAX_B_DIGITS=${INITIAL_MAX_B_DIGITS},EXPAND_B_DIGITS=${EXPAND_B_DIGITS},NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS},HELDOUT_PER_PARTITION=${HELDOUT_PER_PARTITION},LEARNING_RATE=${LEARNING_RATE},MAX_STEPS=${MAX_STEPS},SAVE_MODEL=${SAVE_MODEL},SEED=${SEED},DRY_RUN=${DRY_RUN}"
-    "${LAUNCHER}"
-  )
-  self_print_prefixed_command_stdout "Submit" "${cmd[@]}"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "[INFO] baseline=${baseline} job_id=dryrun output=${OUT_ROOT}/${baseline} log=artifacts/logs/mult-rect-si-<jobid>.out"
+  baseline_slug="${baseline//_/-}"
+  job_name="mult-rect-si-${baseline_slug}"
+  log_stem="${LOG_DIR}/${job_name}-%j"
+  job_id="$(
+    self_submit_sbatch_script \
+      "dryrun" \
+      "${job_name}" \
+      "${log_stem}.out" \
+      "${log_stem}.err" \
+      "ALL,OUT_ROOT=${OUT_ROOT},BASELINE=${baseline},SEED_MODEL=${SEED_MODEL},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED_REPLAY_TRAIN_PER_PARTITION=${SEED_REPLAY_TRAIN_PER_PARTITION},EXPAND_TRAIN_PER_PARTITION=${EXPAND_TRAIN_PER_PARTITION},FRONTIER_ROW_PROFILE=${FRONTIER_ROW_PROFILE},INITIAL_MAX_B_DIGITS=${INITIAL_MAX_B_DIGITS},EXPAND_B_DIGITS=${EXPAND_B_DIGITS},NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS},HELDOUT_PER_PARTITION=${HELDOUT_PER_PARTITION},LEARNING_RATE=${LEARNING_RATE},MAX_STEPS=${MAX_STEPS},SAVE_MODEL=${SAVE_MODEL},SEED=${SEED},DRY_RUN=${DRY_RUN}" \
+      "${LAUNCHER}"
+  )"
+  if self_parse_bool "${DRY_RUN}"; then
+    echo "[INFO] baseline=${baseline} job_id=${job_id} output=${OUT_ROOT}/${baseline} log=${log_stem}.out"
   else
-    job_id="$("${cmd[@]}")"
-    echo "[INFO] baseline=${baseline} job_id=${job_id} output=${OUT_ROOT}/${baseline} log=artifacts/logs/mult-rect-si-${job_id}.out"
+    echo "[INFO] baseline=${baseline} job_id=${job_id} output=${OUT_ROOT}/${baseline} log=${log_stem}.out"
   fi
 done
