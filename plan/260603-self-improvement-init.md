@@ -4037,3 +4037,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_adaptive_candidate_training.py` to pin both non-packed and packed local dispatch metadata.
 - Updated `self/README.md` runtime notes with the new dispatch-artifact fields.
 - Verification: `python -m py_compile self/core/candidate_local_workers.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_local_dispatch_plan tests/test_adaptive_candidate_training.py -k 'local_parallel_candidate_workers_respect_concurrency_cap or local_parallel_candidate_workers_can_pack_processes' -q` (`2 passed`, `37 deselected`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_local_dispatch_adaptive tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 18:17:30 UTC
+
+- Added stable adaptive local-dispatch artifact loading in `self/analysis/adaptive_candidate_artifacts.py`.
+- New helpers `load_adaptive_local_dispatch(...)` and `adaptive_local_dispatch_records(...)` expose `attempt_*/candidate_jobs/local_dispatch.json` through the analysis layer, including flattened cache-plan flags and planned candidate groups.
+- Reexported the helpers through `self/analysis/adaptive_artifacts.py` and `self/analysis/artifacts.py` so notebooks can import them from the existing compatibility surface.
+- Extended `tests/test_analysis_artifacts.py` to cover local-dispatch loading and row flattening using the existing adaptive-run fixture.
+- Updated `self/README.md` analysis guidance so new notebooks use the loader rather than hard-coding `candidate_jobs/local_dispatch.json`.
+- Verification: `python -m py_compile self/analysis/adaptive_artifact_common.py self/analysis/adaptive_candidate_artifacts.py self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_local_dispatch tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`11 passed`).

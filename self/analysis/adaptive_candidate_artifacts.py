@@ -10,6 +10,7 @@ from self.analysis.adaptive_artifact_common import (
     ADAPTIVE_CANDIDATE_FAILURE_FILE,
     ADAPTIVE_CANDIDATE_METRICS_FILE,
     ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE,
+    ADAPTIVE_LOCAL_DISPATCH_FILE,
     AdaptiveAttemptArtifacts,
     AdaptiveRunArtifacts,
     _candidate_index,
@@ -196,6 +197,54 @@ def adaptive_candidate_train_mix_records(run: AdaptiveRunArtifacts | Path | str)
             row.update(_proposal_fields(metric))
             row.update(dict(train_mix))
             rows.append(row)
+    return rows
+
+
+def load_adaptive_local_dispatch(attempt: AdaptiveAttemptArtifacts | Path | str) -> JsonDict:
+    artifacts = load_adaptive_attempt(attempt) if not isinstance(attempt, AdaptiveAttemptArtifacts) else attempt
+    payload = read_json(artifacts.path / ADAPTIVE_LOCAL_DISPATCH_FILE, {}) or {}
+    if isinstance(payload, Mapping):
+        return dict(payload)
+    return {"value": payload}
+
+
+def adaptive_local_dispatch_records(run: AdaptiveRunArtifacts | Path | str) -> list[JsonDict]:
+    artifacts = load_adaptive_run(run) if not isinstance(run, AdaptiveRunArtifacts) else run
+    context = _run_context(artifacts)
+    rows: list[JsonDict] = []
+    for attempt in artifacts.attempts:
+        dispatch = load_adaptive_local_dispatch(attempt)
+        cache_plan = dispatch.get("cache_plan") if isinstance(dispatch.get("cache_plan"), Mapping) else {}
+        planned_units = dispatch.get("planned_units") if isinstance(dispatch.get("planned_units"), list) else []
+        launched = dispatch.get("launched") if isinstance(dispatch.get("launched"), list) else []
+        active_pids = dispatch.get("active_pids") if isinstance(dispatch.get("active_pids"), list) else []
+        rows.append(
+            {
+                **context,
+                "attempt_dir": str(attempt.path),
+                "attempt": attempt.attempt,
+                "selected_round": attempt.attempt_summary.get("selected_round"),
+                "local_dispatch_path": str(attempt.path / ADAPTIVE_LOCAL_DISPATCH_FILE),
+                "has_local_dispatch": bool(dispatch),
+                "candidate_count": dispatch.get("candidate_count"),
+                "planned_processes": dispatch.get("planned_processes"),
+                "max_parallel": dispatch.get("max_parallel"),
+                "pack_size": dispatch.get("pack_size"),
+                "packed_workers": dispatch.get("packed_workers"),
+                "pending": dispatch.get("pending"),
+                "launched_processes": len(launched),
+                "active_processes": len(active_pids),
+                "cache_shared_input": cache_plan.get("shared_input_cache"),
+                "cache_tokenizer_bootstrap": cache_plan.get("tokenizer_bootstrap_cache"),
+                "cache_base_state": cache_plan.get("base_state_cache"),
+                "planned_candidate_groups": [
+                    unit.get("candidate_indices")
+                    for unit in planned_units
+                    if isinstance(unit, Mapping)
+                ],
+                "planned_units": planned_units,
+            }
+        )
     return rows
 
 

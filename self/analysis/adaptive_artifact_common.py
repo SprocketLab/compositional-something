@@ -20,6 +20,7 @@ DEFAULT_ADAPTIVE_TRACE_FILES = (
 ADAPTIVE_CANDIDATE_METRICS_FILE = "candidate_metrics.json"
 ADAPTIVE_CANDIDATE_TRAIN_MIX_FILE = "train_mix_summary.json"
 ADAPTIVE_CANDIDATE_FAILURE_FILE = "worker_failure.json"
+ADAPTIVE_LOCAL_DISPATCH_FILE = "candidate_jobs/local_dispatch.json"
 
 
 def _attempt_index(path: Path, summary: Mapping[str, Any] | None = None) -> int | None:

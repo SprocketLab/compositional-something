@@ -30,9 +30,11 @@ from self.analysis.adaptive_candidate_artifacts import (
     adaptive_candidate_per_size_records,
     adaptive_candidate_records,
     adaptive_candidate_train_mix_records,
+    adaptive_local_dispatch_records,
     iter_candidate_dirs,
     load_adaptive_candidate,
     load_adaptive_candidates,
+    load_adaptive_local_dispatch,
 )
 from self.analysis.adaptive_manifest_artifacts import (
     SUBMISSION_MANIFEST_FILE,

@@ -465,7 +465,8 @@ the supported public surface.
   trace artifact helpers.
 - `self/analysis/adaptive_candidate_artifacts.py`: adaptive candidate
   artifact loading and candidate/train-mix/per-size row flattening for
-  per-candidate metrics, train-mix summaries, and worker-failure files.
+  per-candidate metrics, train-mix summaries, worker-failure files, and
+  local-dispatch plan/cache records.
 - `self/analysis/adaptive_trace_artifacts.py`: adaptive prompt records,
   selected-checkpoint per-size timelines with selected-target markers for
   heatmaps, proposal-GRPO metric records, and trace JSONL flattening for
@@ -955,7 +956,8 @@ new implementation code:
   notebooks while migrating direct raw JSON parsing when files are edited.
   The adaptive loaders expose per-attempt valid-rate summaries,
   selected-target heatmap markers, per-candidate metrics, train-mix summaries,
-  and worker-failure files, so notebooks should not glob
+  worker-failure files, and local-dispatch plan/cache records, so notebooks
+  should not glob
   `attempt_*` or `attempt_*/candidates/candidate_*` directly for these common
   views.
 - Use `self/analysis/seed_fit_artifacts.py` for `seed_fit_results.json`

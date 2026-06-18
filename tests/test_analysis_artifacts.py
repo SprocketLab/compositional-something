@@ -14,6 +14,7 @@ from self.analysis.artifacts import (
     adaptive_candidate_per_size_records,
     adaptive_candidate_records,
     adaptive_candidate_train_mix_records,
+    adaptive_local_dispatch_records,
     adaptive_prompt_records,
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
@@ -26,6 +27,7 @@ from self.analysis.artifacts import (
     discover_submission_manifests,
     iter_candidate_dirs,
     load_adaptive_candidates,
+    load_adaptive_local_dispatch,
     load_adaptive_run,
     load_submission_manifest,
     load_self_improvement_rounds,
@@ -57,6 +59,8 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
     assert load_adaptive_candidates is adaptive_artifacts.load_adaptive_candidates
     assert adaptive_validity_summary_records is adaptive_artifacts.adaptive_validity_summary_records
     assert adaptive_candidate_artifact_records is adaptive_candidate_artifacts.adaptive_candidate_artifact_records
+    assert adaptive_local_dispatch_records is adaptive_candidate_artifacts.adaptive_local_dispatch_records
+    assert load_adaptive_local_dispatch is adaptive_candidate_artifacts.load_adaptive_local_dispatch
     assert adaptive_artifacts.adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
     assert adaptive_artifacts.adaptive_trace_records is adaptive_trace_artifacts.adaptive_trace_records
     assert adaptive_prompt_records is adaptive_trace_artifacts.adaptive_prompt_records
@@ -125,6 +129,39 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
                 "per_size_accuracy": {"10": 0.8},
             }
         ],
+    )
+    _write_json(
+        attempt_dir / "candidate_jobs" / "local_dispatch.json",
+        {
+            "candidate_count": 2,
+            "planned_processes": 1,
+            "max_parallel": 1,
+            "pack_size": 2,
+            "packed_workers": True,
+            "pending": 0,
+            "active_pids": [],
+            "cache_plan": {
+                "shared_input_cache": True,
+                "tokenizer_bootstrap_cache": True,
+                "base_state_cache": False,
+            },
+            "planned_units": [
+                {
+                    "label": "pack-00",
+                    "candidate_indices": [0, 1],
+                    "spec_path": str(attempt_dir / "candidate_jobs" / "pack_specs" / "pack_0.json"),
+                    "is_pack": True,
+                }
+            ],
+            "launched": [
+                {
+                    "label": "pack-00",
+                    "candidate_indices": [0, 1],
+                    "pid": 1234,
+                    "is_pack": True,
+                }
+            ],
+        },
     )
     _write_json(
         candidate_dir / "candidate_metrics.json",
@@ -339,6 +376,44 @@ def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp
             "outcome_trace_replay_examples": 1,
             "candidate_proposal_trace_examples": 1,
             "total_train_examples": 14,
+        }
+    ]
+    assert load_adaptive_local_dispatch(run.attempts[0])["packed_workers"] is True
+    local_dispatch_rows = adaptive_local_dispatch_records(run)
+    assert local_dispatch_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 1,
+            "init_final_accuracy": 0.4,
+            "attempt_dir": str(attempt_dir),
+            "attempt": 1,
+            "selected_round": 1,
+            "local_dispatch_path": str(attempt_dir / "candidate_jobs" / "local_dispatch.json"),
+            "has_local_dispatch": True,
+            "candidate_count": 2,
+            "planned_processes": 1,
+            "max_parallel": 1,
+            "pack_size": 2,
+            "packed_workers": True,
+            "pending": 0,
+            "launched_processes": 1,
+            "active_processes": 0,
+            "cache_shared_input": True,
+            "cache_tokenizer_bootstrap": True,
+            "cache_base_state": False,
+            "planned_candidate_groups": [[0, 1]],
+            "planned_units": [
+                {
+                    "label": "pack-00",
+                    "candidate_indices": [0, 1],
+                    "spec_path": str(attempt_dir / "candidate_jobs" / "pack_specs" / "pack_0.json"),
+                    "is_pack": True,
+                }
+            ],
         }
     ]
     grpo_rows = adaptive_proposal_grpo_records(run)
