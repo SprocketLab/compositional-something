@@ -15,7 +15,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 
 from self.core.data_io import sanitize_json_value
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.core.proposals import PromptBundle, write_trace_jsonl
+from self.core.proposal_io import write_trace_jsonl
+from self.core.proposals import PromptBundle
 
 
 JsonDict = Dict[str, Any]

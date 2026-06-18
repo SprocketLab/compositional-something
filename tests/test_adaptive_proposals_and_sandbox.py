@@ -5,6 +5,7 @@ from pathlib import Path
 
 from self import adaptive_proposals as proposals
 from self import program_sandbox
+from self.core import proposal_io
 
 
 VALID_RUN_LENGTH_PROGRAM = '''def compose(components, metadata):
@@ -92,6 +93,12 @@ def test_config_proposal_schema_accepts_valid_json_and_trace_write(tmp_path: Pat
     )
     rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
     assert rows[0]["completion"] == validation.proposal.to_completion()
+
+
+def test_proposal_io_owner_reexports() -> None:
+    assert proposals.load_fixture_proposals is proposal_io.load_fixture_proposals
+    assert proposals.build_trace_row is proposal_io.build_trace_row
+    assert proposals.write_trace_jsonl is proposal_io.write_trace_jsonl
 
 
 def test_config_proposal_schema_rejects_ranges_and_enums():

@@ -10,7 +10,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from self.core.evaluation import build_generation_encodings
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.core.proposals import PromptBundle, load_fixture_proposals
+from self.core.proposal_io import load_fixture_proposals
+from self.core.proposals import PromptBundle
 
 
 JsonDict = Dict[str, Any]

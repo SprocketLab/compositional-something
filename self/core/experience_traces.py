@@ -18,7 +18,8 @@ from self.core.experience_trace_models import (
     sample_outcome_trace_replay,
     sample_proposal_trace_replay,
 )
-from self.core.proposals import PromptBundle, build_trace_row, write_trace_jsonl
+from self.core.proposal_io import build_trace_row, write_trace_jsonl
+from self.core.proposals import PromptBundle
 
 
 JsonDict = Dict[str, Any]

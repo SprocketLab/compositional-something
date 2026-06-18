@@ -17,14 +17,12 @@ from self.core.frontier import (
 from self.core.proposals import (
     DEFAULT_CONFIG_SEARCH_SPACES,
     PromptBundle,
-    build_trace_row,
-    load_fixture_proposals,
     parse_config_proposal,
     render_config_prompt,
     render_program_prompt,
     render_program_repair_prompt,
-    write_trace_jsonl,
 )
+from self.core.proposal_io import build_trace_row, load_fixture_proposals, write_trace_jsonl
 from self.core.program_sandbox import validate_program_with_repair
 from self.core.program_sandbox_cases import (
     build_addition_program_cases,
