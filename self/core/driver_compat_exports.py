@@ -54,14 +54,16 @@ from self.core.controller_workers import (
 from self.core.data_io import load_examples
 from self.core.evaluation import build_generation_encodings, generate_prediction_map, resolve_max_new_tokens
 from self.core.experience_traces import (
-    OutcomeTraceExample,
-    ProposalTraceExample,
     build_candidate_proposal_trace_example,
     build_outcome_trace_example,
+    proposal_trace_metadata,
+)
+from self.core.experience_trace_models import (
+    OutcomeTraceExample,
+    ProposalTraceExample,
     build_post_task_proposal_rehearsal_examples,
     outcome_trace_from_json,
     proposal_trace_from_json,
-    proposal_trace_metadata,
     sample_outcome_trace_replay,
     sample_proposal_trace_replay,
 )

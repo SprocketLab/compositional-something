@@ -92,8 +92,10 @@ tests, notebooks, and older artifacts.
 - `self/core/evaluation.py`: prediction parsing, decode-length resolution,
   generation encodings, accuracy evaluation, prediction maps, and debug
   prediction sample writing.
-- `self/core/experience_traces.py`: proposal/outcome trace construction,
-  serialization, and replay sampling.
+- `self/core/experience_trace_models.py`: proposal/outcome trace example
+  data models, JSON parsing, and replay sampling.
+- `self/core/experience_traces.py`: proposal/outcome trace construction and
+  compatibility exports for older trace imports.
 - `self/core/frontier.py`: frontier selection and proposal-quality summaries.
 - `self/core/model_io.py`: tokenizer construction, special-token syncing,
   added-token embedding initialization, and model loading/instantiation.
@@ -542,6 +544,10 @@ new implementation code:
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
+- Experience trace example models, JSON parsing, and replay sampling now live
+  in `self/core/experience_trace_models.py`; trace construction remains in
+  `self/core/experience_traces.py`, which still reexports the model/replay
+  names for older imports.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive run setup,
   bootstrap, round iteration, and finalization. Single-round orchestration now
   lives in `self/core/nonadaptive_round_runtime.py`; dataset-context validation

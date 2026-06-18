@@ -13,14 +13,14 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 import torch
 
 from self.core import worker_io
-from self.core.experience_traces import (
+from self.core.experience_trace_models import (
     OutcomeTraceExample,
     ProposalTraceExample,
-    build_candidate_proposal_trace_example,
     build_post_task_proposal_rehearsal_examples,
     sample_outcome_trace_replay,
     sample_proposal_trace_replay,
 )
+from self.core.experience_traces import build_candidate_proposal_trace_example
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposals import PromptBundle, write_trace_jsonl
 from self.core.data_io import save_examples

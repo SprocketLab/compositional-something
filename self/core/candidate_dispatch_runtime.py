@@ -11,7 +11,7 @@ from self.core.candidate_metric_collection import (
     candidate_failure_metrics as _candidate_failure_metrics,
     collect_candidate_array_metrics as _collect_candidate_array_metrics,
 )
-from self.core.experience_traces import OutcomeTraceExample, ProposalTraceExample
+from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposals import PromptBundle
 from self.core.training import TrainingConfig

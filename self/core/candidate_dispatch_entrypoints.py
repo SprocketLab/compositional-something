@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Mapping, Sequence
 
 from self.core import candidate_dispatch_runtime
-from self.core.experience_traces import OutcomeTraceExample, ProposalTraceExample
+from self.core.experience_trace_models import OutcomeTraceExample, ProposalTraceExample
 from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.core.proposals import PromptBundle
 from self.core.training import TrainingConfig
