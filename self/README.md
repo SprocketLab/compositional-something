@@ -84,10 +84,12 @@ tests, notebooks, and older artifacts.
   added-token embedding initialization, and model loading/instantiation.
 - `self/core/models.py`: shared proposal, candidate work-item, candidate
   metrics, and JSON conversion containers.
+- `self/core/nonadaptive_datasets.py`: non-adaptive initial/composed/eval
+  dataset generation and persisted dataset loading.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
-  self-improvement loop runtime, including dataset generation/loading,
-  round-by-round training/evaluation, dynamic composed-pool refresh,
-  pseudo-label generation, and summary writing.
+  self-improvement loop runtime, including round-by-round
+  training/evaluation, dynamic composed-pool refresh, pseudo-label
+  generation, and summary writing.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
   for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path
@@ -474,14 +476,15 @@ new implementation code:
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
-- `self/core/nonadaptive_loop.py` still owns the main non-adaptive dataset
-  generation/loading, training, evaluation, and pseudo-label loop.
-  Preflight/default normalization and derived setup values now live in
-  `self/core/nonadaptive_setup.py`, output/data artifact paths plus metadata
+- `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
+  evaluation, dynamic refresh, and pseudo-label loop. Dataset
+  generation/loading now lives in `self/core/nonadaptive_datasets.py`;
+  preflight/default normalization and derived setup values live in
+  `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
   IO and loaded-metadata compatibility checks live in
-  `self/core/nonadaptive_state.py`, and deterministic
-  size/frontier arithmetic lives in `self/core/nonadaptive_schedule.py`; these
-  helpers have direct unit coverage.
+  `self/core/nonadaptive_state.py`; and deterministic size/frontier
+  arithmetic lives in `self/core/nonadaptive_schedule.py`. These helpers have
+  direct unit coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
   is a compatibility wrapper. Current `self/core`, `self/experiments`, and
   `self/diagnostics` modules import recipe helpers from the canonical core

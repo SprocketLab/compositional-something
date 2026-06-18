@@ -42,11 +42,11 @@ from self.core.model_io import (
     lookup_single_token_id,
     sync_model_special_token_ids,
 )
+from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
     prepare_nonadaptive_run_state,
-    validate_loaded_nonadaptive_metadata,
     write_nonadaptive_config_args,
 )
 from self.core.summaries import (
@@ -124,9 +124,10 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     set_seed(args.seed)
     rng = random.Random(args.seed)
 
-    def persist_metadata() -> None:
+    def persist_metadata(target_metadata: JsonDict | None = None) -> None:
+        metadata_to_persist = metadata if target_metadata is None else target_metadata
         persist_nonadaptive_metadata(
-            metadata,
+            metadata_to_persist,
             metadata_path,
             rng.getstate(),
             json_module=json,
@@ -137,142 +138,39 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     if metadata and "rng_state" in metadata:
         rng.setstate(decode_rng_state(metadata["rng_state"]))
 
-    base_train_path = paths.base_train_path
-    base_val_path = paths.base_val_path
-    base_test_path = paths.base_test_path
     composed_pool_path = paths.composed_pool_path
     component_map_path = paths.component_map_path
-    eval_path = paths.eval_path
-    composed_eval_path = paths.composed_eval_path
-    composed_eval_component_map_path = paths.composed_eval_component_map_path
     new_run = run_state.new_run
 
-    if new_run:
-        print(f"[INFO] Generating {task.name} datasets from scratch.", flush=True)
-        reserved_eval_examples: List[Any] = []
-        reserved_eval_keys: set[Any] = set()
-        if getattr(args, "reserve_shared_eval_first", False) and args.eval_per_size > 0:
-            reserved_eval_examples = task.prepare_eval_examples(
-                rng,
-                args,
-                min_size=args.initial_min_size,
-                max_size=final_max_size,
-                exclude=set(),
-            )
-            reserved_eval_keys = task.keys_for_examples(reserved_eval_examples)
-            setattr(args, "_initial_exclude_keys", reserved_eval_keys)
-            print(
-                f"[INFO] Reserved {len(reserved_eval_examples)} shared evaluation examples before dataset construction.",
-                flush=True,
-            )
-        else:
-            setattr(args, "_initial_exclude_keys", None)
-
-        base_splits, base_records = task.prepare_initial_splits(rng, args)
-        save_examples(base_train_path, base_splits["train"], task.serialize_example)
-        save_examples(base_val_path, base_splits["validation"], task.serialize_example)
-        save_examples(base_test_path, base_splits["test"], task.serialize_example)
-
-        initial_train_examples = list(base_splits["train"])
-        initial_dynamic_exclude = set(reserved_eval_keys)
-        initial_dynamic_exclude.update(task.keys_for_examples(initial_train_examples))
-
-        initial_composed_max_size = size_schedule.target_max_size_for_round(0)
-        composed_examples, component_map, composed_keys = task.prepare_composed_train(
-            rng,
-            args,
-            base_splits={**base_splits, "train": initial_train_examples},
-            base_records=base_records,
-            min_size=composed_min_size,
-            max_size=initial_composed_max_size,
-            additional_exclude=initial_dynamic_exclude if initial_dynamic_exclude else None,
-        )
-        save_examples(composed_pool_path, composed_examples, task.serialize_example)
-        task.save_component_map(component_map_path, component_map)
-
-        composed_eval_exclude = set(reserved_eval_keys)
-        composed_eval_exclude.update(composed_keys)
-        composed_eval_examples, composed_eval_component_map, composed_eval_keys = task.prepare_composed_eval(
-            rng,
-            args,
-            base_splits=base_splits,
-            base_records=base_records,
-            min_size=composed_min_size,
-            max_size=final_max_size,
-            additional_exclude=composed_eval_exclude if composed_eval_exclude else None,
-        )
-        save_examples(composed_eval_path, composed_eval_examples, task.serialize_example)
-        task.save_component_map(composed_eval_component_map_path, composed_eval_component_map)
-
-        if reserved_eval_examples:
-            eval_examples = reserved_eval_examples
-        else:
-            training_union = set().union(*base_records.values())
-            training_union.update(composed_keys)
-            training_union.update(composed_eval_keys)
-            eval_examples = task.prepare_eval_examples(
-                rng,
-                args,
-                min_size=args.initial_min_size,
-                max_size=final_max_size,
-                exclude=training_union,
-            )
-        save_examples(eval_path, eval_examples, task.serialize_example)
-
-        metadata = {
-            "task": task.name,
-            "size_label": task.size_label,
-            "initial_min_size": args.initial_min_size,
-            "initial_max_size": args.initial_max_size,
-            "frontier_min_size": frontier_min_size,
-            "expand_num_size": args.expand_num_size,
-            "expand_train_per_size": args.expand_train_per_size,
-            "eval_per_size": args.eval_per_size,
-            "composed_eval_per_size": args.composed_eval_per_size,
-            "composed_max_size": final_max_size,
-            "reset_each_round": reset_each_round,
-            "composed_refresh_mode": args.composed_refresh_mode,
-            "task_config": task.build_task_metadata(args, final_max_size),
-        }
-        metadata.update(task.metadata_aliases(args, final_max_size))
-        metadata["last_composed_refresh"] = "initial_dynamic" if dynamic_composed else "static_initial"
-        persist_metadata()
-
-        write_nonadaptive_config_args(
+    datasets = prepare_nonadaptive_datasets(
+        args,
+        task,
+        rng,
+        run_state,
+        size_schedule=size_schedule,
+        final_max_size=final_max_size,
+        composed_min_size=composed_min_size,
+        frontier_min_size=frontier_min_size,
+        reset_each_round=reset_each_round,
+        dynamic_composed=dynamic_composed,
+        persist_metadata_fn=persist_metadata,
+        write_config_args_fn=lambda: write_nonadaptive_config_args(
             args,
             base_output_dir,
             json_module=json,
             sanitize_json_value_fn=sanitize_json_value,
-        )
-    else:
-        print(f"[INFO] Loading {task.name} datasets from disk.", flush=True)
-        validate_loaded_nonadaptive_metadata(
-            args,
-            task,
-            run_state,
-            final_max_size=final_max_size,
-            frontier_min_size=frontier_min_size,
-            reset_each_round=reset_each_round,
-            dynamic_composed=dynamic_composed,
-        )
-
-        base_splits = {
-            "train": load_examples(base_train_path, task.deserialize_example),
-            "validation": load_examples(base_val_path, task.deserialize_example),
-            "test": load_examples(base_test_path, task.deserialize_example),
-        }
-        composed_examples = load_examples(composed_pool_path, task.deserialize_example)
-        component_map = task.load_component_map(component_map_path)
-        eval_examples = load_examples(eval_path, task.deserialize_example)
-        composed_eval_examples = load_examples(composed_eval_path, task.deserialize_example)
-        composed_eval_component_map = task.load_component_map(composed_eval_component_map_path)
-        if not composed_eval_examples and args.composed_eval_per_size > 0:
-            print(
-                "[WARN] Held-out composed evaluation set is missing; composed slice metrics will be unavailable "
-                "for this run. Regenerate datasets to enable them.",
-                flush=True,
-            )
-        base_records = task.rebuild_records(base_splits)
+        ),
+        save_examples_fn=save_examples,
+        load_examples_fn=load_examples,
+    )
+    metadata = datasets.metadata
+    base_splits = datasets.base_splits
+    base_records = datasets.base_records
+    composed_examples = datasets.composed_examples
+    component_map = datasets.component_map
+    eval_examples = datasets.eval_examples
+    composed_eval_examples = datasets.composed_eval_examples
+    composed_eval_component_map = datasets.composed_eval_component_map
 
     if not base_splits["train"]:
         raise ValueError("Base training split is empty; cannot proceed.")
