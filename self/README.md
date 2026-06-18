@@ -409,8 +409,10 @@ the supported public surface.
   retuning and figure refresh.
 - `self/experiments/figure3_common.py`: shared Figure 3 JSON/CSV artifact
   writing, Slurm submission, seed-metric parsing, seed-band selection, and
-  seed/self-improvement command builders, plus final-summary helpers used by
-  the seed-quality and real-seed ablation scripts.
+  final-summary helpers used by the seed-quality and real-seed ablation
+  scripts.
+- `self/experiments/figure3_commands.py`: shared Figure 3 seed-fit and
+  run-length self-improvement command builders.
 - `self/experiments/figure3_seed_quality_sweep.py`: Figure 3 seed-quality and
   sample-size sweep submission/collection.
 - `self/experiments/figure3_real_seed_data_ablation.py`: Figure 3 real-task

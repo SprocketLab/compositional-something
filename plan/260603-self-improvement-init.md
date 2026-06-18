@@ -3893,3 +3893,11 @@ Acceptance criteria for first pilot:
 - Added command-builder tests for both Figure 3 scripts, including checks for the experiment-specific max-step placement and run-length round counts.
 - Updated `self/README.md` so `figure3_common.py` documents shared command-builder ownership.
 - Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_commands tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:55:40 UTC
+
+- Split Figure 3 command-builder ownership out of `self/experiments/figure3_common.py` into `self/experiments/figure3_commands.py`.
+- Kept `figure3_common.py` as a compatibility reexport surface for `seed_fit_command` and `run_length_self_improvement_command`, so existing imports and tests using the common module continue to work.
+- Added a reexport identity test to keep the common helper surface pinned to the new command owner.
+- Updated `self/README.md` to document `figure3_commands.py` separately from the shared artifact/selection/submission helpers.
+- Verification: `python -m py_compile self/experiments/figure3_commands.py self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_commands_split tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`15 passed`); `git diff --check`.
