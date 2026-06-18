@@ -82,12 +82,13 @@ if self_parse_bool "${SAVE_MODEL}"; then
   cmd+=(--save-model)
 fi
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Stable seed symlink: ${SEED_MODEL_LINK}"
-echo "[INFO] Addition sampling mode: ${ADDITION_SAMPLING_MODE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Stable seed symlink" "${SEED_MODEL_LINK}" \
+  "Addition sampling mode" "${ADDITION_SAMPLING_MODE}" \
+  "Dry run" "${DRY_RUN}"
 self_print_command_stdout "${cmd[@]}"
 
 if self_parse_bool "${DRY_RUN}"; then

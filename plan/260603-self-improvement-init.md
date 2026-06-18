@@ -3138,3 +3138,11 @@ Acceptance criteria for first pilot:
 - Added focused dry-run coverage for the shared seed launcher in `tests/test_addition_tiny_seed_mig_launcher.py` alongside the existing tiny-seed launcher checks.
 - Updated `self/README.md` to note that addition seed runners now share context-printing helpers in addition to repo-root/Python/boolean and staged dry-run command-printing helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_seed_shared.sbatch launchers/self/run_addition_tiny_seed_mig.sbatch`; `python -m py_compile tests/test_addition_tiny_seed_mig_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_seed_shared_context tests/test_addition_tiny_seed_mig_launcher.py -q` (`4 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:34:02 UTC
+
+- Extended shared context-banner printing to the fixed-width mixed-prompt addition seed runner.
+- Updated `launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch` to route its repeated repo/Python/output/sampling context output through `self_print_context(...)` while preserving the seed-fit command, dry-run behavior, threshold gate, and stable seed symlink update.
+- Added focused dry-run coverage for the fixed-width mixed seed runner in `tests/test_addition_fixedwidth_moredata_launcher.py` alongside the existing fullpack and more-data submitter checks.
+- Updated `self/README.md` to note that the fixed-width mixed-prompt addition launcher family now shares context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh launchers/self/submit_addition_fixedwidth_mixed_mig.sh launchers/self/submit_addition_fixedwidth_moredata_mig.sh`; `python -m py_compile tests/test_addition_fixedwidth_moredata_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_fixedwidth_seed_context tests/test_addition_fixedwidth_moredata_launcher.py -q` (`4 passed`); `git diff --check`.

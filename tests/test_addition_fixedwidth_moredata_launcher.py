@@ -6,14 +6,42 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SEED = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_seed_mig.sbatch"
 FULLPACK = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_recipe_fullpack.sh"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_moredata_mig.sh"
 
 
 def test_addition_fixedwidth_moredata_launchers_have_valid_bash_syntax():
-    for launcher in (FULLPACK, SUBMITTER):
+    for launcher in (SEED, FULLPACK, SUBMITTER):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
+
+
+def test_addition_fixedwidth_seed_dry_run_prints_expected_command(tmp_path: Path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "seed")
+    env["TRAIN_PER_DIGIT"] = "123"
+    env["LR"] = "1e-4"
+    env["SAVE_MODEL"] = "0"
+
+    result = subprocess.run(
+        ["bash", str(SEED)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    assert "Stable seed symlink" in stdout
+    assert "--addition-width-mode fixed_width_mixed_prompt" in stdout
+    assert "--addition-composition-path-mode fixed_binary" in stdout
+    assert "--initial-train-per-size 123" in stdout
+    assert "--learning-rate 1e-4" in stdout
+    assert "--save-model" not in stdout
+    assert "[INFO] DRY_RUN=1; command not executed." in stdout
 
 
 def test_addition_fixedwidth_fullpack_dry_run_forwards_moredata_overrides(tmp_path: Path):

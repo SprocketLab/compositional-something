@@ -378,8 +378,8 @@ tests, notebooks, and older artifacts.
 - `launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch`,
   `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh`, and
   `launchers/self/submit_addition_fixedwidth_mixed_mig.sh` use the generic
-  helper for repo-root/Python setup, boolean parsing, and dry-run command
-  printing.
+  helper for repo-root/Python setup, boolean parsing, context printing, and
+  dry-run command printing.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
@@ -625,9 +625,8 @@ new implementation code:
   condition-pilot, main-experiment, exact-digit addition, and fixed-width
   more-data addition submitters use common Slurm resource/default helpers; the
   fixed-width mixed-prompt addition seed/fullpack runners and mixed submitter
-  share generic repo-root/Python/boolean/command-printing helpers, with the
-  fullpack and more-data sweep context banners routed through
-  `self_print_context`; the addition
+  share generic repo-root/Python/boolean/context-printing/command-printing
+  helpers; the addition
   fullpack-filtered runner/submitter share generic
   repo-root/Python/boolean/context-printing/command-printing helpers; the
   addition recipe
