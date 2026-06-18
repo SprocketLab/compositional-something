@@ -117,9 +117,12 @@ the supported public surface.
 - `self/core/composition.py`: exact-pair addition/run-length target
   construction, composition guards, run-length example merging, and
   compatibility reexports for pseudolabel helpers.
-- `self/core/composition_pseudolabels.py`: target regex selection plus
-  config/program self-labeled pseudolabel generation from component
-  predictions.
+- `self/core/composition_pseudolabels.py`: config-style addition/run-length
+  self-labeled pseudolabel generation from component predictions plus
+  config-vs-executable pseudolabel dispatch.
+- `self/core/composition_program_pseudolabels.py`: executable
+  program/policy/meta pseudolabel case construction, sandbox execution,
+  target-format validation, and target regex selection.
 - `self/core/controller_phases.py`: controller worker phase constants and
   payload containers.
 - `self/core/controller_phase_runtime.py`: in-process seed and round-model

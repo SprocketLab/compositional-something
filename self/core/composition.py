@@ -14,9 +14,11 @@ from core.addition_pipeline import (
 )
 from self.core.composition_pseudolabels import (
     compose_addition_pseudo_examples,
-    compose_program_pseudo_examples,
     compose_pseudo_examples,
     compose_run_length_pseudo_examples,
+)
+from self.core.composition_program_pseudolabels import (
+    compose_program_pseudo_examples,
     target_pattern_for_task,
 )
 from self.core.models import ExactPairDataset
