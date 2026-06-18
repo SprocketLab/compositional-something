@@ -10,6 +10,9 @@ from __future__ import annotations
 from self.core.evaluation import extract_numeric_answer, generate_prediction_map
 from self.core.task_protocols import JsonDict, SelfImprovementTask
 from self.tasks.addition import (
+    AdditionTask,
+)
+from self.tasks.addition_data import (
     ADDITION_SAMPLING_MODES,
     ADDITION_SAMPLING_NATURAL,
     ADDITION_WIDTH_EXACT_DIGITS,
@@ -18,7 +21,6 @@ from self.tasks.addition import (
     COMPOSITION_PATH_MODES,
     COMPOSITION_PATH_RANDOM,
     AdditionExample,
-    AdditionTask,
     build_composed_datasets,
     build_composed_pseudo_map,
     build_length_bucket_dataset,

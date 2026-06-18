@@ -1,7 +1,7 @@
 """Task-specific adapters for compositional self-improvement."""
 
-from self.tasks.addition import (
-    AdditionTask,
+from self.tasks.addition import AdditionTask
+from self.tasks.addition_data import (
     corrupt_numeric_target,
     get_boundary_carry_status,
     prepare_addition_composed_eval,
