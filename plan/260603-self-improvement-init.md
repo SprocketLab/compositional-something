@@ -3238,3 +3238,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/submit_run_length_fixed_binary_mig.sh` to use the shared helper for its paper-default, alpha10 template, and alpha10 beam jobs while preserving dry-run job IDs, dependency forwarding, explicit resource requests, and manifest output.
 - Updated `self/README.md` to document wrapped-job submission/dry-run handling as a shared launcher helper.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_run_length_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rl_fixed_binary_launcher tests/test_run_length_fixed_binary_launchers.py -q` (`3 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:30:12 UTC
+
+- Continued launcher consolidation by migrating `launchers/self/submit_main_experiments_ailab.sh` to the shared `self_submit_wrapped_job(...)` helper while preserving its AILAB resource defaults, wrapped commands, dry-run job IDs, and manifest schema.
+- Added `tests/test_main_experiments_launcher.py` with bash syntax coverage and a dry-run manifest check for the main experiment submitter.
+- Updated `self/README.md` to note that the main-experiment submitter now shares wrapped-job submission in addition to adaptive repo-root/Python/resource helper setup.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/lib/adaptive_common.sh launchers/self/submit_main_experiments_ailab.sh`; `python -m py_compile tests/test_main_experiments_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_main_experiments_launcher tests/test_main_experiments_launcher.py -q` (`2 passed`); `git diff --check`.

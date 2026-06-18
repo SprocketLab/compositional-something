@@ -17,46 +17,35 @@ ADDITION_SCRIPT="${ADDITION_SCRIPT:-${ROOT_DIR}/launchers/self/run_addition_reci
 
 mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 
-submit_job() {
-  local job_name="$1"
-  local stdout_log="$2"
-  local stderr_log="$3"
-  shift 3
-  local wrap_cmd="$*"
-  local -a sbatch_cmd=(
-    sbatch
-    --parsable
-    --job-name "${job_name}"
-    --output "${stdout_log}"
-    --error "${stderr_log}"
-  )
-  adaptive_add_sbatch_resources sbatch_cmd
-  sbatch_cmd+=(--wrap "${wrap_cmd}")
-  adaptive_print_command "${sbatch_cmd[@]}"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "dryrun-${job_name}"
-  else
-    "${sbatch_cmd[@]}" | cut -d';' -f1
-  fi
-}
-
 RUN_LENGTH_OUT="${OUT_ROOT}/run_length_run_state"
 RUN_LENGTH_CMD="cd ${ROOT_DIR} && env PYTHON_BIN=${PYTHON_BIN} OUT_ROOT=${RUN_LENGTH_OUT} STAGE=all TASKS=run_length BASELINES='short_only direct compose compose_corrupt' TARGET_MODE=run_state RUN_LENGTH_TARGET_MODE=run_state RUN_LENGTH_BIT_COMPOSITION_PATH_MODE=fixed_binary BIT_COMPOSITION_PATH_MODE=fixed_binary RUN_PILOT_GATE=0 RUN_FULLPACK_ONLY_IF_HEALTHY=0 TRAIN_BATCH_SIZE=512 EVAL_BATCH_SIZE=512 INITIAL_TRAIN_PER_BIT=50000 INITIAL_EVAL_PER_BIT=100 RUN_LENGTH_NUM_EXPAND_ROUNDS=8 RUN_LENGTH_EXPAND_NUM_BITS=4 RUN_LENGTH_EXPAND_TRAIN_PER_BIT=2000 COMPOSED_EVAL_PER_BIT=100 DRY_RUN=0 bash ${RUN_LENGTH_SCRIPT}"
 RUN_LENGTH_JOB_ID="$(
-  submit_job \
+  self_submit_wrapped_job \
     "main-rl-runstate" \
     "${LOG_DIR}/main-rl-runstate-%j.out" \
     "${LOG_DIR}/main-rl-runstate-%j.err" \
+    "${SBATCH_PARTITION}" \
+    "${SBATCH_GRES}" \
+    "${SBATCH_CPUS}" \
+    "${SBATCH_MEM}" \
+    "${SBATCH_TIME}" \
+    "" \
     "${RUN_LENGTH_CMD}"
 )"
 
 ADDITION_OUT="${OUT_ROOT}/addition_recipe_fullpack"
 ADDITION_CMD="cd ${ROOT_DIR} && env PYTHON_BIN=${PYTHON_BIN} OUT_ROOT=${ADDITION_OUT} SEED_MODEL=${ROOT_DIR}/artifacts/models/addition_recipe_seed_best TRAIN_BATCH_SIZE=1024 EVAL_BATCH_SIZE=1024 SEED_REPLAY_TRAIN_PER_DIGIT=5000 EXPAND_TRAIN_PER_DIGIT=5000 NUM_EXPAND_ROUNDS=8 EXPAND_NUM_DIGITS=3 ADDITION_COMPOSITION_PATH_MODE=fixed_binary DRY_RUN=0 bash ${ADDITION_SCRIPT}"
 ADDITION_JOB_ID="$(
-  submit_job \
+  self_submit_wrapped_job \
     "main-add-fullpack" \
     "${LOG_DIR}/main-add-fullpack-%j.out" \
     "${LOG_DIR}/main-add-fullpack-%j.err" \
+    "${SBATCH_PARTITION}" \
+    "${SBATCH_GRES}" \
+    "${SBATCH_CPUS}" \
+    "${SBATCH_MEM}" \
+    "${SBATCH_TIME}" \
+    "" \
     "${ADDITION_CMD}"
 )"
 
