@@ -19,6 +19,11 @@ __pycache__/
 # Notebook execution outputs. Keep source notebooks without this suffix visible.
 *.executed.ipynb
 
+# Legacy local analysis notebooks from earlier task sweeps.
+notebooks/seed_fit_training_curves.ipynb
+notebooks/self_improvement_training_curves.ipynb
+notebooks/workshop_self_improvement_figures.ipynb
+
 # Local synthetic-theory scratch outside the workshop code path.
 theory_synthetic_experiments/
 
