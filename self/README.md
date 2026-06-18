@@ -520,9 +520,9 @@ the supported public surface.
   resolution, Python resolution, Slurm resource defaults, Slurm resource
   argument construction for default and per-job explicit resource blocks, and
   wrapped-job or script-job submission/dry-run handling. It also owns command
-  printing to stdout or stderr, shell-quoted env-wrapped command construction,
-  colon-separated config-file sourcing, and small shell utilities such as
-  boolean parsing for launcher flags.
+  printing to stdout or stderr, shell-quoted env-wrapped and repo-root
+  command construction, colon-separated config-file sourcing, and small shell
+  utilities such as boolean parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive-labeled config-file sourcing wrappers, worker
@@ -632,8 +632,8 @@ the supported public surface.
   `launchers/self/run_self_improvement_mig_boundary_eval.sbatch`, and
   `launchers/self/run_self_improvement_qwen_no_growth.sbatch` now source the
   generic helper for repo-root/Python setup, boolean parsing, Slurm resource
-  construction where applicable, wrapped-job submission, and dry-run/print-only
-  command verification.
+  construction where applicable, shell-quoted repo-command wrapping,
+  wrapped-job submission, and dry-run/print-only command verification.
 
 ## Runtime Notes
 
@@ -897,7 +897,9 @@ new implementation code:
   canonical `self.experiments.composition_error_sweep` module while preserving
   the old top-level wrapper, and the local/refocused
   workshop batchers, run-length alpha10 baseline submitter, and self-improvement
-  MIG runners also share the generic helper path, leaving the current
+  MIG runners also share the generic helper path, with alpha10 baseline
+  commands using the shared repo-command wrapper before wrapped-job submission,
+  leaving the current
   `launchers/self/*.{sh,sbatch}` inventory without duplicated repo-root/Python
   setup;
   and adaptive candidate-training defaults can be loaded from

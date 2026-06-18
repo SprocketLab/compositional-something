@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -50,3 +51,25 @@ def test_self_common_reports_missing_config_with_label(tmp_path: Path):
 
     assert result.returncode == 2
     assert f"[ERROR] Missing adaptive config file: {tmp_path / 'missing.env'}" in result.stderr
+
+
+def test_self_common_wraps_repo_command_with_pythonpath_and_quotes(tmp_path: Path):
+    root_with_space = tmp_path / "repo root"
+    script = (
+        "set -euo pipefail\n"
+        f"source {SELF_COMMON}\n"
+        f"ROOT_DIR={shlex.quote(str(root_with_space))}\n"
+        "self_wrap_repo_command python -m self.run_length_self_improvement --output-dir 'path with spaces'\n"
+    )
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.startswith("cd ")
+    assert "&& PYTHONPATH=. python -m self.run_length_self_improvement" in result.stdout
+    assert "path\\ with\\ spaces" in result.stdout

@@ -3833,3 +3833,11 @@ Acceptance criteria for first pilot:
 - Added a fake-`sbatch` launcher test so the non-dry helper path is exercised without submitting jobs.
 - Updated `self/README.md` with the mixed-submit ownership boundary.
 - Verification: per-file `bash -n` on the touched launcher/helper files; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mixed_launcher_helpers tests/test_addition_fixedwidth_moredata_launcher.py tests/test_addition_exact_digits_fixed_binary_launcher.py -q` (`8 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 16:20:41 UTC
+
+- Added `self_wrap_repo_command` to `launchers/self/lib/self_common.sh` for shell-quoted `cd ${ROOT_DIR} && PYTHONPATH=.` command-array wrapping.
+- Migrated `launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh` off its local `printf -v quoted_root/quoted_run_cmd` block and onto the shared repo-command wrapper before wrapped-job submission.
+- Added focused helper coverage for paths/arguments requiring shell quoting, and kept the existing alpha10 baseline dry-run launcher coverage.
+- Updated `self/README.md` with the new generic launcher helper responsibility and alpha10 baseline submitter boundary.
+- Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh`, `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch`, and `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_repo_wrap_launcher tests/test_self_common_launcher_helpers.py tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`8 passed`); `git diff --check`.

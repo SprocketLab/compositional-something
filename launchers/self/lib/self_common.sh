@@ -220,6 +220,20 @@ self_wrap_env_command() {
   printf '%s' "${wrapped}"
 }
 
+self_wrap_repo_command() {
+  if (( $# < 1 )); then
+    echo "[ERROR] self_wrap_repo_command expects a command and optional arguments." >&2
+    return 2
+  fi
+  local arg
+  local wrapped
+  wrapped="cd $(self_shell_quote "${ROOT_DIR}") && PYTHONPATH=."
+  for arg in "$@"; do
+    wrapped+=" $(self_shell_quote "${arg}")"
+  done
+  printf '%s' "${wrapped}"
+}
+
 self_submit_wrapped_resource_job() {
   local dry_run_job_id="$1"
   local job_name="$2"

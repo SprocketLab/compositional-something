@@ -80,9 +80,7 @@ for baseline in "${BASELINES[@]}"; do
     "--self-improve-warmup-steps" "${ROUND_WARMUP_STEPS}"
     "--resume"
   )
-  printf -v quoted_root "%q" "${ROOT_DIR}"
-  printf -v quoted_run_cmd " %q" "${run_cmd[@]}"
-  wrapped_cmd="cd ${quoted_root} && PYTHONPATH=.${quoted_run_cmd}"
+  wrapped_cmd="$(self_wrap_repo_command "${run_cmd[@]}")"
   log_stem="${LOG_DIR}/rl-a10-baseline-${baseline}-%j"
   helper_job_id="$(
     self_submit_wrapped_job \
