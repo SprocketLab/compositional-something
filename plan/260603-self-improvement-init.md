@@ -3094,3 +3094,10 @@ Acceptance criteria for first pilot:
 - Replaced the submitter's repeated top-level `[INFO]` context `echo` block with `self_print_context(...)` while preserving baseline command construction, Slurm resource helper use, manifest writing, and dry-run submission output.
 - Updated `self/README.md` to note that the run-length fixed-binary baseline submitter now shares context-printing helpers in addition to explicit Slurm resource helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rl_baseline_helpers tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`5 passed`).
+
+### Implementation Log: 2026-06-18 08:13:47 UTC
+
+- Switched `launchers/self/submit_multiplication_rectangular_tune_mig.sh` from manual dry-run flag insertion to the shared `self_add_dry_run_arg(...)` helper.
+- Preserved the rectangular tune Python CLI command construction, stage manifest paths, dry-run output, and command-printing behavior.
+- Updated `self/README.md` to note that the rectangular tune submitter now shares the dry-run flag helper.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_multiplication_rectangular_tune_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rect_tune_helper tests/test_multiplication_rectangular_tune.py -q` (`11 passed`).

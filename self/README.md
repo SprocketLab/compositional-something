@@ -640,11 +640,11 @@ new implementation code:
   square
   seed/diagnostic runners and probe/resweep submitters share generic
   repo-root/Python/boolean/context-printing/command-printing helpers; the
-  rectangular non-square
-  seed/self-improvement runners and seed/fullpack submitters share generic
+  rectangular non-square seed/self-improvement runners and seed/fullpack
+  submitters share generic
   repo-root/Python/boolean/context-printing/stdout-or-stderr command-printing
-  helpers; the
-  rectangular tune submitter shares the same repo-root/Python/boolean setup;
+  helpers; the rectangular tune submitter shares the same repo-root/Python setup
+  and dry-run flag helper;
   the addition tiny/shared seed runners share generic repo-root/Python/boolean
   and staged dry-run command-printing helpers;
   the seed-fit grid runner/submitter share generic repo-root/Python/boolean

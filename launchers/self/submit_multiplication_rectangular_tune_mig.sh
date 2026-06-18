@@ -33,9 +33,7 @@ cmd=(
   --stage3-selection "${STAGE3_SELECTION}"
 )
 
-if self_parse_bool "${DRY_RUN}"; then
-  cmd+=(--dry-run)
-fi
+self_add_dry_run_arg cmd "${DRY_RUN}"
 
 self_print_command_stdout "${cmd[@]}"
 "${cmd[@]}"
