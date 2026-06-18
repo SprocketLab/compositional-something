@@ -274,8 +274,11 @@ tests, notebooks, and older artifacts.
   per-size accuracy row construction, and records-to-DataFrame conversion.
 - `self/analysis/artifacts.py`: compatibility surface for notebook artifact
   loaders.
+- `self/analysis/training_curve_results.py`: result-path resolution, raw
+  round-summary loading, round summary frames, and per-size accuracy frames
+  for training-curve notebooks.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
-  training-curve parsing, per-size heatmaps, and paper-style curve plots.
+  training-log parsing, per-size heatmaps, and paper-style curve plots.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for
   seed-fit training curves and budget sweeps.
 - `self/analysis/plot_appendix_baseline_heatmaps.py`: appendix baseline

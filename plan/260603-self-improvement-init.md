@@ -2857,3 +2857,12 @@ Acceptance criteria for first pilot:
 - Added compatibility assertions in `tests/test_analysis_artifacts.py` so non-adaptive helpers imported from `self.analysis.artifacts` remain identical to the canonical `self.analysis.nonadaptive_artifacts` functions.
 - Updated `self/README.md` with the new non-adaptive analysis module ownership.
 - Verification: `python -m py_compile self/analysis/artifact_io.py self/analysis/adaptive_artifacts.py self/analysis/nonadaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`7 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 05:32:16 UTC
+
+- Split direct `self_improvement_results.json` frame construction from `self/analysis/training_curve_notebook_utils.py` into `self/analysis/training_curve_results.py`.
+- The new module owns `resolve_results_path(...)`, `load_round_payload(...)`, `round_summary_frame(...)`, and `per_size_accuracy_frame_from_results(...)`.
+- Kept the old `self.analysis.training_curve_notebook_utils` and top-level `self.training_curve_notebook_utils` imports working by importing the canonical helpers back into the notebook utility module.
+- Added a compatibility assertion in `tests/test_training_curve_notebook_utils.py` so the top-level wrapper exposes the canonical `per_size_accuracy_frame_from_results(...)` function.
+- Updated `self/README.md` with the new training-curve result-frame module ownership.
+- Verification: `python -m py_compile self/analysis/training_curve_results.py self/analysis/training_curve_notebook_utils.py self/training_curve_notebook_utils.py tests/test_training_curve_notebook_utils.py`; `python -m compileall -q self/analysis self/training_curve_notebook_utils.py tests/test_training_curve_notebook_utils.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis tests/test_training_curve_notebook_utils.py tests/test_analysis_artifacts.py -q` (`7 passed`). The temporary `.pytest_tmp_analysis` directory was removed after verification.
