@@ -45,8 +45,11 @@ tests, notebooks, and older artifacts.
   between driver-level monkeypatchable names and candidate dispatch runtimes.
 - `self/core/checkpoints.py`: checkpoint retention policy and cleanup helpers
   for unselected candidates and superseded model directories.
-- `self/core/candidate_execution.py`: serial candidate execution,
-  local/Slurm worker dispatch glue, and worker metric aggregation.
+- `self/core/candidate_execution.py`: serial candidate execution and
+  local/Slurm worker dispatch glue.
+- `self/core/candidate_metric_collection.py`: candidate worker metric loading,
+  failure-metric construction, missing-metric recovery, and gather-failure
+  manifests.
 - `self/core/candidate_worker_payloads.py`: candidate work-item payload
   serialization/deserialization for controller handoff artifacts and
   candidate-worker spec blocks.
