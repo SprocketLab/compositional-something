@@ -277,6 +277,8 @@ tests, notebooks, and older artifacts.
 - `self/analysis/training_curve_results.py`: result-path resolution, raw
   round-summary loading, round summary frames, and per-size accuracy frames
   for training-curve notebooks.
+- `self/analysis/training_curve_style.py`: shared baseline colors, budget/mode
+  ordering, plot rcParams, and display labels for training-curve plots.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   training-log parsing, per-size heatmaps, and paper-style curve plots.
 - `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for

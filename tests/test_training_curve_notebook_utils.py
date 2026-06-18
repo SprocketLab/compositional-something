@@ -6,8 +6,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from self.analysis import training_curve_results
+from self.analysis import training_curve_results, training_curve_style
 from self.training_curve_notebook_utils import (
+    configure_plot_style,
     per_size_accuracy_frame_from_results,
     plot_per_size_accuracy_heatmap_from_results,
 )
@@ -18,6 +19,7 @@ def test_per_size_accuracy_frame_supports_addition_schema(tmp_path: Path):
         per_size_accuracy_frame_from_results
         is training_curve_results.per_size_accuracy_frame_from_results
     )
+    assert configure_plot_style is training_curve_style.configure_plot_style
 
     results_path = tmp_path / "self_improvement_results.json"
     results_path.write_text(
