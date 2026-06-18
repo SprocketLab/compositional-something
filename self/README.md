@@ -4,6 +4,10 @@ Canonical implementation modules now live under package directories. The old
 top-level adaptive module names remain as compatibility wrappers for launchers,
 tests, notebooks, and older artifacts.
 
+The current workshop/main-track task surface is addition, run-length, and
+multiplication. Older auxiliary classification task experiments are not part of
+the supported public surface.
+
 ## Current Core
 
 - `self/core/driver.py`: thin adaptive CLI/worker entry point and

@@ -3104,11 +3104,11 @@ Acceptance criteria for first pilot:
 
 ### Implementation Log: 2026-06-18 08:18:45 UTC
 
-- Confirmed the workshop/main-track repo surface should not include the old auxiliary vote-style task path.
+- Confirmed the workshop/main-track repo surface should not include the old auxiliary classification task path.
 - Removed the stale top-level auxiliary bit-string compatibility wrapper so the public non-adaptive task CLIs remain addition, run-length, and multiplication.
 - Updated the adaptive pilot compile check to point at the explicit legacy run-length bit-string helper and updated the guarded diagnostic launcher test import accordingly.
 - Updated `self/README.md` and redacted the stale wrapper mention from this log so tracked docs no longer direct readers to a public auxiliary bit-task entry point.
-- Verification: `python -m py_compile self/legacy/bit_task_self_improvement.py self/legacy/run_length_self_improvement.py self/run_length_self_improvement.py tests/test_guarded_plain_output_bit_diagnostic_launchers.py`; `bash -n launchers/self/run_adaptive_self_improvement_ailab.sbatch launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; tracked grep confirms no old vote-style task references and no stale public auxiliary-wrapper path references; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_aux_cleanup tests/test_guarded_plain_output_bit_diagnostic_launchers.py tests/test_self_improvement_launchers.py -q` (`8 passed`).
+- Verification: `python -m py_compile self/legacy/bit_task_self_improvement.py self/legacy/run_length_self_improvement.py self/run_length_self_improvement.py tests/test_guarded_plain_output_bit_diagnostic_launchers.py`; `bash -n launchers/self/run_adaptive_self_improvement_ailab.sbatch launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh`; tracked grep confirms no stale auxiliary task references and no stale public auxiliary-wrapper path references; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_aux_cleanup tests/test_guarded_plain_output_bit_diagnostic_launchers.py tests/test_self_improvement_launchers.py -q` (`8 passed`).
 
 ### Implementation Log: 2026-06-18 08:22:51 UTC
 
@@ -3171,11 +3171,11 @@ Acceptance criteria for first pilot:
 
 ### Implementation Log: 2026-06-18 08:50:14 UTC
 
-- Cleaned the current workshop/main-track code surface so it no longer exposes the removed auxiliary vote-style task family through generic `bit_task` names.
+- Cleaned the current workshop/main-track code surface so it no longer exposes the removed auxiliary classification task family through generic `bit_task` names.
 - Renamed the legacy run-length bit-string CLI helper from `self/legacy/bit_task_self_improvement.py` to `self/legacy/run_length_bit_cli.py`, renamed its parser/normalization functions, and updated the run-length legacy entry point plus adaptive pilot compile checks to use the new path.
 - Renamed the current run-length recipe and non-adaptive seed-round tests away from `bit_task` filenames/function names, and changed the Figure 2 manifest kind from `bit_task` to `run_length_bit`.
 - Updated user-facing wording in `self/README.md`, `self/core/nonadaptive_setup.py`, `self/diagnostics/check_self_improvement_overfit.py`, `self/experiments/seed_fit_experiment.py`, and `launchers/self/run_refocused_self_improvement_local.sh` so the remaining bit-size controls are described as run-length bit-string controls rather than a generic auxiliary bit task.
-- Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no removed auxiliary task, voting/consensus/plurality, or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.
+- Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no removed auxiliary task or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.
 
 ### Implementation Log: 2026-06-18 08:54:57 UTC
 
@@ -3252,3 +3252,9 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh` to use the shared helper while preserving staged dry-run output, sbatch export construction, job-state polling, and model-selection flow.
 - Updated `self/README.md` to document script-job submission/dry-run handling in the shared launcher helper and the rectangular seed-sweep submitter.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_multiplication_rectangular_seed_sweep_mig.sh launchers/self/run_multiplication_rectangular_seed_mig.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rect_seed_submit tests/test_multiplication_rectangular_seed_launchers.py -q` (`5 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:38:28 UTC
+
+- Removed the remaining tracked historical plan wording that described the removed auxiliary classification task as part of the old workshop cleanup trail.
+- Updated `self/README.md` to state the supported workshop/main-track task surface directly: addition, run-length, and multiplication.
+- Verification: the tracked grep checks for the removed task name and related removed-selection wording returned no tracked matches; `git diff --check`.
