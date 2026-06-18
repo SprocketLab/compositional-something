@@ -69,8 +69,6 @@ class MultiplicationTask(SelfImprovementTask):
             raise ValueError("expand_num_size must be a multiple of block_size for blocked multiplication.")
         if args.corruption_rate < 0.0 or args.corruption_rate > 1.0:
             raise ValueError("corruption_rate must be between 0 and 1.")
-        if not getattr(args, "oracle_aggregation", True):
-            raise ValueError("Multiplication is workshop-scoped to oracle aggregation only.")
         format_version = normalize_task_format_version(args)
         if format_version not in MULTIPLICATION_FORMATS:
             raise ValueError(f"Unsupported multiplication format_version={format_version!r}.")
@@ -402,7 +400,6 @@ class MultiplicationTask(SelfImprovementTask):
             "retained_total": len(pseudo_examples),
             "missing_total": missing_total,
             "retained_fraction": len(pseudo_examples) / len(candidate_examples) if candidate_examples else math.nan,
-            "oracle_aggregation": bool(args.oracle_aggregation),
             "corruption_rate": args.corruption_rate if args.pseudo_label_mode == "compose_corrupt" else 0.0,
             "corrupted_component_total": corrupted_component_total,
             "corrupted_example_total": corrupted_example_total,
@@ -412,7 +409,6 @@ class MultiplicationTask(SelfImprovementTask):
     def build_task_metadata(self, args: Any, final_max_size: int) -> JsonDict:
         return {
             "block_size": args.block_size,
-            "oracle_aggregation": bool(args.oracle_aggregation),
             "pseudo_label_mode": args.pseudo_label_mode,
             "corruption_rate": args.corruption_rate,
             "format_version": normalize_task_format_version(args),
@@ -421,7 +417,6 @@ class MultiplicationTask(SelfImprovementTask):
     def metadata_aliases(self, args: Any, final_max_size: int) -> JsonDict:
         return {
             "block_size": args.block_size,
-            "oracle_aggregation": bool(args.oracle_aggregation),
             "pseudo_label_mode": args.pseudo_label_mode,
             "corruption_rate": args.corruption_rate,
             "composed_max_digits": final_max_size,
@@ -439,9 +434,6 @@ class MultiplicationTask(SelfImprovementTask):
         stored_block_size = int(task_config.get("block_size", metadata.get("block_size", args.block_size)))
         if stored_block_size != args.block_size:
             raise ValueError("Stored multiplication dataset uses a different block_size.")
-        stored_oracle = bool(task_config.get("oracle_aggregation", metadata.get("oracle_aggregation", True)))
-        if not stored_oracle:
-            raise ValueError("Stored multiplication dataset is not oracle-aggregation based and is no longer supported.")
         stored_format = str(task_config.get("format_version", metadata.get("format_version", "legacy")))
         if stored_format != normalize_task_format_version(args):
             raise ValueError("Stored multiplication dataset uses a different format_version.")

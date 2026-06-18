@@ -147,7 +147,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument("--block-size", type=int, default=2)
-    parser.set_defaults(oracle_aggregation=True)
 
     parser.add_argument("--num-epochs", type=int, default=1)
     parser.add_argument("--learning-rate", type=float, default=5e-5)

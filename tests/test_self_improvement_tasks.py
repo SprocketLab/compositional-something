@@ -255,7 +255,7 @@ def test_addition_composed_pseudo_map_pads_lower_fixed_width_blocks():
     assert pseudo_map[example_key(composed)] == "2409"
 
 
-def test_multiplication_task_oracle_aggregation_and_corruption(monkeypatch):
+def test_multiplication_task_composition_and_corruption(monkeypatch):
     task = tasks.MultiplicationTask()
     example = tasks.MultiplicationExample(a=1234, b=5678, digits=4, result=1234 * 5678, operand_width=4)
     payload = tasks.build_multiplication_component_payload(example, 2)
@@ -282,7 +282,6 @@ def test_multiplication_task_oracle_aggregation_and_corruption(monkeypatch):
             pseudo_label_mode="compose",
             corruption_rate=0.0,
             block_size=2,
-            oracle_aggregation=True,
         ),
         rng=random.Random(0),
     )
@@ -302,7 +301,6 @@ def test_multiplication_task_oracle_aggregation_and_corruption(monkeypatch):
             pseudo_label_mode="compose_corrupt",
             corruption_rate=1.0,
             block_size=2,
-            oracle_aggregation=True,
         ),
         rng=random.Random(0),
     )

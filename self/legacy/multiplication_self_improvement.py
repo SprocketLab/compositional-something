@@ -127,7 +127,6 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
     args.expand_train_per_size = args.expand_train_per_digit
     args.eval_per_size = args.eval_per_digit
     args.composed_eval_per_size = args.composed_eval_per_digit
-    args.oracle_aggregation = True
     return args
 
 

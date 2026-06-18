@@ -223,7 +223,7 @@ tests, notebooks, and older artifacts.
   composition-size helpers, guarded pseudolabel refill, and direct
   pseudolabel utilities.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
-  oracle-aggregation pseudolabel derivation, metadata validation, and
+  blocked-component pseudolabel derivation, metadata validation, and
   `MultiplicationTask`.
 - `self/tasks/multiplication_data.py`: multiplication example container, key
   encoding, seed/long dataset construction, blocked component payloads, slice

@@ -177,7 +177,7 @@ This suggests a natural compositional pipeline:
 
 1. solve short block products,
 2. form shifted partial products,
-3. aggregate them into a final answer.
+3. compose them into a final answer.
 
 ### Practical multiplication path
 
@@ -189,7 +189,7 @@ Success criterion:
 
 - self-improvement extends to longer multiplicands than direct supervision alone
 
-#### Stage M2: Blocked multiplication with oracle aggregation
+#### Stage M2: Blocked multiplication with exact composition
 
 Use the model only for short block products.
 Use exact code to sum shifted partial products into the final label.
@@ -199,7 +199,7 @@ Purpose:
 - test whether short-product competence transfers at all
 - avoid conflating block-product failure with final carry aggregation failure
 
-This is still a valid workshop result because the self-improvement signal is compositional even if the final aggregator is exact.
+This is still a valid workshop result because the self-improvement signal is compositional even if the final block-composition rule is exact.
 
 #### Stage M3: Not required for workshop
 
@@ -319,7 +319,7 @@ If space is tight, the strongest compact figure set is:
 ### After clean transfer tasks
 
 1. Add multiplication in staged form.
-2. Start with oracle aggregation of block products.
+2. Start with exact composition of block products.
 3. Then move toward fully compositional pseudo-label generation.
 
 ### Nice-to-have, not necessary for workshop
@@ -347,7 +347,7 @@ This is the most likely failure mode.
 Response:
 
 - use staged multiplication
-- report oracle-aggregation intermediate results
+- report exact-composition intermediate results
 - frame full multiplication as future work if needed
 
 ### Risk 3: Gains are actually from extra data, not composition

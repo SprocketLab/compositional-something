@@ -1915,7 +1915,7 @@ Acceptance criteria for first pilot:
 
 ### Implementation Log: 2026-06-17 20:09:51 UTC
 
-- Finished the task-family split by moving multiplication examples, blocked component payload construction, seed/long dataset builders, oracle-aggregation pseudolabel derivation, metadata validation, and `MultiplicationTask` into `self/tasks/multiplication.py`.
+- Finished the task-family split by moving multiplication examples, blocked component payload construction, seed/long dataset builders, blocked-component pseudolabel derivation, metadata validation, and `MultiplicationTask` into `self/tasks/multiplication.py`.
 - Re-exported multiplication symbols from `self/self_improvement_tasks.py` and `self/tasks/__init__.py`, preserving old imports such as `MultiplicationExample`, `build_multiplication_component_payload`, `multiplication_key`, and `MultiplicationTask`.
 - Preserved old monkeypatch behavior by resolving `generate_prediction_map` through the `self.self_improvement_tasks` facade when `MultiplicationTask.derive_round_targets` runs. This keeps existing multiplication pseudolabel tests and notebook-style patches working after the move.
 - `self/self_improvement_tasks.py` is now `149` lines, down from `879` after the auxiliary bit-task split and `3835` before task splitting began. It is now a compatibility import surface rather than a task implementation module.
@@ -3030,3 +3030,10 @@ Acceptance criteria for first pilot:
 - Added `tests/test_analysis_artifacts.py` coverage for the resolver, artifacts reexport identity, plot helper path resolution, sorted record loading, and non-list payload rejection.
 - Updated `self/README.md` to document non-adaptive result-path resolution and the plot CLI's use of the stable artifact loader.
 - Verification: `python -m py_compile self/analysis/nonadaptive_artifacts.py self/analysis/artifacts.py self/analysis/plot_self_improvement_figure.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_loader tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`). The temporary `.pytest_tmp_analysis_loader` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 07:43:16 UTC
+
+- Removed the stale multiplication aggregation flag/default and its diagnostics/metadata fields. Multiplication now records only the supported blocked-component composition path.
+- Renamed the multiplication corruption test away from aggregation-condition wording and removed the unused argument plumbing from the seed-fit and legacy multiplication wrappers.
+- Updated `self/README.md` and the old workshop planning doc so tracked docs no longer imply an extra aggregation condition beyond exact blocked composition.
+- Verification: `python -m py_compile self/tasks/multiplication.py self/experiments/seed_fit_experiment.py self/legacy/multiplication_self_improvement.py tests/test_self_improvement_tasks.py`; tracked terminology grep returned no matches; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_aggregation_cleanup tests/test_self_improvement_tasks.py tests/test_nonadaptive_setup.py tests/test_candidate_rewards.py -q` (`40 passed`).
