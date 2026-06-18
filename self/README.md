@@ -79,6 +79,9 @@ part of the supported surface.
   constants, and compatibility reexport for `normalize_args(...)`.
 - `self/core/args_normalization.py`: adaptive argument validation,
   cross-field checks, task-specific defaults, and derived size/count aliases.
+- `self/core/attempt_loop_models.py`: shared adaptive attempt-loop and
+  candidate-attempt dependency/result containers. Old runtime module paths
+  reexport these names for compatibility.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
   orchestration across prompt construction, dry-run handling, candidate-attempt
   dispatch, and loop state updates. Training config references are type-only so

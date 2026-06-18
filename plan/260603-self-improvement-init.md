@@ -4532,3 +4532,22 @@ Acceptance criteria for first pilot:
 - No runtime behavior changed. Unsupported label-family baselines stay out of
   the maintained workshop/main-track surface unless they are later introduced
   as explicit experiments with tests and launcher/docs coverage.
+
+### Implementation Log: 2026-06-18 20:33:24 UTC
+
+- Split adaptive attempt-loop data contracts from runtime code into
+  `self/core/attempt_loop_models.py`.
+- The new module owns `CandidateAttemptDeps`, `AttemptLoopDeps`, and
+  `AttemptLoopResult`; `self/core/attempt_candidate_runtime.py` and
+  `self/core/attempt_loop_runtime.py` still reexport the old import-path names
+  for compatibility.
+- Added `tests/test_attempt_loop_models.py` to pin those compatibility aliases.
+- Verification: `python -m py_compile self/core/attempt_loop_models.py
+  self/core/attempt_loop_runtime.py self/core/attempt_candidate_runtime.py
+  tests/test_attempt_loop_models.py tests/test_attempt_candidate_runtime.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_attempt_loop_models
+  tests/test_attempt_loop_models.py tests/test_attempt_candidate_runtime.py
+  tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`44 passed`, `3`
+  existing multiprocessing fork warnings); `git diff --check`.

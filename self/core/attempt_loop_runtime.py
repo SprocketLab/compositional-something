@@ -4,52 +4,17 @@ from __future__ import annotations
 
 import argparse
 import random
-from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Sequence
 
-from self.core.attempt_candidate_runtime import CandidateAttemptDeps, run_candidate_attempt
-from self.core.attempt_outcome_runtime import AttemptOutcomeDeps, AttemptOutcomeResult
-from self.core.attempt_prompt_runtime import AttemptPromptDeps, AttemptPromptResult
-from self.core.dry_run_runtime import DryRunAttemptDeps, DryRunAttemptResult
-from self.core.models import CandidateMetrics
-from self.core.round_model_dispatch_runtime import RoundModelDispatchDeps, RoundModelDispatchResult
+from self.core.attempt_candidate_runtime import run_candidate_attempt
+from self.core.attempt_loop_models import CandidateAttemptDeps, AttemptLoopDeps, AttemptLoopResult
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig
 
 
 JsonDict = Dict[str, Any]
-
-
-@dataclass(frozen=True)
-class AttemptLoopDeps:
-    ensure_dir: Callable[[Path], None]
-    build_attempt_prompt: Callable[..., AttemptPromptResult]
-    write_json: Callable[[Path, Any], None]
-    run_dry_attempt: Callable[..., DryRunAttemptResult]
-    run_round_model_dispatch: Callable[..., RoundModelDispatchResult]
-    train_candidate_metrics: Callable[..., Sequence[CandidateMetrics]]
-    select_candidate: Callable[[Sequence[CandidateMetrics], float], CandidateMetrics | None]
-    write_round_trace: Callable[..., Sequence[Mapping[str, Any]]]
-    handle_attempt_outcome: Callable[..., AttemptOutcomeResult]
-    attempt_prompt_deps: AttemptPromptDeps
-    dry_run_attempt_deps: DryRunAttemptDeps
-    round_model_dispatch_deps: RoundModelDispatchDeps
-    attempt_outcome_deps: AttemptOutcomeDeps
-
-
-@dataclass(frozen=True)
-class AttemptLoopResult:
-    selected_rounds: int
-    attempt_index: int
-    current_checkpoint: str
-    current_final_accuracy: float
-    current_per_size_accuracy: Mapping[int, float]
-    source_sizes: set[int]
-    proposal_trace_buffer: list[Any]
-    outcome_trace_buffer: list[Any]
-    proposal_grpo_update_count: int
 
 
 def run_adaptive_attempt_loop(

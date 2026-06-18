@@ -3,27 +3,14 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from self.core.attempt_outcome_models import AttemptOutcomeDeps, AttemptOutcomeResult
-from self.core.models import CandidateMetrics
-from self.core.round_model_dispatch_runtime import RoundModelDispatchDeps, RoundModelDispatchResult
+from self.core.attempt_loop_models import CandidateAttemptDeps
+from self.core.attempt_outcome_models import AttemptOutcomeResult
 
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig
-
-
-@dataclass(frozen=True)
-class CandidateAttemptDeps:
-    run_round_model_dispatch: Callable[..., RoundModelDispatchResult]
-    train_candidate_metrics: Callable[..., Sequence[CandidateMetrics]]
-    select_candidate: Callable[[Sequence[CandidateMetrics], float], CandidateMetrics | None]
-    write_round_trace: Callable[..., Sequence[Mapping[str, Any]]]
-    handle_attempt_outcome: Callable[..., AttemptOutcomeResult]
-    round_model_dispatch_deps: RoundModelDispatchDeps
-    attempt_outcome_deps: AttemptOutcomeDeps
 
 
 def run_candidate_attempt(
