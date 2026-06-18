@@ -4058,3 +4058,16 @@ Acceptance criteria for first pilot:
 - This keeps the committed project scoped to direct self-labeling, composed
   pseudolabeling, guarded composition, corrupt-composition controls, and the
   adaptive config/program proposal loops.
+
+### Implementation Log: 2026-06-18 18:25:52 UTC
+
+- Added `read_round_summaries(...)` to `self/analysis/artifact_io.py` as the
+  shared parser for non-adaptive round-result JSON. It supports both legacy
+  top-level lists and newer `{"rounds": [...]}` payloads while rejecting
+  unrelated dict-shaped files.
+- Migrated non-adaptive artifact loading, appendix heatmap plotting,
+  training-curve result frames, and training-curve round metrics to use the
+  shared parser instead of each module opening/parsing raw JSON directly.
+- Reexported the helper through `self/analysis/artifacts.py` so notebooks can
+  keep importing from the stable compatibility surface.
+- Updated `self/README.md` to document the round-summary loader boundary.

@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from self.analysis.artifact_io import read_round_summaries
 
 
 def find_repo_root(start: Optional[Path] = None) -> Path:
@@ -21,11 +22,7 @@ def find_repo_root(start: Optional[Path] = None) -> Path:
 
 
 def load_rows(path: Path) -> List[dict]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if isinstance(payload, list):
-        return payload
-    return list(payload.get("rounds", []))
+    return read_round_summaries(path)
 
 
 def per_size_key(row: dict) -> str:

@@ -225,6 +225,39 @@ def test_training_log_and_round_metric_helpers_keep_compatibility(tmp_path: Path
         }
     ]
 
+    wrapped_results_path = tmp_path / "wrapped_self_improvement_results.json"
+    wrapped_results_path.write_text(
+        json.dumps(
+            {
+                "rounds": [
+                    {
+                        "round": 3,
+                        "max_size": 16,
+                        "train_examples": 120,
+                        "pseudo_examples": 50,
+                        "eval_accuracy": 0.75,
+                        "composed_eval_accuracy": 0.7,
+                        "pseudo_retention_rate": 0.55,
+                        "max_solved_size_at_90_accuracy": 10,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert load_round_metrics(wrapped_results_path).to_dict(orient="records") == [
+        {
+            "round": 3,
+            "max_size": 16,
+            "train_examples": 120,
+            "pseudo_examples": 50,
+            "eval_accuracy": 0.75,
+            "composed_eval_accuracy": 0.7,
+            "pseudo_retention_rate": 0.55,
+            "max_solved_size_at_90_accuracy": 10,
+        }
+    ]
+
 
 def test_plot_per_size_accuracy_heatmap_supports_addition_schema(tmp_path: Path):
     results_path = tmp_path / "self_improvement_results.json"

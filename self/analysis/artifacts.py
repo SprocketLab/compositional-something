@@ -50,6 +50,7 @@ from self.analysis.artifact_io import (
     JsonDict,
     read_json,
     read_jsonl,
+    read_round_summaries,
 )
 from self.analysis.nonadaptive_artifacts import (
     load_self_improvement_rounds,

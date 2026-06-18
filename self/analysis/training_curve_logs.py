@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import ast
-import json
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+from self.analysis.artifact_io import read_round_summaries
 
 
 ROUND_PATTERN = re.compile(r"\[ROUND\s+(\d+)\].*?eval_acc=([0-9.]+)")
@@ -105,16 +106,8 @@ def parse_training_log(log_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def load_round_metrics(results_path: Path) -> pd.DataFrame:
     """Load round-level accuracy metrics."""
-    with Path(results_path).open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-
-    if not isinstance(payload, list):
-        raise ValueError(f"Expected a list of round summaries in {results_path}.")
-
     rows: List[Dict[str, Any]] = []
-    for entry in payload:
-        if not isinstance(entry, dict):
-            continue
+    for entry in read_round_summaries(results_path):
         rows.append(
             {
                 "round": int(entry["round"]),

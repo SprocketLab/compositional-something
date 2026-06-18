@@ -34,9 +34,11 @@ from self.analysis.artifacts import (
     per_size_accuracy_records,
     read_json,
     read_jsonl,
+    read_round_summaries,
     resolve_self_improvement_results_path,
     resolve_submission_manifest_path,
 )
+from self.analysis.plot_appendix_baseline_heatmaps import load_rows as load_appendix_heatmap_rows
 from self.analysis.plot_self_improvement_figure import load_records, resolve_results_path
 
 
@@ -457,6 +459,7 @@ def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
 
     assert read_json(tmp_path / "missing.json", {"default": True}) == {"default": True}
     assert read_jsonl(tmp_path / "missing.jsonl") == []
+    assert read_round_summaries(tmp_path / "missing_results.json", default=[]) == []
 
     run_dir = tmp_path / "classic"
     expected_results_path = run_dir / "self_improvement_results.json"
@@ -476,6 +479,15 @@ def test_generic_json_and_self_improvement_round_helpers(tmp_path: Path):
         {"round": 0, "size": 3, "accuracy": 0.9, "run_name": "classic"},
         {"round": 0, "size": 4, "accuracy": 0.8, "run_name": "classic"},
         {"round": 1, "size": 5, "accuracy": 0.7, "run_name": "classic"},
+    ]
+
+    wrapped_results_path = tmp_path / "wrapped_results.json"
+    _write_json(wrapped_results_path, {"rounds": [{"round": 2, "per_size_accuracy": {"6": 0.6}}]})
+    assert read_round_summaries(wrapped_results_path) == [
+        {"round": 2, "per_size_accuracy": {"6": 0.6}}
+    ]
+    assert load_appendix_heatmap_rows(wrapped_results_path) == [
+        {"round": 2, "per_size_accuracy": {"6": 0.6}}
     ]
 
 

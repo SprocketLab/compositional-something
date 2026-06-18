@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+from self.analysis.artifact_io import read_round_summaries
 
 
 def _to_float(value: Any) -> Optional[float]:
@@ -20,11 +21,7 @@ def _to_float(value: Any) -> Optional[float]:
 
 def load_round_payload(results_path: Path) -> List[Dict[str, Any]]:
     """Load the raw round summaries from a results JSON file."""
-    with Path(results_path).open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, list):
-        raise ValueError(f"Expected a list of round summaries in {results_path}.")
-    return [entry for entry in payload if isinstance(entry, dict)]
+    return read_round_summaries(results_path)
 
 
 def resolve_results_path(path: str | Path) -> Path:

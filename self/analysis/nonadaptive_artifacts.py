@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from self.analysis.artifact_io import SELF_IMPROVEMENT_RESULTS_FILE, JsonDict, read_json
+from self.analysis.artifact_io import SELF_IMPROVEMENT_RESULTS_FILE, JsonDict, read_round_summaries
 
 
 def resolve_self_improvement_results_path(path_or_dir: Path | str) -> Path:
@@ -15,10 +15,7 @@ def resolve_self_improvement_results_path(path_or_dir: Path | str) -> Path:
 
 def load_self_improvement_rounds(path_or_dir: Path | str) -> list[JsonDict]:
     path = resolve_self_improvement_results_path(path_or_dir)
-    rows = read_json(path, []) or []
-    if not isinstance(rows, list):
-        raise ValueError(f"Expected list of round records in {path}.")
-    return rows
+    return read_round_summaries(path, default=[])
 
 
 def per_size_accuracy_records(
