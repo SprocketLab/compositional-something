@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+import os
+import subprocess
+from pathlib import Path
+
+from self.bit_task_self_improvement import build_bit_task_parser
+
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNNER = ROOT / "launchers" / "self" / "run_guarded_plain_output_bit_diagnostic_mig.sbatch"
+SUBMITTER = ROOT / "launchers" / "self" / "submit_guarded_plain_output_bit_diagnostic_mig.sh"
+RUN_LENGTH_ALPHA10_BASELINE_PACK = ROOT / "launchers" / "self" / "submit_run_length_alpha10_baseline_pack_mig.sh"
+
+
+def test_bit_task_cli_defaults_to_all_round_model_saving():
+    parser = build_bit_task_parser(description="test", default_output_dir="out")
+    args = parser.parse_args([])
+    assert args.save_model_policy == "all_rounds"
+    assert args.self_improve_warmup_steps is None
+    assert args.bit_composition_path_mode == "random"
+
+
+def test_guarded_plain_output_bit_launchers_have_valid_bash_syntax():
+    for launcher in (RUNNER, SUBMITTER, RUN_LENGTH_ALPHA10_BASELINE_PACK):
+        assert launcher.exists()
+        subprocess.run(["bash", "-n", str(launcher)], check=True)
+
+
+def test_guarded_plain_output_bit_runner_dry_run_prints_expected_commands(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["TASK"] = "run_length"
+    env["SYMBOL_ALPHABET_SIZE"] = "3"
+    env["ROUND_WARMUP_STEPS"] = "300"
+    env["BIT_COMPOSITION_PATH_MODE"] = "fixed_binary"
+    env["OUT_ROOT"] = str(tmp_path / "guarded_diag")
+
+    result = subprocess.run(
+        ["bash", str(RUNNER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout.replace("\\ ", " ")
+    assert "-m self.seed_fit_experiment" in stdout
+    assert "--task run_length" in stdout
+    assert "--target-mode symbol_run_pair" in stdout
+    assert "--symbol-alphabet-size 3" in stdout
+    assert "--initial-min-size 8" in stdout
+    assert "--initial-max-size 12" in stdout
+    assert "--bucket-train-batches-by-size" in stdout
+    assert "-m self.run_length_self_improvement" in stdout
+    assert "--compose-arity exact2" in stdout
+    assert "--bit-composition-path-mode fixed_binary" in stdout
+    assert "--frontier-min-bits 18" in stdout
+    assert "--treat-seed-as-round-zero" in stdout
+    assert "--save-model-policy all_rounds" in stdout
+    assert "--skip-save-model" not in stdout
+    assert "--pseudo-label-mode direct" in stdout
+    assert "--pseudo-label-mode compose" in stdout
+    assert "--guarded-compose-rule run_length_no_boundary_continue" in stdout
+    assert "--expand-num-bits 8" in stdout
+    assert "--num-expand-rounds 1" in stdout
+    assert "--self-improve-warmup-steps 300" in stdout
+    assert "Target mode: symbol_run_pair" in stdout
+    assert "Bit composition path mode: fixed_binary" in stdout
+    assert "Round warmup steps: 300" in stdout
+    assert "Save model policy: all_rounds" in stdout
+
+
+def test_guarded_plain_output_bit_submitter_dry_run_prints_run_length(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "guarded_diag_submit")
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout.replace("\\ ", " ")
+    assert "TASK=run_length" in stdout
+    assert "run_guarded_plain_output_bit_diagnostic_mig.sbatch" in stdout
+    assert "DRY_RUN=1; sbatch not executed for run_length." in stdout
+
+
+def test_run_length_alpha10_baseline_pack_dry_run_prints_three_baselines(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "rl_alpha10_baselines")
+
+    result = subprocess.run(
+        ["bash", str(RUN_LENGTH_ALPHA10_BASELINE_PACK)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout.replace("\\ ", " ")
+    assert "run_length_multisymbol_pair_alpha10_seed50k_steps15k_20260423_123229/seed/model" in stdout
+    assert "--target-mode symbol_run_pair" in stdout
+    assert "--compose-arity exact2" in stdout
+    assert "--bit-composition-path-mode random" in stdout
+    assert "--num-expand-rounds 7" in stdout
+    assert "--expand-num-bits 9" in stdout
+    assert "--expand-train-per-bit 2000" in stdout
+    assert "--self-improve-warmup-steps 500" in stdout
+    assert "--pseudo-label-mode direct" in stdout
+    assert "--guarded-compose-rule run_length_unfiltered_pair" in stdout
+    assert "--guarded-compose-rule run_length_no_boundary_continue" in stdout
+    assert "DRY_RUN=1; sbatch not executed for direct." in stdout
+    assert "DRY_RUN=1; sbatch not executed for unfiltered_compose." in stdout
+    assert "DRY_RUN=1; sbatch not executed for guarded_compose." in stdout

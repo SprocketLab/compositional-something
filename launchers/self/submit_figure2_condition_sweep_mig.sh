@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/self_common.sh"
+
+self_cd_repo_root
+self_resolve_python
+
+TS="$(date +%Y%m%d_%H%M%S)"
+OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/figure2_condition_sweep_${TS}}"
+SELECTION_JSON="${SELECTION_JSON:-${ROOT_DIR}/artifacts/paper/paper_schedule_selection.json}"
+PAPER_SCHEDULE_ENV="${PAPER_SCHEDULE_ENV:-${ROOT_DIR}/artifacts/paper/paper_schedule_selection.env}"
+FIGURE_DIR="${FIGURE_DIR:-${ROOT_DIR}/icmlw26_comp-self-improvement/figures}"
+LOG_DIR="${LOG_DIR:-${ROOT_DIR}/artifacts/logs}"
+DRY_RUN="${DRY_RUN:-0}"
+
+cmd=(
+  "${PYTHON_BIN}"
+  -m
+  self.figure2_condition_sweep
+  submit
+  --out-root "${OUT_ROOT}"
+  --selection-json "${SELECTION_JSON}"
+  --paper-schedule-env "${PAPER_SCHEDULE_ENV}"
+  --figure-dir "${FIGURE_DIR}"
+  --log-dir "${LOG_DIR}"
+  --python-bin "${PYTHON_BIN}"
+)
+
+if self_parse_bool "${DRY_RUN}"; then
+  cmd+=(--dry-run)
+fi
+
+echo "[INFO] Root dir: ${ROOT_DIR}"
+echo "[INFO] Python: ${PYTHON_BIN}"
+echo "[INFO] Output root: ${OUT_ROOT}"
+echo "[INFO] Selection JSON: ${SELECTION_JSON}"
+echo "[INFO] Paper schedule env: ${PAPER_SCHEDULE_ENV}"
+echo "[INFO] Figure dir: ${FIGURE_DIR}"
+echo "[INFO] Log dir: ${LOG_DIR}"
+echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_command_stdout "${cmd[@]}"
+
+"${cmd[@]}"

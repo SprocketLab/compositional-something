@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from self.self_improvement_recipe import (
+from self.core.recipes import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     BatchSamplerWarmupStableDecayTrainer,
     NoPELlamaForCausalLM,

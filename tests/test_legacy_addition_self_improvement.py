@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import random
 from pathlib import Path
@@ -185,6 +186,56 @@ def test_make_training_args_uses_recipe_phase_schedule(tmp_path: Path):
     assert self_improve_args.max_steps == 3_000
     assert self_improve_args.warmup_steps == 0
     assert self_improve_args.learning_rate == 5e-4
+
+
+def test_make_training_args_applies_self_improve_recipe_phase_overrides(tmp_path: Path):
+    config = VariantTrainingConfig(
+        num_epochs=3,
+        learning_rate=2e-4,
+        per_device_train_batch_size=128,
+        per_device_eval_batch_size=256,
+        gradient_accumulation_steps=1,
+        weight_decay=0.0,
+        logging_steps=25,
+        max_steps=4500,
+    )
+
+    overrides = {"warmup_steps": 0, "num_stable_steps": 3500, "num_decay_steps": 1000}
+    self_improve_args = legacy.make_training_args(
+        tmp_path / "self_improve",
+        config,
+        bf16=False,
+        fp16=False,
+        skip_save=False,
+        keep_checkpoints=False,
+        seed=0,
+        recipe="arithmetic_self_improve_v1",
+        recipe_phase_name="self_improve",
+        recipe_phase_overrides=overrides,
+    )
+    preset = legacy.resolve_addition_recipe("arithmetic_self_improve_v1")
+    phase = legacy.resolve_recipe_phase(preset, "self_improve")
+    overridden_phase = legacy.apply_recipe_phase_overrides(phase, overrides)
+
+    assert self_improve_args.max_steps == 4500
+    assert self_improve_args.warmup_steps == 0
+    assert overridden_phase.num_stable_steps == 3500
+    assert overridden_phase.num_decay_steps == 1000
+
+
+def test_recipe_phase_overrides_for_args_only_applies_to_self_improve():
+    args = argparse.Namespace(
+        self_improve_warmup_steps=12,
+        self_improve_stable_steps=34,
+        self_improve_decay_steps=56,
+    )
+
+    assert legacy.recipe_phase_overrides_for_args(args, recipe_phase_name="seed") is None
+    assert legacy.recipe_phase_overrides_for_args(args, recipe_phase_name="self_improve") == {
+        "warmup_steps": 12,
+        "num_stable_steps": 34,
+        "num_decay_steps": 56,
+    }
 
 
 def test_cleanup_round_checkpoints_keeps_round_final_model(tmp_path: Path):

@@ -1,0 +1,3 @@
+{"id":"config-run-length-8-plus-9","condition":"config","raw_output":{"left":8,"right":9,"guard":"none","notes":"Compose the smallest valid post-init run-length target from reliable init slices."},"frontier_delta":0.18,"final_accuracy":0.88}
+{"id":"config-run-length-invalid-target","condition":"config","raw_output":{"left":8,"right":8,"guard":"none"},"frontier_delta":0.30,"final_accuracy":0.95}
+{"id":"config-run-length-9-plus-9-guarded","condition":"config","raw_output":{"left":9,"right":9,"guard":"reject_boundary_continue","notes":"Probe an 18-bit target while rejecting boundary-continuation cases."},"frontier_delta":0.08,"final_accuracy":0.90}

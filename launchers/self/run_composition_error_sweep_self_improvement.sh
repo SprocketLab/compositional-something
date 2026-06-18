@@ -3,10 +3,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-cd "${ROOT_DIR}"
+# shellcheck source=launchers/self/lib/self_common.sh
+source "${SCRIPT_DIR}/lib/self_common.sh"
+self_cd_repo_root
+self_resolve_python
 
 PROPORTIONS=(40 50 60 70 80 90 100)
+DRY_RUN="${DRY_RUN:-0}"
 
 # Customize additional arguments for each experiment as needed.
 SELF_IMPROVEMENT_ARGS=()
@@ -18,18 +21,22 @@ launch_self_job() {
     local gpu="$1"
     local percent="$2"
     local self_output_dir="${ROOT_DIR}/artifacts/runs/self_improvement/error_${percent}"
+    local -a run_cmd=(
+        "${PYTHON_BIN}" -m self.self_improvement_composition_error_experiment
+        --composition-error-percent "${percent}"
+        -- --output-dir "${self_output_dir}"
+    )
+    if [ "${#SELF_IMPROVEMENT_ARGS[@]}" -gt 0 ]; then
+        run_cmd+=("${SELF_IMPROVEMENT_ARGS[@]}")
+    fi
 
     echo "[INFO] Launching self_improvement (GPU${gpu}) with composition error percent=${percent}"
-    if [ "${#SELF_IMPROVEMENT_ARGS[@]}" -gt 0 ]; then
-        CUDA_VISIBLE_DEVICES="${gpu}" python -m self.self_improvement_composition_error_experiment \
-            --composition-error-percent "${percent}" \
-            -- --output-dir "${self_output_dir}" "${SELF_IMPROVEMENT_ARGS[@]}" &
+    if self_parse_bool "${DRY_RUN}"; then
+        self_print_prefixed_command_stdout "Command" env "CUDA_VISIBLE_DEVICES=${gpu}" "${run_cmd[@]}"
     else
-        CUDA_VISIBLE_DEVICES="${gpu}" python -m self.self_improvement_composition_error_experiment \
-            --composition-error-percent "${percent}" \
-            -- --output-dir "${self_output_dir}" &
+        CUDA_VISIBLE_DEVICES="${gpu}" "${run_cmd[@]}" &
+        SELF_GPU_PIDS["${gpu}"]=$!
     fi
-    SELF_GPU_PIDS["${gpu}"]=$!
 }
 
 refresh_self_gpu_pool() {

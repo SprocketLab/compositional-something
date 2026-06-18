@@ -27,192 +27,57 @@ from self.self_improvement_core import evaluate_accuracy_with_breakdown, extract
 from self import self_improvement_tasks as tasks
 
 
-def test_majority_parse_and_compose():
-    left = tasks.MajorityExample(bitstring="010", bits=3, ones=1, majority=0)
-    right = tasks.MajorityExample(bitstring="11", bits=2, ones=2, majority=1)
-    composed = tasks.compose_majority_examples(left, right)
-
-    assert composed.bitstring == "01011"
-    assert composed.ones == 3
-    assert composed.majority == 1
-    assert tasks.parse_majority_prediction("Answer: 3 1") == "3|1"
-
-
-def test_symbolic_majority_prompt_and_target_prefix():
-    example = tasks.MajorityExample(bitstring="01011010", bits=8, ones=4, majority=1, format_version="symbolic_v1")
-    assert example.prompt() == "majority(01011010)="
-    assert example.target() == "4|1"
-    assert example.target_prefix() == ""
+def test_fixed_binary_component_size_selection_is_deterministic():
+    assert tasks.choose_component_sizes(
+        9,
+        [4, 5, 6],
+        random.Random(0),
+        bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
+    ) == [4, 5]
+    assert tasks.choose_component_sizes(
+        10,
+        [4, 5, 6],
+        random.Random(0),
+        bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
+    ) == [5, 5]
 
 
-def test_plain_output_majority_target_and_parser():
-    example = tasks.MajorityExample(bitstring="01011010", bits=8, ones=4, majority=1, target_mode="plain_output")
-    assert example.target() == "1"
-    assert tasks.parse_majority_prediction("prediction: 1", example) == "1"
-    assert tasks.parse_majority_prediction("prediction: 3", example) is None
+def test_fixed_binary_component_size_selection_raises_for_unavailable_half():
+    try:
+        tasks.choose_component_sizes(
+            9,
+            [3, 5, 6],
+            random.Random(0),
+            bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
+        )
+    except ValueError as exc:
+        assert "requires component sizes 4+5" in str(exc)
+    else:
+        raise AssertionError("fixed_binary should fail when the half-split bucket is unavailable")
 
 
-def test_majority_seed_split_can_reserve_heldout_first():
-    generated = tasks.build_majority_length_bucket_dataset(
-        min_bits=4,
-        max_bits=4,
-        per_bit_counts={"train": 100, "validation": 4, "test": 4},
-        rng=random.Random(0),
-        split_order=("validation", "test", "train"),
-    )
-
-    assert len(generated["validation"]) == 4
-    assert len(generated["test"]) == 4
-    assert len(generated["train"]) == 8
-
-
-def test_majority_exact2_composed_dataset_records_two_children():
+def test_run_length_fixed_binary_composed_dataset_records_half_split_children():
     base_examples = [
-        tasks.MajorityExample(bitstring="0000", bits=4, ones=0, majority=0),
-        tasks.MajorityExample(bitstring="00000", bits=5, ones=0, majority=0),
-        tasks.MajorityExample(bitstring="111111", bits=6, ones=6, majority=1),
+        tasks.RunLengthExample(bitstring="0000", bits=4, max_run=4, prefix_run=4, suffix_run=4),
+        tasks.RunLengthExample(bitstring="11111", bits=5, max_run=5, prefix_run=5, suffix_run=5),
+        tasks.RunLengthExample(bitstring="222222", bits=6, max_run=6, prefix_run=6, suffix_run=6),
     ]
     component_records = {"train": {}, "validation": {}, "test": {}}
 
-    generated = tasks.build_majority_composed_dataset(
+    generated = tasks.build_run_length_composed_dataset(
         base_splits={"train": list(base_examples), "validation": [], "test": []},
         min_bits=9,
         max_bits=9,
-        per_bit_counts={"train": 3, "validation": 0, "test": 0},
+        per_bit_counts={"train": 2, "validation": 0, "test": 0},
         rng=random.Random(0),
         record_components=component_records,
-        compose_arity="exact2",
+        bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
     )
 
-    assert len(generated["train"]) == 3
+    assert len(generated["train"]) == 2
     for example in generated["train"]:
-        component_keys = component_records["train"][tasks.majority_key(example)]
-        assert len(component_keys) == 2
-        assert sum(key[0] for key in component_keys) == 9
-
-
-def test_majority_task_compose_corrupt_flips_one_component(monkeypatch):
-    class FixedRng:
-        def random(self) -> float:
-            return 0.0
-
-        def randrange(self, _: int) -> int:
-            return 0
-
-    task = tasks.MajorityTask()
-    base_examples = [
-        tasks.MajorityExample(bitstring="00", bits=2, ones=0, majority=0),
-        tasks.MajorityExample(bitstring="01", bits=2, ones=1, majority=1),
-    ]
-    composed = tasks.compose_majority_examples(*base_examples)
-    component_map = {tasks.majority_key(composed): [tasks.majority_key(example) for example in base_examples]}
-
-    def fake_prediction_map(**kwargs):
-        return {tasks.majority_key(example): example.target() for example in kwargs["examples"]}
-
-    monkeypatch.setattr(tasks, "generate_prediction_map", fake_prediction_map)
-
-    pseudo_examples, missing_total, diagnostics = task.derive_round_targets(
-        model=None,
-        tokenizer=None,
-        composed_examples=[composed],
-        component_map=component_map,
-        target_max_size=4,
-        base_examples=base_examples,
-        batch_size=1,
-        decode_max_new_tokens=8,
-        args=SimpleNamespace(pseudo_label_mode="compose_corrupt", corruption_rate=1.0),
-        rng=FixedRng(),
-    )
-
-    assert missing_total == 0
-    assert diagnostics["corrupted_examples"] == 1
-    assert pseudo_examples[0].target() == "3|1"
-
-
-def test_majority_plain_output_guarded_compose_refills_to_exact_count(monkeypatch):
-    task = tasks.MajorityTask()
-    left_zero = tasks.MajorityExample(bitstring="0000", bits=4, ones=0, majority=0, target_mode="plain_output")
-    right_zero = tasks.MajorityExample(bitstring="00000", bits=5, ones=0, majority=0, target_mode="plain_output")
-    right_one = tasks.MajorityExample(bitstring="11111", bits=5, ones=5, majority=1, target_mode="plain_output")
-    accepted = tasks.compose_majority_examples(left_zero, right_zero)
-    rejected = tasks.compose_majority_examples(left_zero, right_one)
-
-    refill_right = tasks.MajorityExample(bitstring="00111", bits=5, ones=3, majority=1, target_mode="plain_output")
-    refill_left = tasks.MajorityExample(bitstring="1111", bits=4, ones=4, majority=1, target_mode="plain_output")
-    refill_example = tasks.compose_majority_examples(refill_left, refill_right)
-
-    def fake_prediction_map(**kwargs):
-        return {
-            tasks.majority_key(left_zero): "0",
-            tasks.majority_key(right_zero): "0",
-            tasks.majority_key(right_one): "1",
-            tasks.majority_key(refill_left): "1",
-            tasks.majority_key(refill_right): "1",
-        }
-
-    def fake_build_majority_composed_dataset(**kwargs):
-        record_components = kwargs["record_components"]
-        record_components["train"][tasks.majority_key(refill_example)] = [
-            tasks.majority_key(refill_left),
-            tasks.majority_key(refill_right),
-        ]
-        return {"train": [refill_example], "validation": [], "test": []}
-
-    monkeypatch.setattr(tasks, "generate_prediction_map", fake_prediction_map)
-    monkeypatch.setattr(tasks, "build_majority_composed_dataset", fake_build_majority_composed_dataset)
-
-    pseudo_examples, missing_total, diagnostics = task.derive_round_targets(
-        model=None,
-        tokenizer=None,
-        composed_examples=[accepted, rejected],
-        component_map={
-            tasks.majority_key(accepted): [tasks.majority_key(left_zero), tasks.majority_key(right_zero)],
-            tasks.majority_key(rejected): [tasks.majority_key(left_zero), tasks.majority_key(right_one)],
-        },
-        target_max_size=9,
-        base_examples=[left_zero, right_zero, right_one, refill_left, refill_right],
-        batch_size=1,
-        decode_max_new_tokens=8,
-        args=SimpleNamespace(
-            pseudo_label_mode="compose",
-            corruption_rate=0.0,
-            target_mode="plain_output",
-            compose_arity="exact2",
-            guarded_compose_rule="majority_agree_pair",
-            expand_train_per_size=2,
-        ),
-        rng=random.Random(0),
-    )
-
-    assert missing_total == 0
-    assert [example.target() for example in pseudo_examples] == ["0", "1"]
-    assert diagnostics["requested_total"] == 2
-    assert diagnostics["retained_total"] == 2
-    assert diagnostics["rejected_total"] == 1
-    assert diagnostics["refill_rounds"] == 1
-
-
-def test_majority_plain_output_composed_eval_slices_partition_guard():
-    task = tasks.MajorityTask()
-    accepted_left = tasks.MajorityExample(bitstring="0000", bits=4, ones=0, majority=0, target_mode="plain_output")
-    accepted_right = tasks.MajorityExample(bitstring="00000", bits=5, ones=0, majority=0, target_mode="plain_output")
-    rejected_left = tasks.MajorityExample(bitstring="1111", bits=4, ones=4, majority=1, target_mode="plain_output")
-    rejected_right = tasks.MajorityExample(bitstring="00000", bits=5, ones=0, majority=0, target_mode="plain_output")
-    accepted = tasks.compose_majority_examples(accepted_left, accepted_right)
-    rejected = tasks.compose_majority_examples(rejected_left, rejected_right)
-
-    slices = task.split_composed_eval_slices(
-        [accepted, rejected],
-        {
-            tasks.majority_key(accepted): [tasks.majority_key(accepted_left), tasks.majority_key(accepted_right)],
-            tasks.majority_key(rejected): [tasks.majority_key(rejected_left), tasks.majority_key(rejected_right)],
-        },
-    )
-
-    assert slices["accepted_by_guard"] == [accepted]
-    assert slices["rejected_by_guard"] == [rejected]
-    assert slices["all"] == [accepted, rejected]
+        component_keys = component_records["train"][tasks.run_length_key(example)]
+        assert [key[0] for key in component_keys] == [4, 5]
 
 
 def test_addition_task_compose_corrupt_applies_numeric_shift(monkeypatch):
@@ -532,6 +397,41 @@ def test_symbol_run_pair_target_parser_and_leftmost_tie_breaking():
     assert tasks.parse_run_length_prediction("answer 9|3", example) is None
 
 
+def test_run_length_run_state_target_parser_and_symbol_validation():
+    example = tasks.RunLengthExample(
+        bitstring="00111222",
+        bits=8,
+        max_run=3,
+        prefix_run=2,
+        suffix_run=3,
+        target_mode=tasks.RUN_LENGTH_TARGET_RUN_STATE,
+    )
+
+    assert example.target() == "3|0|2|2|3"
+    assert tasks.parse_run_length_prediction("answer 3|0|2|2|3", example) == "3|0|2|2|3"
+    assert tasks.parse_run_length_prediction("answer 9|0|2|2|3", example) is None
+    assert tasks.parse_run_length_prediction("answer 3|9|2|2|3", example) is None
+
+
+def test_run_length_run_state_merge_handles_boundaries():
+    same_boundary = tasks.merge_run_state(
+        (4, 2, "0", 2, "1", 2),
+        (5, 3, "1", 3, "0", 2),
+    )
+    different_boundary = tasks.merge_run_state(
+        (4, 2, "0", 2, "1", 2),
+        (5, 3, "2", 3, "0", 2),
+    )
+    all_same = tasks.merge_run_state(
+        (3, 3, "1", 3, "1", 3),
+        (2, 2, "1", 2, "1", 2),
+    )
+
+    assert same_boundary == (9, 5, "0", 2, "0", 2)
+    assert different_boundary == (9, 3, "0", 2, "0", 2)
+    assert all_same == (5, 5, "1", 5, "1", 5)
+
+
 def test_run_length_multisymbol_generation_tracks_runs_of_any_repeated_symbol():
     generated = tasks.build_run_length_length_bucket_dataset(
         min_bits=6,
@@ -777,6 +677,162 @@ def test_run_length_symbol_pair_guarded_compose_uses_left_tie(monkeypatch):
     assert diagnostics["rejected_total"] == 1
 
 
+def test_run_length_symbol_pair_unfiltered_compose_keeps_boundary_errors(monkeypatch):
+    task = tasks.RunLengthTask()
+    safe_left = tasks.RunLengthExample(
+        bitstring="0100",
+        bits=4,
+        max_run=2,
+        prefix_run=1,
+        suffix_run=2,
+        target_mode="symbol_run_pair",
+    )
+    safe_right = tasks.RunLengthExample(
+        bitstring="21111",
+        bits=5,
+        max_run=4,
+        prefix_run=1,
+        suffix_run=4,
+        target_mode="symbol_run_pair",
+    )
+    tie_left = tasks.RunLengthExample(
+        bitstring="0001",
+        bits=4,
+        max_run=3,
+        prefix_run=3,
+        suffix_run=1,
+        target_mode="symbol_run_pair",
+    )
+    tie_right = tasks.RunLengthExample(
+        bitstring="22211",
+        bits=5,
+        max_run=3,
+        prefix_run=3,
+        suffix_run=2,
+        target_mode="symbol_run_pair",
+    )
+    unsafe_left = tasks.RunLengthExample(
+        bitstring="0011",
+        bits=4,
+        max_run=2,
+        prefix_run=2,
+        suffix_run=2,
+        target_mode="symbol_run_pair",
+    )
+    unsafe_right = tasks.RunLengthExample(
+        bitstring="11000",
+        bits=5,
+        max_run=3,
+        prefix_run=2,
+        suffix_run=3,
+        target_mode="symbol_run_pair",
+    )
+    safe_example = tasks.compose_run_length_examples(safe_left, safe_right)
+    tie_example = tasks.compose_run_length_examples(tie_left, tie_right)
+    unsafe_example = tasks.compose_run_length_examples(unsafe_left, unsafe_right)
+
+    def fake_prediction_map(**kwargs):
+        return {
+            tasks.run_length_key(safe_left): "0|2",
+            tasks.run_length_key(safe_right): "1|4",
+            tasks.run_length_key(tie_left): "0|3",
+            tasks.run_length_key(tie_right): "2|3",
+            tasks.run_length_key(unsafe_left): "0|2",
+            tasks.run_length_key(unsafe_right): "0|3",
+        }
+
+    monkeypatch.setattr(tasks, "generate_prediction_map", fake_prediction_map)
+
+    pseudo_examples, missing_total, diagnostics = task.derive_round_targets(
+        model=None,
+        tokenizer=None,
+        composed_examples=[safe_example, tie_example, unsafe_example],
+        component_map={
+            tasks.run_length_key(safe_example): [tasks.run_length_key(safe_left), tasks.run_length_key(safe_right)],
+            tasks.run_length_key(tie_example): [tasks.run_length_key(tie_left), tasks.run_length_key(tie_right)],
+            tasks.run_length_key(unsafe_example): [tasks.run_length_key(unsafe_left), tasks.run_length_key(unsafe_right)],
+        },
+        target_max_size=9,
+        base_examples=[safe_left, safe_right, tie_left, tie_right, unsafe_left, unsafe_right],
+        batch_size=1,
+        decode_max_new_tokens=8,
+        args=SimpleNamespace(
+            pseudo_label_mode="compose",
+            corruption_rate=0.0,
+            target_mode="symbol_run_pair",
+            compose_arity="exact2",
+            guarded_compose_rule="run_length_unfiltered_pair",
+            expand_train_per_size=3,
+        ),
+        rng=random.Random(0),
+    )
+
+    assert missing_total == 0
+    assert [example.target() for example in pseudo_examples] == ["1|4", "0|3", "0|3"]
+    assert unsafe_example.target() == "1|4"
+    assert pseudo_examples[-1].target() != unsafe_example.target()
+    assert diagnostics["mode"] == "compose_unfiltered_pair"
+    assert diagnostics["requested_total"] == 3
+    assert diagnostics["retained_total"] == 3
+    assert diagnostics["rejected_total"] == 0
+
+
+def test_run_length_run_state_compose_uses_component_predictions(monkeypatch):
+    task = tasks.RunLengthTask()
+    left = tasks.RunLengthExample(
+        bitstring="0011",
+        bits=4,
+        max_run=2,
+        prefix_run=2,
+        suffix_run=2,
+        target_mode=tasks.RUN_LENGTH_TARGET_RUN_STATE,
+    )
+    right = tasks.RunLengthExample(
+        bitstring="11100",
+        bits=5,
+        max_run=3,
+        prefix_run=3,
+        suffix_run=2,
+        target_mode=tasks.RUN_LENGTH_TARGET_RUN_STATE,
+    )
+    composed = tasks.compose_run_length_examples(left, right)
+
+    def fake_prediction_map(**kwargs):
+        return {
+            tasks.run_length_key(left): "2|0|2|1|2",
+            tasks.run_length_key(right): "3|1|3|0|2",
+        }
+
+    monkeypatch.setattr(tasks, "generate_prediction_map", fake_prediction_map)
+
+    pseudo_examples, missing_total, diagnostics = task.derive_round_targets(
+        model=None,
+        tokenizer=None,
+        composed_examples=[composed],
+        component_map={
+            tasks.run_length_key(composed): [tasks.run_length_key(left), tasks.run_length_key(right)],
+        },
+        target_max_size=9,
+        base_examples=[left, right],
+        batch_size=1,
+        decode_max_new_tokens=8,
+        args=SimpleNamespace(
+            pseudo_label_mode="compose",
+            corruption_rate=0.0,
+            target_mode=tasks.RUN_LENGTH_TARGET_RUN_STATE,
+            compose_arity="exact2",
+            guarded_compose_rule="none",
+            expand_train_per_size=1,
+        ),
+        rng=random.Random(0),
+    )
+
+    assert missing_total == 0
+    assert [example.target() for example in pseudo_examples] == ["5|0|2|0|2"]
+    assert pseudo_examples[0].target() == composed.target()
+    assert diagnostics["retained_total"] == 1
+
+
 def test_run_length_plain_output_composed_eval_slices_partition_guard():
     task = tasks.RunLengthTask()
     safe_left = tasks.RunLengthExample(bitstring="0100", bits=4, max_run=2, prefix_run=1, suffix_run=2, target_mode="plain_output")
@@ -819,6 +875,35 @@ def test_run_length_symbol_pair_composed_eval_slices_partition_guard():
     assert slices["accepted_by_guard"] == [safe_example]
     assert slices["rejected_by_guard"] == [unsafe_example]
     assert slices["all"] == [safe_example, unsafe_example]
+
+
+def test_run_length_loaded_metadata_rejects_bit_composition_path_mismatch():
+    task = tasks.RunLengthTask()
+    args = SimpleNamespace(
+        format_version="legacy",
+        target_mode="symbol_run_pair",
+        compose_arity="exact2",
+        bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
+        guarded_compose_rule="run_length_no_boundary_continue",
+        symbol_alphabet_size=10,
+    )
+    metadata = {
+        "task_config": {
+            "format_version": "legacy",
+            "target_mode": "symbol_run_pair",
+            "compose_arity": "exact2",
+            "bit_composition_path_mode": tasks.BIT_COMPOSITION_PATH_RANDOM,
+            "guarded_compose_rule": "run_length_no_boundary_continue",
+            "symbol_alphabet_size": 10,
+        }
+    }
+
+    try:
+        task.validate_loaded_metadata(args, metadata, final_max_size=20, dynamic_composed=True)
+    except ValueError as exc:
+        assert "bit_composition_path_mode" in str(exc)
+    else:
+        raise AssertionError("metadata mismatch should be rejected")
 
 
 class DummyPromptExample:

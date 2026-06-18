@@ -12,29 +12,17 @@
 
 set -euo pipefail
 
-if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
-  ROOT_DIR="${SLURM_SUBMIT_DIR}"
-else
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-fi
-cd "${ROOT_DIR}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/self_common.sh"
 
-mkdir -p "${ROOT_DIR}/artifacts/logs"
+self_cd_repo_root
 
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
 export MALLOC_CONF="${MALLOC_CONF:-background_thread:false}"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
 
-TORCH_ENV_PATH="${TORCH_ENV_PATH:-${HOME}/.conda/envs/torch-env}"
-if [[ -n "${PYTHON_BIN:-}" ]]; then
-  PYTHON_BIN="${PYTHON_BIN}"
-elif [[ -x "${TORCH_ENV_PATH}/bin/python" ]]; then
-  PYTHON_BIN="${TORCH_ENV_PATH}/bin/python"
-else
-  PYTHON_BIN="python"
-fi
+self_resolve_python
 
 # Supported experiment overrides: LR, TRAIN_PER_DIGIT, MAX_STEPS,
 # TRAIN_BATCH_SIZE, EVAL_BATCH_SIZE, SEED, OUT_ROOT, SAVE_MODEL,
@@ -54,15 +42,6 @@ OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/artifacts/runs/addition_fixedwidth_mixed_seed_
 SEED_MODEL_LINK="${ROOT_DIR}/artifacts/models/addition_fixedwidth_mixed_seed_best"
 
 mkdir -p "${OUT_ROOT}" "${ROOT_DIR}/artifacts/models"
-
-parse_bool() {
-  local value
-  value="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
-  case "${value}" in
-    1|true|yes|on) return 0 ;;
-    *) return 1 ;;
-  esac
-}
 
 cmd=(
   "${PYTHON_BIN}" -m self.seed_fit_experiment
@@ -99,7 +78,7 @@ cmd=(
   --bf16
 )
 
-if parse_bool "${SAVE_MODEL}"; then
+if self_parse_bool "${SAVE_MODEL}"; then
   cmd+=(--save-model)
 fi
 
@@ -109,11 +88,9 @@ echo "[INFO] Output root: ${OUT_ROOT}"
 echo "[INFO] Stable seed symlink: ${SEED_MODEL_LINK}"
 echo "[INFO] Addition sampling mode: ${ADDITION_SAMPLING_MODE}"
 echo "[INFO] Dry run: ${DRY_RUN}"
-printf '[INFO] Command:'
-printf ' %q' "${cmd[@]}"
-printf '\n'
+self_print_command_stdout "${cmd[@]}"
 
-if [[ "${DRY_RUN}" == "1" ]]; then
+if self_parse_bool "${DRY_RUN}"; then
   echo "[INFO] DRY_RUN=1; command not executed."
   exit 0
 fi
@@ -144,7 +121,7 @@ print(
 )
 PY
 
-if parse_bool "${SAVE_MODEL}"; then
+if self_parse_bool "${SAVE_MODEL}"; then
   if [[ ! -d "${OUT_ROOT}/model" ]]; then
     echo "[ERROR] Expected saved model at ${OUT_ROOT}/model" >&2
     exit 1

@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
-  ROOT_DIR="${SLURM_SUBMIT_DIR}"
-else
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-fi
-cd "${ROOT_DIR}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/self_common.sh"
 
-mkdir -p "${ROOT_DIR}/artifacts/logs"
+self_cd_repo_root
 
 TS="$(date +%Y%m%d_%H%M%S)"
 RUN_ROOT="${RUN_ROOT:-${ROOT_DIR}/artifacts/runs/addition_fixedwidth_mixed_${TS}}"
@@ -44,7 +39,7 @@ echo "[INFO] Dry run: ${DRY_RUN}"
 
 mkdir -p "${RUN_ROOT}"
 
-if [[ "${DRY_RUN}" == "1" ]]; then
+if self_parse_bool "${DRY_RUN}"; then
   echo
   echo "[INFO] Seed dry-run:"
   DRY_RUN=1 \

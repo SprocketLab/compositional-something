@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
-  ROOT_DIR="${SLURM_SUBMIT_DIR}"
-else
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-fi
-cd "${ROOT_DIR}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/self_common.sh"
 
-TORCH_ENV_PATH="${TORCH_ENV_PATH:-${HOME}/.conda/envs/torch-env}"
-if [[ -n "${PYTHON_BIN:-}" ]]; then
-  PYTHON_BIN="${PYTHON_BIN}"
-elif [[ -x "${TORCH_ENV_PATH}/bin/python" ]]; then
-  PYTHON_BIN="${TORCH_ENV_PATH}/bin/python"
-else
-  PYTHON_BIN="python"
-fi
+self_cd_repo_root
+self_resolve_python
 
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
@@ -94,11 +83,9 @@ run_baseline() {
   echo
   echo "[INFO] Starting baseline=${baseline}"
   echo "[INFO] Output dir: ${out_dir}"
-  printf '[INFO] Command:'
-  printf ' %q' "${cmd[@]}"
-  printf '\n'
+  self_print_command_stdout "${cmd[@]}"
 
-  if [[ "${DRY_RUN}" == "1" ]]; then
+  if self_parse_bool "${DRY_RUN}"; then
     echo "[INFO] DRY_RUN=1; command not executed."
     return 0
   fi
@@ -121,7 +108,7 @@ run_baseline short_only --pseudo-label-mode none
 run_baseline direct --pseudo-label-mode direct
 run_baseline with_carry --pseudo-label-mode compose --composed-strategy with_carry
 run_baseline with_carry_filtered --pseudo-label-mode compose --composed-strategy with_carry_filtered --composition-error-percent 0
-if [[ "${INCLUDE_COMPOSE_CORRUPT:-0}" == "1" ]]; then
+if self_parse_bool "${INCLUDE_COMPOSE_CORRUPT:-0}"; then
   run_baseline compose_corrupt --pseudo-label-mode compose_corrupt --composed-strategy with_carry --corruption-rate 0.10
 fi
 
