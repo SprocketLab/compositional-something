@@ -658,8 +658,9 @@ new implementation code:
   recipe helpers from the canonical core module, while legacy scripts and old
   tests can keep using the wrappers.
 - Compatibility wrappers that need monkeypatch-style write forwarding should use
-  `self/core/module_proxy.py`; `self/multiplication_rectangular.py` now uses the
-  shared helper instead of carrying its own proxy class.
+  `self/core/module_proxy.py`. The top-level rectangular, adaptive,
+  addition-recipe, legacy addition, and composition-error proxy wrappers now use
+  the shared helper instead of carrying local proxy classes.
 - Tokenizer helpers now live in `self/core/tokenizers.py`; `self/task_tokenizer.py`
   is a compatibility wrapper. Current core modules import tokenizer helpers
   from the canonical core module, while legacy scripts and old tests can keep

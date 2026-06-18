@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import sys as _sys
-import types as _types
-
+from self.core.module_proxy import install_module_proxy
 from self.core import recipes as _impl
 
 
@@ -30,23 +28,4 @@ _EXPORT_NAMES = [
 ]
 
 
-def __getattr__(name: str):
-    return getattr(_impl, name)
-
-
-def __dir__():
-    return sorted(set(globals()) | set(dir(_impl)))
-
-
-class _ModuleProxy(_types.ModuleType):
-    def __getattr__(self, name: str):
-        return getattr(_impl, name)
-
-    def __setattr__(self, name: str, value):
-        if not name.startswith("__"):
-            setattr(_impl, name, value)
-        super().__setattr__(name, value)
-
-
-__all__ = list(_EXPORT_NAMES)
-_sys.modules[__name__].__class__ = _ModuleProxy
+install_module_proxy(__name__, _impl, export_names=_EXPORT_NAMES)
