@@ -120,6 +120,7 @@ def test_multiplication_square_seed_resweep_wrapper_dry_run_emits_six_jobs(tmp_p
     )
 
     stdout = result.stdout
+    combined = result.stdout + result.stderr
     assert stdout.count("[INFO] square_seed_job=") == 6
     assert "train_50000_lr_2em5" in stdout
     assert "train_50000_lr_5em5" in stdout
@@ -127,4 +128,9 @@ def test_multiplication_square_seed_resweep_wrapper_dry_run_emits_six_jobs(tmp_p
     assert "train_100000_lr_2em5" in stdout
     assert "train_100000_lr_5em5" in stdout
     assert "train_100000_lr_1em4" in stdout
+    assert "--job-name mult-rect-square-seed-train-50000-lr-2em5" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert r"--export ALL\,OUT_ROOT=" in combined
+    assert r"\,LR=1e-4\," in combined
     assert "[INFO] Status: dry_run" in stdout
