@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/self_common.sh"
 self_cd_repo_root
 
+ADDITION_EXACT_DIGITS_CONFIG="${ADDITION_EXACT_DIGITS_CONFIG:-${ROOT_DIR}/launchers/self/config/addition_exact_digits_fixed_binary.env}"
+self_source_config_file "${ADDITION_EXACT_DIGITS_CONFIG}" "addition exact-digits fixed-binary config"
+
 TS="$(date +%Y%m%d_%H%M%S)"
 RUN_ROOT="${RUN_ROOT:-${ROOT_DIR}/artifacts/runs/addition_exact_digits_fixed_binary_${TS}}"
 LOG_DIR="${LOG_DIR:-${RUN_ROOT}/logs}"
@@ -23,7 +26,11 @@ EXPAND_TRAIN_PER_DIGIT="${EXPAND_TRAIN_PER_DIGIT:-10000}"
 ADDITION_COMPOSITION_PATH_MODE="${ADDITION_COMPOSITION_PATH_MODE:-fixed_binary}"
 DRY_RUN="${DRY_RUN:-0}"
 
-BASELINES=(short_only direct with_carry with_carry_filtered compose_corrupt)
+read -r -a BASELINES <<< "${ADDITION_EXACT_DIGITS_BASELINES_RAW}"
+if (( ${#BASELINES[@]} == 0 )); then
+  echo "[ERROR] Addition exact-digits baseline list cannot be empty." >&2
+  exit 2
+fi
 
 mkdir -p "${LOG_DIR}"
 printf "job_id\tbaseline\tcomposition_path_mode\tout_dir\tresults_path\n" > "${MANIFEST}"
@@ -83,6 +90,8 @@ self_print_context \
   "Run root" "${RUN_ROOT}" \
   "Seed model" "${SEED_MODEL}" \
   "Launcher" "${FULLPACK_LAUNCHER}" \
+  "Config" "${ADDITION_EXACT_DIGITS_CONFIG}" \
+  "Baselines" "${BASELINES[*]}" \
   "Logs" "${LOG_DIR}" \
   "Manifest" "${MANIFEST}" \
   "Slurm" "partition=${SBATCH_PARTITION} gres=${SBATCH_GRES} cpus=${SBATCH_CPUS} mem=${SBATCH_MEM} time=${SBATCH_TIME}" \

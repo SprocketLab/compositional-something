@@ -561,6 +561,8 @@ the supported public surface.
   argument construction. Both submitters use the shared env-wrapped command
   builder and resource-backed wrapped-job submitter; the exact-digits submitter
   also routes its schedule banner through the shared context printer. The
+  exact-digits baseline list lives in
+  `launchers/self/config/addition_exact_digits_fixed_binary.env`, and the
   more-data submitter's default Stage 1 grid lives in
   `launchers/self/config/addition_fixedwidth_moredata.env`.
 - `launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch`,

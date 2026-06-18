@@ -3941,3 +3941,11 @@ Acceptance criteria for first pilot:
 - Preserved the default four schedule rows, manifest columns, fixed knobs, dry-run output shape, and wrapped-job submission path while allowing alternate grids through `ADDITION_MOREDATA_CONFIG`.
 - Added dry-run coverage for custom more-data grid config sourcing and updated `self/README.md` with the new config boundary.
 - Verification: `bash -n launchers/self/submit_addition_fixedwidth_moredata_mig.sh launchers/self/config/addition_fixedwidth_moredata.env launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh launchers/self/submit_addition_fixedwidth_mixed_mig.sh`; `python -m py_compile tests/test_addition_fixedwidth_moredata_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_moredata_config tests/test_addition_fixedwidth_moredata_launcher.py tests/test_self_common_launcher_helpers.py -q` (`11 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:18:40 UTC
+
+- Added `launchers/self/config/addition_exact_digits_fixed_binary.env` as the explicit baseline-list config for the exact-digits fixed-binary addition submitter.
+- Updated `launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh` to source the config, parse the baseline list from a string variable, validate that it is nonempty, and print the resolved list in the context banner.
+- Preserved the default five baseline submissions, exact-digits schedule knobs, manifest columns, dry-run output shape, and wrapped-job submission path while allowing alternate lists through `ADDITION_EXACT_DIGITS_CONFIG`.
+- Added dry-run coverage for custom exact-digits config sourcing and updated `self/README.md` with the new config boundary.
+- Verification: `bash -n launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh launchers/self/config/addition_exact_digits_fixed_binary.env launchers/self/run_addition_recipe_fullpack.sh`; `python -m py_compile tests/test_addition_exact_digits_fixed_binary_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_exact_digits_config tests/test_addition_exact_digits_fixed_binary_launcher.py tests/test_self_common_launcher_helpers.py -q` (`6 passed`); `git diff --check`.

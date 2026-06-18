@@ -7,11 +7,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_exact_digits_fixed_binary_mig.sh"
+CONFIG = ROOT / "launchers" / "self" / "config" / "addition_exact_digits_fixed_binary.env"
 
 
 def test_addition_exact_digits_fixed_binary_submitter_has_valid_bash_syntax():
     assert SUBMITTER.exists()
+    assert CONFIG.exists()
     subprocess.run(["bash", "-n", str(SUBMITTER)], check=True)
+    subprocess.run(["bash", "-n", str(CONFIG)], check=True)
 
 
 def test_addition_exact_digits_fixed_binary_submitter_dry_run_emits_full_pack(tmp_path: Path):
@@ -41,3 +44,42 @@ def test_addition_exact_digits_fixed_binary_submitter_dry_run_emits_full_pack(tm
     assert "EXPAND_NUM_DIGITS=2" in stdout
     assert "SEED_REPLAY_TRAIN_PER_DIGIT=5000" in stdout
     assert "EXPAND_TRAIN_PER_DIGIT=10000" in stdout
+
+
+def test_addition_exact_digits_fixed_binary_submitter_can_source_custom_config(tmp_path: Path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["RUN_ROOT"] = str(tmp_path / "exact_digits_custom")
+    env["ADDITION_EXACT_DIGITS_CONFIG"] = str(tmp_path / "exact_digits.env")
+    Path(env["ADDITION_EXACT_DIGITS_CONFIG"]).write_text(
+        "\n".join(
+            [
+                "ADDITION_EXACT_DIGITS_BASELINES_RAW='direct compose_corrupt'",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    manifest = tmp_path / "exact_digits_custom" / "manifest.tsv"
+    manifest_text = manifest.read_text(encoding="utf-8")
+
+    assert "Loaded addition exact-digits fixed-binary config" in stdout
+    assert "Baselines: direct compose_corrupt" in stdout
+    assert stdout.count("[DRYRUN] baseline=") == 2
+    assert "BASELINE=direct" in stdout
+    assert "BASELINE=compose_corrupt" in stdout
+    assert "BASELINE=short_only" not in stdout
+    assert "\tdirect\tfixed_binary\t" in manifest_text
+    assert "\tcompose_corrupt\tfixed_binary\t" in manifest_text
+    assert "\tshort_only\tfixed_binary\t" not in manifest_text
