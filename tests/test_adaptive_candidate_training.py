@@ -1271,6 +1271,15 @@ def test_local_parallel_candidate_workers_respect_concurrency_cap(tmp_path, monk
     assert len(metrics) == 5
     assert all(metric.valid for metric in metrics)
     assert active["max"] == 4
+    dispatch = loop._load_json(round_dir / "candidate_jobs" / "local_dispatch.json")
+    assert dispatch["candidate_count"] == 5
+    assert dispatch["planned_processes"] == 5
+    assert dispatch["packed_workers"] is False
+    assert dispatch["cache_plan"] == {
+        "shared_input_cache": False,
+        "tokenizer_bootstrap_cache": False,
+        "base_state_cache": False,
+    }
 
 
 def test_local_parallel_candidate_workers_can_pack_processes(tmp_path, monkeypatch):
@@ -1375,7 +1384,16 @@ def test_local_parallel_candidate_workers_can_pack_processes(tmp_path, monkeypat
     assert active["processes"] == 3
     assert active["max"] == 2
     dispatch = loop._load_json(round_dir / "candidate_jobs" / "local_dispatch.json")
+    assert dispatch["candidate_count"] == 5
+    assert dispatch["planned_processes"] == 3
     assert dispatch["pack_size"] == 2
+    assert dispatch["packed_workers"] is True
+    assert dispatch["cache_plan"] == {
+        "shared_input_cache": True,
+        "tokenizer_bootstrap_cache": True,
+        "base_state_cache": False,
+    }
+    assert [unit["candidate_indices"] for unit in dispatch["planned_units"]] == [[0, 1], [2, 3], [4]]
     assert len(dispatch["launched"]) == 3
 
 

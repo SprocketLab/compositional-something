@@ -4028,3 +4028,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_candidate_dispatch_runtime.py` to verify that serial candidates receive the same cache object when the scorer supports it, that `cache_base_state` follows the existing flag, and that legacy injected scorers without the cache keyword remain compatible.
 - Updated `self/README.md` runtime notes with the serial-cache behavior.
 - Verification: `python -m py_compile self/core/candidate_dispatch_runtime.py tests/test_candidate_dispatch_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_serial_candidate_cache tests/test_candidate_dispatch_runtime.py tests/test_candidate_training_runtime.py tests/test_model_io_bootstrap_cache.py -q` (`11 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_serial_candidate_adaptive tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 18:12:42 UTC
+
+- Added stable local-candidate dispatch plan metadata in `self/core/candidate_local_workers.py`.
+- `attempt_*/candidate_jobs/local_dispatch.json` now records `candidate_count`, `planned_processes`, `packed_workers`, `cache_plan`, and per-process planned candidate indices in addition to the live launched/active/pending state.
+- The new `cache_plan` exposes whether shared input caching, tokenizer bootstrap caching, and base-state caching are active for the resolved local-worker plan, making pack/cache tuning auditable from run artifacts without changing candidate execution semantics.
+- Extended `tests/test_adaptive_candidate_training.py` to pin both non-packed and packed local dispatch metadata.
+- Updated `self/README.md` runtime notes with the new dispatch-artifact fields.
+- Verification: `python -m py_compile self/core/candidate_local_workers.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_local_dispatch_plan tests/test_adaptive_candidate_training.py -k 'local_parallel_candidate_workers_respect_concurrency_cap or local_parallel_candidate_workers_can_pack_processes' -q` (`2 passed`, `37 deselected`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_local_dispatch_adaptive tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`41 passed`, `3` existing multiprocessing fork warnings).

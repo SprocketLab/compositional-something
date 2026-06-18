@@ -975,4 +975,8 @@ new implementation code:
   IO/parsing overhead by default through `self/core/candidate_worker_inputs.py`,
   reuse tokenizer bootstrap work inside each pack, and report bootstrap cache
   hit/miss counters. With `--candidate-local-cache-base-state`, packed workers
-  also avoid repeated disk reads of the shared source checkpoint.
+  also avoid repeated disk reads of the shared source checkpoint. Local
+  candidate dispatch writes `attempt_*/candidate_jobs/local_dispatch.json` with
+  `candidate_count`, `planned_processes`, `packed_workers`, `cache_plan`, and
+  per-process planned candidate indices so run logs show whether the intended
+  packing/cache policy was actually used.
