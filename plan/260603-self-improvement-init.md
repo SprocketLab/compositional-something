@@ -3683,3 +3683,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_attempt_outcome_runtime.py` with a selected-candidate public-handler smoke test covering source sizes, exclusion keys, selected trace buffering, selected pseudo-example JSONL, and selected-round summary artifacts.
 - Updated `self/README.md` with the selected-attempt runtime ownership boundary.
 - Verification: `python -m py_compile self/core/attempt_selected_runtime.py self/core/attempt_outcome_runtime.py tests/test_attempt_outcome_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_selected tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`44 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:25:11 UTC
+
+- Split the model-backed adaptive attempt body from `self/core/attempt_loop_runtime.py` into `self/core/attempt_candidate_runtime.py`.
+- The new module owns round-model dispatch, candidate metric training, candidate selection, trace writing, unselected checkpoint cleanup, and handoff to attempt-outcome handling for non-dry-run attempts.
+- Kept `self/core/attempt_loop_runtime.py` as the selected-round iteration owner across attempt directory setup, prompt construction, dry-run routing, candidate-attempt dispatch, and loop-state updates.
+- Added `tests/test_attempt_candidate_runtime.py` to pin the new helper's call ordering and argument forwarding, including updated round-model accuracies into candidate training and outcome handling.
+- Updated `self/README.md` with the candidate-attempt runtime ownership boundary.
+- Verification: `python -m py_compile self/core/attempt_candidate_runtime.py self/core/attempt_loop_runtime.py tests/test_attempt_candidate_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_candidate tests/test_attempt_candidate_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

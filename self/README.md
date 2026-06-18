@@ -52,8 +52,11 @@ the supported public surface.
 - `self/core/args_normalization.py`: adaptive argument validation,
   cross-field checks, task-specific defaults, and derived size/count aliases.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
-  orchestration across prompt construction, dry-run handling, round-model
-  dispatch, candidate scoring, trace writing, and outcome application.
+  orchestration across prompt construction, dry-run handling, candidate-attempt
+  dispatch, and loop state updates.
+- `self/core/attempt_candidate_runtime.py`: model-backed candidate attempt
+  body, including round-model dispatch, candidate scoring, candidate selection,
+  trace writing, unselected checkpoint cleanup, and outcome application.
 - `self/core/attempt_prompt_runtime.py`: attempt-level proposal prompt
   construction shared by the driver loop and controller-worker round phase.
 - `self/core/attempt_outcome_models.py`: shared adaptive attempt-outcome

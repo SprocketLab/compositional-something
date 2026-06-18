@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Sequence
 
+from self.core.attempt_candidate_runtime import CandidateAttemptDeps, run_candidate_attempt
 from self.core.attempt_outcome_runtime import AttemptOutcomeDeps, AttemptOutcomeResult
 from self.core.attempt_prompt_runtime import AttemptPromptDeps, AttemptPromptResult
 from self.core.dry_run_runtime import DryRunAttemptDeps, DryRunAttemptResult
@@ -74,13 +75,21 @@ def run_adaptive_attempt_loop(
     proposal_trace_buffer: list[Any] = []
     outcome_trace_buffer: list[Any] = []
     proposal_grpo_update_count = 0
+    candidate_attempt_deps = CandidateAttemptDeps(
+        run_round_model_dispatch=deps.run_round_model_dispatch,
+        train_candidate_metrics=deps.train_candidate_metrics,
+        select_candidate=deps.select_candidate,
+        write_round_trace=deps.write_round_trace,
+        handle_attempt_outcome=deps.handle_attempt_outcome,
+        round_model_dispatch_deps=deps.round_model_dispatch_deps,
+        attempt_outcome_deps=deps.attempt_outcome_deps,
+    )
 
     while selected_rounds < args.num_rounds and attempt_index < args.max_attempt_rounds:
         attempt_index += 1
         selected_round_for_prompt = selected_rounds + 1
         round_dir = output_dir / f"attempt_{attempt_index:04d}"
         deps.ensure_dir(round_dir)
-        deleted_replaced_model_dirs: list[str] = []
         print(
             f"[INFO] Starting adaptive candidate attempt {attempt_index} "
             f"(selected_round={selected_round_for_prompt}/{args.num_rounds})",
@@ -128,87 +137,30 @@ def run_adaptive_attempt_loop(
                 break
             continue
 
-        round_result = deps.run_round_model_dispatch(
+        outcome_result = run_candidate_attempt(
             args=args,
             task=task,
             config=config,
-            current_checkpoint=current_checkpoint,
-            round_dir=round_dir,
-            source_examples=source_examples,
-            eval_examples=eval_examples,
-            exclude_keys=exclude_keys,
-            source_sizes=source_sizes,
-            selected_round_for_prompt=selected_round_for_prompt,
-            attempt_index=attempt_index,
-            selected_rounds=selected_rounds,
-            consecutive_no_selection=consecutive_no_selection,
-            init_final_accuracy=init_final_accuracy,
-            deps=deps.round_model_dispatch_deps,
-        )
-        current_final_accuracy = round_result.current_final_accuracy
-        current_per_size_accuracy = round_result.current_per_size_accuracy
-        prompt = round_result.prompt
-        proposal_results = round_result.proposal_results
-        work_items = round_result.work_items
-
-        metrics = deps.train_candidate_metrics(
-            args=args,
-            task=task,
-            current_checkpoint=current_checkpoint,
-            source_examples=source_examples,
-            proposal_trace_buffer=proposal_trace_buffer,
-            outcome_trace_buffer=outcome_trace_buffer,
-            proposal_prompt=prompt,
-            round_index=selected_round_for_prompt,
-            work_items=work_items,
-            round_dir=round_dir,
-            eval_examples=eval_examples,
-            current_final_accuracy=current_final_accuracy,
-            current_per_size_accuracy=current_per_size_accuracy,
-            init_final_accuracy=init_final_accuracy,
-            config=config,
-            attempt_index=attempt_index,
-        )
-        selected = deps.select_candidate(metrics, args.selection_min_reward)
-        trace_rows = deps.write_round_trace(
-            args=args,
-            task_name=args.task,
-            round_index=selected_round_for_prompt,
-            prompt=prompt,
-            work_items=work_items,
-            metrics=metrics,
-            path=round_dir / "trace_examples.jsonl",
-        )
-        checkpoint_manager.cleanup_unselected_candidates(metrics=metrics, selected=selected)
-        outcome_result = deps.handle_attempt_outcome(
-            args=args,
-            task=task,
             output_dir=output_dir,
             round_dir=round_dir,
-            attempt_index=attempt_index,
-            selected_round_for_prompt=selected_round_for_prompt,
-            selected_rounds=selected_rounds,
-            consecutive_no_selection=consecutive_no_selection,
+            checkpoint_manager=checkpoint_manager,
+            source_examples=source_examples,
+            source_sizes=source_sizes,
+            exclude_keys=exclude_keys,
+            eval_examples=eval_examples,
             current_checkpoint=current_checkpoint,
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy=current_per_size_accuracy,
             init_final_accuracy=init_final_accuracy,
-            source_sizes=source_sizes,
-            source_examples=source_examples,
-            exclude_keys=exclude_keys,
             proposal_trace_buffer=proposal_trace_buffer,
             outcome_trace_buffer=outcome_trace_buffer,
             proposal_grpo_update_count=proposal_grpo_update_count,
-            deleted_replaced_model_dirs=deleted_replaced_model_dirs,
             summary_records=summary_records,
-            prompt=prompt,
-            proposal_results=proposal_results,
-            metrics=metrics,
-            work_items=work_items,
-            selected=selected,
-            trace_rows=trace_rows,
-            checkpoint_manager=checkpoint_manager,
-            deps=deps.attempt_outcome_deps,
+            selected_round_for_prompt=selected_round_for_prompt,
+            attempt_index=attempt_index,
+            selected_rounds=selected_rounds,
+            consecutive_no_selection=consecutive_no_selection,
+            deps=candidate_attempt_deps,
         )
         selected_rounds = outcome_result.selected_rounds
         consecutive_no_selection = outcome_result.consecutive_no_selection
