@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from self.core import (
     candidate_dispatch_runtime,
     candidate_execution,
+    candidate_parallel_runtime,
     candidate_serial_runtime,
     candidate_workers,
 )
@@ -246,7 +247,18 @@ def test_candidate_execution_reexports_dispatch_runtime_helpers():
         candidate_dispatch_runtime.train_candidates_serial
         is candidate_serial_runtime.train_candidates_serial
     )
-    assert candidate_execution.train_candidates_serial is candidate_dispatch_runtime.train_candidates_serial
+    assert (
+        candidate_dispatch_runtime.train_candidates_local_parallel
+        is candidate_parallel_runtime.train_candidates_local_parallel
+    )
+    assert (
+        candidate_dispatch_runtime.train_candidates_slurm_array
+        is candidate_parallel_runtime.train_candidates_slurm_array
+    )
+    assert (
+        candidate_execution.train_candidates_serial
+        is candidate_dispatch_runtime.train_candidates_serial
+    )
     assert (
         candidate_execution.train_candidates_local_parallel
         is candidate_dispatch_runtime.train_candidates_local_parallel

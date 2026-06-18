@@ -4445,3 +4445,31 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
   existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:15:42 UTC
+
+- Split local-parallel and Slurm-array candidate dispatch wrappers from
+  `self/core/candidate_dispatch_runtime.py` into
+  `self/core/candidate_parallel_runtime.py`.
+- The new module owns the concrete local/Slurm wrapper calls into
+  `self.core.candidate_workers`, including the compatibility subprocess binding
+  used by local-parallel monkeypatch tests.
+- Kept `self.core.candidate_dispatch_runtime.train_candidates_local_parallel`,
+  `self.core.candidate_dispatch_runtime.train_candidates_slurm_array`, and the
+  corresponding `self.core.candidate_execution` names as compatibility
+  reexports.
+- Reduced `self/core/candidate_dispatch_runtime.py` from `215` to `137` lines;
+  it now focuses on candidate execution-mode selection plus candidate
+  metric/failure wrapper reexports.
+- Verification: `python -m py_compile self/core/candidate_parallel_runtime.py
+  self/core/candidate_serial_runtime.py self/core/candidate_dispatch_runtime.py
+  self/core/candidate_execution.py tests/test_candidate_dispatch_runtime.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_candidate_parallel_runtime
+  tests/test_candidate_dispatch_runtime.py tests/test_candidate_training_runtime.py
+  tests/test_model_io_bootstrap_cache.py -q` (`11 passed`);
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_candidate_parallel_adaptive
+  tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3`
+  existing multiprocessing fork warnings); `git diff --check`.

@@ -103,9 +103,12 @@ the supported public surface.
   failure metrics, trained-candidate reward, and candidate metric construction.
 - `self/core/candidate_serial_runtime.py`: serial candidate scoring dispatch,
   attempt-index seed routing, and per-dispatch model bootstrap-cache reuse.
+- `self/core/candidate_parallel_runtime.py`: local-parallel and Slurm-array
+  candidate training dispatch wrappers around the candidate-worker compatibility
+  surface.
 - `self/core/candidate_dispatch_runtime.py`: candidate training mode
-  selection plus local-parallel and Slurm-array execution helpers, while
-  reexporting the serial helper for compatibility.
+  selection, candidate-array metric/failure wrapper reexports, and compatibility
+  reexports for serial/local/Slurm dispatch helpers.
 - `self/core/candidate_dispatch_entrypoints.py`: compatibility-aware wiring
   between driver-level monkeypatchable names and candidate dispatch runtimes.
 - `self/core/checkpoints.py`: checkpoint retention policy and cleanup helpers
