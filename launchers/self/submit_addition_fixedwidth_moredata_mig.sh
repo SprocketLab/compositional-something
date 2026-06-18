@@ -24,10 +24,6 @@ DRY_RUN="${DRY_RUN:-0}"
 mkdir -p "${LOG_DIR}"
 printf "job_id\tschedule_id\tcomposition_path_mode\texpand_train_per_digit\tmax_steps\tself_improve_warmup_steps\tself_improve_stable_steps\tself_improve_decay_steps\tout_root\tresults_path\n" > "${MANIFEST}"
 
-q() {
-  printf "%q" "$1"
-}
-
 submit_candidate() {
   local path_mode="$1"
   local expand_train_per_digit="$2"
@@ -41,23 +37,25 @@ submit_candidate() {
   local job_name="add-fw-md-${path_mode:0:2}-${expand_train_per_digit}"
   local extra_args="--max-steps ${max_steps} --self-improve-warmup-steps ${warmup_steps} --self-improve-stable-steps ${stable_steps} --self-improve-decay-steps ${decay_steps}"
   local cmd
-  cmd="cd $(q "${ROOT_DIR}") && "
-  cmd+="OUT_ROOT=$(q "${candidate_root}") "
-  cmd+="SEED_MODEL=$(q "${SEED_MODEL}") "
-  cmd+="BASELINE=with_carry_filtered "
-  cmd+="TRAIN_BATCH_SIZE=$(q "${TRAIN_BATCH_SIZE}") "
-  cmd+="EVAL_BATCH_SIZE=$(q "${EVAL_BATCH_SIZE}") "
-  cmd+="SEED_REPLAY_TRAIN_PER_DIGIT=$(q "${SEED_REPLAY_TRAIN_PER_DIGIT}") "
-  cmd+="EXPAND_TRAIN_PER_DIGIT=$(q "${expand_train_per_digit}") "
-  cmd+="NUM_EXPAND_ROUNDS=$(q "${NUM_EXPAND_ROUNDS}") "
-  cmd+="EXPAND_NUM_DIGITS=$(q "${EXPAND_NUM_DIGITS}") "
-  cmd+="ADDITION_WIDTH_MODE=fixed_width_mixed_prompt "
-  cmd+="ADDITION_SAMPLING_MODE=balanced_visible_lengths "
-  cmd+="ADDITION_COMPOSITION_PATH_MODE=$(q "${path_mode}") "
-  cmd+="INCLUDE_COMPOSE_CORRUPT=0 "
-  cmd+="PYTHONUNBUFFERED=1 "
-  cmd+="EXTRA_ARGS=$(q "${extra_args}") "
-  cmd+="bash $(q "${FULLPACK_LAUNCHER}")"
+  cmd="$(
+    self_wrap_env_command \
+      "${FULLPACK_LAUNCHER}" \
+      "OUT_ROOT=${candidate_root}" \
+      "SEED_MODEL=${SEED_MODEL}" \
+      "BASELINE=with_carry_filtered" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT}" \
+      "EXPAND_TRAIN_PER_DIGIT=${expand_train_per_digit}" \
+      "NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS}" \
+      "EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS}" \
+      "ADDITION_WIDTH_MODE=fixed_width_mixed_prompt" \
+      "ADDITION_SAMPLING_MODE=balanced_visible_lengths" \
+      "ADDITION_COMPOSITION_PATH_MODE=${path_mode}" \
+      "INCLUDE_COMPOSE_CORRUPT=0" \
+      "PYTHONUNBUFFERED=1" \
+      "EXTRA_ARGS=${extra_args}"
+  )"
 
   local job_id
   if [[ "${DRY_RUN}" == "1" ]]; then
@@ -66,17 +64,14 @@ submit_candidate() {
     echo "[DRYRUN] extra_args=${extra_args}"
     echo "[DRYRUN] ${cmd}"
   else
-    local -a sbatch_cmd=(
-      sbatch
-      --parsable
-      --job-name "${job_name}"
-      --output "${LOG_DIR}/%x-%j.out"
-      --error "${LOG_DIR}/%x-%j.err"
-    )
-    self_add_sbatch_resources sbatch_cmd
-    sbatch_cmd+=(--wrap "${cmd}")
-    self_print_command "${sbatch_cmd[@]}"
-    job_id="$("${sbatch_cmd[@]}")"
+    job_id="$(
+      self_submit_wrapped_resource_job \
+        "DRYRUN-${schedule_id}" \
+        "${job_name}" \
+        "${LOG_DIR}/%x-%j.out" \
+        "${LOG_DIR}/%x-%j.err" \
+        "${cmd}"
+    )"
   fi
 
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \

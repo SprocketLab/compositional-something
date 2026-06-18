@@ -195,6 +195,54 @@ self_add_dry_run_arg() {
   fi
 }
 
+self_shell_quote() {
+  printf "%q" "$1"
+}
+
+self_wrap_env_command() {
+  if (( $# < 2 )); then
+    echo "[ERROR] self_wrap_env_command expects a command path followed by zero or more NAME=VALUE pairs." >&2
+    return 2
+  fi
+  local command_path="$1"
+  shift
+  local env_pair
+  local env_name
+  local env_value
+  local wrapped
+  wrapped="cd $(self_shell_quote "${ROOT_DIR}") && "
+  for env_pair in "$@"; do
+    env_name="${env_pair%%=*}"
+    env_value="${env_pair#*=}"
+    wrapped+="${env_name}=$(self_shell_quote "${env_value}") "
+  done
+  wrapped+="bash $(self_shell_quote "${command_path}")"
+  printf '%s' "${wrapped}"
+}
+
+self_submit_wrapped_resource_job() {
+  local dry_run_job_id="$1"
+  local job_name="$2"
+  local stdout_log="$3"
+  local stderr_log="$4"
+  local wrapped_cmd="$5"
+  local -a sbatch_cmd=(
+    sbatch
+    --parsable
+    --job-name "${job_name}"
+    --output "${stdout_log}"
+    --error "${stderr_log}"
+  )
+  self_add_sbatch_resources sbatch_cmd
+  sbatch_cmd+=(--wrap "${wrapped_cmd}")
+  self_print_command "${sbatch_cmd[@]}"
+  if self_parse_bool "${DRY_RUN:-0}"; then
+    echo "${dry_run_job_id}"
+  else
+    "${sbatch_cmd[@]}"
+  fi
+}
+
 self_print_context() {
   if (( $# % 2 != 0 )); then
     echo "[ERROR] self_print_context expects label/value pairs." >&2

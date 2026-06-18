@@ -28,29 +28,27 @@ BASELINES=(short_only direct with_carry with_carry_filtered compose_corrupt)
 mkdir -p "${LOG_DIR}"
 printf "job_id\tbaseline\tcomposition_path_mode\tout_dir\tresults_path\n" > "${MANIFEST}"
 
-q() {
-  printf "%q" "$1"
-}
-
 submit_baseline() {
   local baseline="$1"
   local out_dir="${RUN_ROOT}/${baseline}"
   local results_path="${out_dir}/self_improvement_results.json"
   local job_name="add-exfb-${baseline//_/-}"
   local cmd
-  cmd="cd $(q "${ROOT_DIR}") && "
-  cmd+="OUT_ROOT=$(q "${RUN_ROOT}") "
-  cmd+="SEED_MODEL=$(q "${SEED_MODEL}") "
-  cmd+="BASELINE=$(q "${baseline}") "
-  cmd+="TRAIN_BATCH_SIZE=$(q "${TRAIN_BATCH_SIZE}") "
-  cmd+="EVAL_BATCH_SIZE=$(q "${EVAL_BATCH_SIZE}") "
-  cmd+="NUM_EXPAND_ROUNDS=$(q "${NUM_EXPAND_ROUNDS}") "
-  cmd+="EXPAND_NUM_DIGITS=$(q "${EXPAND_NUM_DIGITS}") "
-  cmd+="SEED_REPLAY_TRAIN_PER_DIGIT=$(q "${SEED_REPLAY_TRAIN_PER_DIGIT}") "
-  cmd+="EXPAND_TRAIN_PER_DIGIT=$(q "${EXPAND_TRAIN_PER_DIGIT}") "
-  cmd+="ADDITION_COMPOSITION_PATH_MODE=$(q "${ADDITION_COMPOSITION_PATH_MODE}") "
-  cmd+="PYTHONUNBUFFERED=1 "
-  cmd+="bash $(q "${FULLPACK_LAUNCHER}")"
+  cmd="$(
+    self_wrap_env_command \
+      "${FULLPACK_LAUNCHER}" \
+      "OUT_ROOT=${RUN_ROOT}" \
+      "SEED_MODEL=${SEED_MODEL}" \
+      "BASELINE=${baseline}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "NUM_EXPAND_ROUNDS=${NUM_EXPAND_ROUNDS}" \
+      "EXPAND_NUM_DIGITS=${EXPAND_NUM_DIGITS}" \
+      "SEED_REPLAY_TRAIN_PER_DIGIT=${SEED_REPLAY_TRAIN_PER_DIGIT}" \
+      "EXPAND_TRAIN_PER_DIGIT=${EXPAND_TRAIN_PER_DIGIT}" \
+      "ADDITION_COMPOSITION_PATH_MODE=${ADDITION_COMPOSITION_PATH_MODE}" \
+      "PYTHONUNBUFFERED=1"
+  )"
 
   local job_id
   if [[ "${DRY_RUN}" == "1" ]]; then
@@ -58,17 +56,14 @@ submit_baseline() {
     echo "[DRYRUN] baseline=${baseline}"
     echo "[DRYRUN] ${cmd}"
   else
-    local -a sbatch_cmd=(
-      sbatch
-      --parsable
-      --job-name "${job_name}"
-      --output "${LOG_DIR}/%x-%j.out"
-      --error "${LOG_DIR}/%x-%j.err"
-    )
-    self_add_sbatch_resources sbatch_cmd
-    sbatch_cmd+=(--wrap "${cmd}")
-    self_print_command "${sbatch_cmd[@]}"
-    job_id="$("${sbatch_cmd[@]}")"
+    job_id="$(
+      self_submit_wrapped_resource_job \
+        "DRYRUN-${baseline}" \
+        "${job_name}" \
+        "${LOG_DIR}/%x-%j.out" \
+        "${LOG_DIR}/%x-%j.err" \
+        "${cmd}"
+    )"
   fi
 
   printf "%s\t%s\t%s\t%s\t%s\n" \

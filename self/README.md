@@ -520,8 +520,9 @@ the supported public surface.
   resolution, Python resolution, Slurm resource defaults, Slurm resource
   argument construction for default and per-job explicit resource blocks, and
   wrapped-job or script-job submission/dry-run handling. It also owns command
-  printing to stdout or stderr, colon-separated config-file sourcing, and
-  small shell utilities such as boolean parsing for launcher flags.
+  printing to stdout or stderr, shell-quoted env-wrapped command construction,
+  colon-separated config-file sourcing, and small shell utilities such as
+  boolean parsing for launcher flags.
 - `launchers/self/lib/adaptive_common.sh`: shared setup for adaptive AILAB
   launchers. It sources the generic launcher helper and adds HF cache/offline
   environment setup, adaptive-labeled config-file sourcing wrappers, worker
@@ -549,8 +550,9 @@ the supported public surface.
 - `launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh` and
   `launchers/self/submit_addition_fixedwidth_moredata_mig.sh` now use the
   generic launcher helper for repo-root setup and common MIG Slurm resource
-  argument construction; the exact-digits submitter also routes its schedule
-  banner through the shared context printer.
+  argument construction. Both submitters use the shared env-wrapped command
+  builder and resource-backed wrapped-job submitter; the exact-digits submitter
+  also routes its schedule banner through the shared context printer.
 - `launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch`,
   `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh`, and
   `launchers/self/submit_addition_fixedwidth_mixed_mig.sh` use the generic
@@ -846,11 +848,13 @@ new implementation code:
   matrix configs. The adaptive AILAB parent/candidate-worker/controller-worker
   scripts now share `launchers/self/lib/adaptive_common.sh`; the generic
   helper lives in `launchers/self/lib/self_common.sh` and owns common repo-root
-  setup, Python resolution, context banners, and stdout/stderr command
-  printing/execution helpers; the adaptive
-  condition-pilot, main-experiment, exact-digit addition, and fixed-width
-  more-data addition submitters use common Slurm resource/default helpers, with
-  the exact-digit schedule banner routed through `self_print_context`; the
+  setup, Python resolution, context banners, shell-quoted env-wrapped command
+  construction, and stdout/stderr command printing/execution helpers; the
+  adaptive condition-pilot, main-experiment, exact-digit addition, and
+  fixed-width more-data addition submitters use common Slurm resource/default
+  helpers, with the addition sweep submitters also sharing the wrapped
+  env-command submit helper and the exact-digit schedule banner routed through
+  `self_print_context`; the
   fixed-width mixed-prompt addition seed/fullpack runners and mixed submitter
   share generic repo-root/Python/boolean/context-printing/command-printing
   helpers; the addition
