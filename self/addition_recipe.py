@@ -1,39 +1,15 @@
 #!/usr/bin/env python3
-"""Backward-compatible addition recipe wrapper around shared recipe helpers."""
+"""Compatibility wrapper for addition recipe helpers in :mod:`self.core.recipes`."""
 
 from __future__ import annotations
 
-from self.core.recipes import (
-    RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
-    BatchSamplerWarmupStableDecayTrainer,
-    NoPELlamaForCausalLM,
-    PaddingAwareCausalLMDataCollator,
-    RecipeTrainingPhaseConfig,
-    SelfImprovementRecipePreset,
-    WarmupStableDecayTrainer,
-    apply_recipe_runtime_settings,
-    build_recipe_model_config,
-    build_recipe_tokenizer,
-    instantiate_recipe_model,
-    load_recipe_model,
-    make_recipe_training_args,
-    make_warmup_stable_decay_lambda,
-    resolve_recipe_phase,
-    resolve_self_improvement_recipe,
-    tokenizer_padding_side,
-)
+import sys as _sys
+import types as _types
+
+from self.core import recipes as _impl
 
 
-AdditionRecipePreset = SelfImprovementRecipePreset
-
-
-def resolve_addition_recipe(name: str) -> AdditionRecipePreset:
-    if name != RECIPE_ARITHMETIC_SELF_IMPROVE_V1:
-        raise ValueError(f"Unsupported addition recipe: {name!r}")
-    return resolve_self_improvement_recipe(name)
-
-
-__all__ = [
+_EXPORT_NAMES = [
     "AdditionRecipePreset",
     "BatchSamplerWarmupStableDecayTrainer",
     "NoPELlamaForCausalLM",
@@ -52,3 +28,25 @@ __all__ = [
     "resolve_recipe_phase",
     "tokenizer_padding_side",
 ]
+
+
+def __getattr__(name: str):
+    return getattr(_impl, name)
+
+
+def __dir__():
+    return sorted(set(globals()) | set(dir(_impl)))
+
+
+class _ModuleProxy(_types.ModuleType):
+    def __getattr__(self, name: str):
+        return getattr(_impl, name)
+
+    def __setattr__(self, name: str, value):
+        if not name.startswith("__"):
+            setattr(_impl, name, value)
+        super().__setattr__(name, value)
+
+
+__all__ = list(_EXPORT_NAMES)
+_sys.modules[__name__].__class__ = _ModuleProxy

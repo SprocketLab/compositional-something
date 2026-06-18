@@ -12,6 +12,7 @@ from self.addition_recipe import (
     resolve_recipe_phase,
     resolve_addition_recipe,
 )
+from self.core import recipes as core_recipes
 
 
 def test_recipe_preset_instantiates_scratch_nope_model_and_character_tokenizer(monkeypatch):
@@ -37,6 +38,12 @@ def test_recipe_preset_instantiates_scratch_nope_model_and_character_tokenizer(m
     assert preset.self_improve_phase.warmup_steps == 0
     assert preset.self_improve_phase.num_decay_steps == 1_000
     assert tokenizer.encode("Q: 12 + 34 = ?\nA:", add_special_tokens=False)
+
+
+def test_addition_recipe_wrapper_points_to_canonical_recipe_helpers():
+    assert resolve_addition_recipe is core_recipes.resolve_addition_recipe
+    assert build_recipe_tokenizer is core_recipes.build_recipe_tokenizer
+    assert PaddingAwareCausalLMDataCollator is core_recipes.PaddingAwareCausalLMDataCollator
 
 
 def test_recipe_tokenizer_supports_current_prompt_newline_without_unk():

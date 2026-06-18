@@ -489,6 +489,7 @@ new implementation code:
 - `self/adaptive_proposals.py` -> `self/core/proposals.py`
 - `self/adaptive_worker_io.py` -> `self/core/worker_io.py`
 - `self/adaptive_self_improvement.py` -> `self/experiments/adaptive_self_improvement.py`
+- `self/addition_recipe.py` -> `self/core/recipes.py`
 - `self/addition_recipe_diagnostic.py` -> `self/diagnostics/addition_recipe_diagnostic.py`
 - `self/analyze_symbolic_training_dynamics.py` -> `self/diagnostics/analyze_symbolic_training_dynamics.py`
 - `self/check_self_improvement_overfit.py` -> `self/diagnostics/check_self_improvement_overfit.py`
@@ -589,9 +590,10 @@ new implementation code:
   `self/core/nonadaptive_round_setup.py`. These helpers have direct unit
   coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
-  is a compatibility wrapper. Current `self/core`, `self/experiments`, and
-  `self/diagnostics` modules import recipe helpers from the canonical core
-  module, while legacy scripts and old tests can keep using the wrapper.
+  and `self/addition_recipe.py` are compatibility wrappers. Current
+  `self/core`, `self/experiments`, and `self/diagnostics` modules import
+  recipe helpers from the canonical core module, while legacy scripts and old
+  tests can keep using the wrappers.
 - Tokenizer helpers now live in `self/core/tokenizers.py`; `self/task_tokenizer.py`
   is a compatibility wrapper. Current core modules import tokenizer helpers
   from the canonical core module, while legacy scripts and old tests can keep

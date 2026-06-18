@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import torch
 from transformers import set_seed
 
-from self.addition_recipe import (
+from self.core.recipes import (
     RECIPE_ARITHMETIC_SELF_IMPROVE_V1,
     PaddingAwareCausalLMDataCollator,
     RecipeTrainingPhaseConfig,

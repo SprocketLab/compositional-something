@@ -167,6 +167,15 @@ def resolve_self_improvement_recipe(name: str) -> SelfImprovementRecipePreset:
     )
 
 
+AdditionRecipePreset = SelfImprovementRecipePreset
+
+
+def resolve_addition_recipe(name: str) -> AdditionRecipePreset:
+    if name != RECIPE_ARITHMETIC_SELF_IMPROVE_V1:
+        raise ValueError(f"Unsupported addition recipe: {name!r}")
+    return resolve_self_improvement_recipe(name)
+
+
 def resolve_recipe_phase(
     preset: SelfImprovementRecipePreset,
     phase_name: str,

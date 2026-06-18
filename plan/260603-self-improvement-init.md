@@ -3013,3 +3013,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_composition_error_sweep.py` for argument forwarding, explicit strategy preservation, invalid percent rejection, old-wrapper monkeypatch forwarding, launcher bash syntax, and dry-run command output.
 - Updated `self/README.md` with the new experiment owner and compatibility wrapper mapping.
 - Verification: `python -m py_compile self/experiments/composition_error_sweep.py self/self_improvement_composition_error_experiment.py tests/test_composition_error_sweep.py`; `bash -n launchers/self/run_composition_error_sweep_self_improvement.sh launchers/self/run_self_improvement_mig_boundary_eval.sbatch`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_composition tests/test_composition_error_sweep.py -q` (`5 passed`). The temporary `.pytest_tmp_composition` directory was removed after verification.
+
+### Implementation Log: 2026-06-18 07:33:22 UTC
+
+- Moved the addition-specific recipe alias and resolver into canonical `self/core/recipes.py` as `AdditionRecipePreset` and `resolve_addition_recipe(...)`.
+- Converted `self/addition_recipe.py` into a compatibility proxy over `self.core.recipes`, preserving old imports and attribute-write forwarding for legacy monkeypatch patterns.
+- Updated current `self/diagnostics/addition_recipe_diagnostic.py` to import recipe helpers from `self.core.recipes`; legacy scripts continue to use the old wrapper path.
+- Added a compatibility assertion in `tests/test_addition_recipe_diagnostic.py` confirming old `self.addition_recipe` exports resolve to the canonical recipe helpers.
+- Updated `self/README.md` with the addition recipe wrapper mapping and recipe-helper ownership.
+- Verification: `python -m py_compile self/core/recipes.py self/addition_recipe.py self/diagnostics/addition_recipe_diagnostic.py tests/test_addition_recipe_diagnostic.py tests/test_legacy_addition_self_improvement.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_recipe tests/test_addition_recipe_diagnostic.py tests/test_legacy_addition_self_improvement.py -q` (`31 passed`); import sanity confirmed `self.addition_recipe.resolve_addition_recipe` and `self.addition_recipe.AdditionRecipePreset` are the canonical `self.core.recipes` objects. The temporary `.pytest_tmp_recipe` directory was removed after verification.
