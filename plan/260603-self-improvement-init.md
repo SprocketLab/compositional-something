@@ -3210,3 +3210,10 @@ Acceptance criteria for first pilot:
 
 - Removed the final tracked plan-log wording that named the old auxiliary classification task which is no longer part of the workshop/main-track repo surface.
 - Verification: `git grep -n -i <removed-task-name> -- .` returned no tracked matches; `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:12:18 UTC
+
+- Continued shrinking the adaptive driver wiring layer by extracting driver-to-proposal-GRPO dispatch binding construction into `self/core/driver_proposal_grpo_wiring.py`.
+- Moved the `ProposalGrpoDispatchDeps` construction and proposal-GRPO local-vs-Slurm dispatch wrapper out of `self/core/driver_wiring.py`; `driver_wiring.py` now imports the bridge function while continuing to expose the same name for `self.core.driver` compatibility wrappers.
+- Updated `self/README.md` to document `self/core/driver_proposal_grpo_wiring.py` as the focused owner for proposal-GRPO update dispatch bridges.
+- Verification: `python -m py_compile self/core/driver.py self/core/driver_wiring.py self/core/driver_proposal_grpo_wiring.py self/core/proposal_grpo_dispatch.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_proposal_grpo tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`40 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

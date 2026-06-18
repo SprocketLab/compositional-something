@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, Sequence
 
 from self.core.driver_candidate_dispatch_wiring import (
     candidate_dispatch_deps,
@@ -28,44 +27,14 @@ from self.core.driver_worker_wiring import (
     worker_entrypoint_deps,
 )
 from self.core.entrypoint import DriverEntrypointDeps, run_driver_entrypoint
-from self.core.models import CandidateMetrics
-from self.core.proposal_grpo_dispatch import (
-    ProposalGrpoDispatchDeps,
-    apply_or_dispatch_proposal_grpo_update as _apply_or_dispatch_proposal_grpo_update_impl,
+from self.core.driver_proposal_grpo_wiring import (
+    apply_or_dispatch_proposal_grpo_update,
+    proposal_grpo_dispatch_deps,
 )
-from self.core.proposals import PromptBundle
 from self.core.run_orchestration import AdaptiveRunDeps, run_adaptive_candidate_training
 
 
 JsonDict = Dict[str, Any]
-
-
-def apply_or_dispatch_proposal_grpo_update(
-    bindings: Any,
-    *,
-    args: argparse.Namespace,
-    source_checkpoint: str,
-    output_dir: Path,
-    prompt: PromptBundle,
-    proposal_results: Sequence[Mapping[str, Any]],
-    candidate_metrics: Sequence[CandidateMetrics],
-    seed: int,
-) -> tuple[str, JsonDict]:
-    return _apply_or_dispatch_proposal_grpo_update_impl(
-        args=args,
-        source_checkpoint=source_checkpoint,
-        output_dir=output_dir,
-        prompt=prompt,
-        proposal_results=proposal_results,
-        candidate_metrics=candidate_metrics,
-        seed=seed,
-        deps=ProposalGrpoDispatchDeps(
-            apply_proposal_grpo_update=bindings.apply_proposal_grpo_update,
-            run_controller_worker_slurm=bindings._run_controller_worker_slurm,
-            ensure_dir=bindings.ensure_dir,
-            write_json=bindings.write_json,
-        ),
-    )
 
 
 def adaptive_run_deps(bindings: Any) -> AdaptiveRunDeps:

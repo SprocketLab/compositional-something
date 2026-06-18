@@ -8,13 +8,17 @@ tests, notebooks, and older artifacts.
 
 - `self/core/driver.py`: thin adaptive CLI/worker entry point and
   monkeypatch-compatible wrapper surface for the extracted adaptive runtime.
-- `self/core/driver_wiring.py`: dependency-factory construction for
-  proposal-GRPO dispatch and full adaptive run orchestration. It reads through
-  the live driver module so old monkeypatches still affect execution.
+- `self/core/driver_wiring.py`: dependency-factory construction for full
+  adaptive run orchestration and the CLI entry point. It reads through the live
+  driver module so old monkeypatches still affect execution.
 - `self/core/driver_candidate_dispatch_wiring.py`: driver-binding bridge for
   serial, local-parallel, and Slurm-array candidate dispatch. It keeps
   candidate training dispatch monkeypatch-compatible while `driver_wiring.py`
   stays focused on top-level orchestration wiring.
+- `self/core/driver_proposal_grpo_wiring.py`: driver-binding bridge for
+  local-vs-Slurm proposal-GRPO update dispatch. It keeps proposal-GRPO update
+  dispatch monkeypatch-compatible while `driver_wiring.py` stays focused on
+  top-level orchestration wiring.
 - `self/core/driver_worker_wiring.py`: driver-binding bridge for candidate
   workers, packed candidate workers, and controller worker entry points. It
   keeps worker dispatch monkeypatch-compatible while `driver_wiring.py` stays
