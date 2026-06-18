@@ -287,8 +287,13 @@ tests, notebooks, and older artifacts.
   heatmaps, comparison curves, and figure bundle export helpers.
 - `self/analysis/training_curve_notebook_utils.py`: notebook helpers for
   compatibility imports over the canonical training-curve analysis modules.
-- `self/analysis/seed_fit_curve_notebook_utils.py`: notebook helpers for
-  seed-fit training curves and budget sweeps.
+- `self/analysis/seed_fit_bundle.py`: seed-fit result loading, flattened
+  training/validation log tables, compact task summaries, and threshold
+  budget selection.
+- `self/analysis/seed_fit_plots.py`: seed-fit loss curves and budget-sweep
+  plotting helpers.
+- `self/analysis/seed_fit_curve_notebook_utils.py`: compatibility imports over
+  the canonical seed-fit analysis modules.
 - `self/analysis/plot_appendix_baseline_heatmaps.py`: appendix baseline
   heatmap export CLI.
 - `self/analysis/plot_self_improvement_figure.py`: comparison-curve plotting
