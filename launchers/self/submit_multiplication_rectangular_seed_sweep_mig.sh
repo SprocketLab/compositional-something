@@ -26,12 +26,13 @@ STAGE3_TRAIN_PER_PARTITION=100000
 mkdir -p "${OUT_ROOT}"
 mkdir -p "$(dirname "${MODEL_LINK}")"
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Launcher: ${LAUNCHER}"
-echo "[INFO] Stable model link: ${MODEL_LINK}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Launcher" "${LAUNCHER}" \
+  "Stable model link" "${MODEL_LINK}" \
+  "Dry run" "${DRY_RUN}"
 
 write_status() {
   local status="$1"

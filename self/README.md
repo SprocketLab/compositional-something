@@ -637,7 +637,8 @@ new implementation code:
   seed/diagnostic runners and probe/resweep submitters share generic
   repo-root/Python/boolean/command-printing helpers; the rectangular non-square
   seed/self-improvement runners and seed/fullpack submitters share generic
-  repo-root/Python/boolean/stdout-or-stderr command-printing helpers; the
+  repo-root/Python/boolean/context-printing/stdout-or-stderr command-printing
+  helpers; the
   rectangular tune submitter shares the same repo-root/Python/boolean setup;
   the addition tiny/shared seed runners share generic repo-root/Python/boolean
   and staged dry-run command-printing helpers;

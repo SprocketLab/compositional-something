@@ -87,23 +87,24 @@ if self_parse_bool "${SKIP_TRAIN_EVAL}"; then
   cmd+=(--skip-train-eval)
 fi
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Model name: ${MODEL_NAME}"
-echo "[INFO] Recipe: ${RECIPE_NAME}"
-echo "[INFO] Partitions: ${PARTITIONS_SPEC}"
-echo "[INFO] Train per partition: ${TRAIN_PER_PARTITION}"
-echo "[INFO] Heldout per partition: ${HELDOUT_PER_PARTITION}"
-echo "[INFO] Learning rate: ${LR}"
-echo "[INFO] Max steps: ${MAX_STEPS}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Save model: ${SAVE_MODEL}"
-echo "[INFO] Skip train eval: ${SKIP_TRAIN_EVAL}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Slurm job id: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Model name" "${MODEL_NAME}" \
+  "Recipe" "${RECIPE_NAME}" \
+  "Partitions" "${PARTITIONS_SPEC}" \
+  "Train per partition" "${TRAIN_PER_PARTITION}" \
+  "Heldout per partition" "${HELDOUT_PER_PARTITION}" \
+  "Learning rate" "${LR}" \
+  "Max steps" "${MAX_STEPS}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Save model" "${SAVE_MODEL}" \
+  "Skip train eval" "${SKIP_TRAIN_EVAL}" \
+  "Dry run" "${DRY_RUN}" \
+  "Slurm job id" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 if [[ "${DRY_RUN}" == "1" ]]; then
   echo "[INFO] Dry run: skipping CUDA probes."
 else

@@ -110,24 +110,25 @@ else
   cmd+=(--no-save-model)
 fi
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Baseline: ${BASELINE}"
-echo "[INFO] Seed model: ${SEED_MODEL}"
-echo "[INFO] Initial max b digits: ${INITIAL_MAX_B_DIGITS}"
-echo "[INFO] Expand b digits: ${EXPAND_B_DIGITS}"
-echo "[INFO] Num expand rounds: ${NUM_EXPAND_ROUNDS}"
-echo "[INFO] Seed replay per partition: ${SEED_REPLAY_TRAIN_PER_PARTITION}"
-echo "[INFO] Frontier train per partition: ${EXPAND_TRAIN_PER_PARTITION}"
-echo "[INFO] Frontier row profile: ${FRONTIER_ROW_PROFILE}"
-echo "[INFO] Learning rate: ${LEARNING_RATE:-recipe_default}"
-echo "[INFO] Max steps: ${MAX_STEPS:-recipe_default}"
-echo "[INFO] Train batch size: ${TRAIN_BATCH_SIZE}"
-echo "[INFO] Eval batch size: ${EVAL_BATCH_SIZE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Slurm job id: ${SLURM_JOB_ID:-unknown}"
-echo "[INFO] Hostname: $(hostname)"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Baseline" "${BASELINE}" \
+  "Seed model" "${SEED_MODEL}" \
+  "Initial max b digits" "${INITIAL_MAX_B_DIGITS}" \
+  "Expand b digits" "${EXPAND_B_DIGITS}" \
+  "Num expand rounds" "${NUM_EXPAND_ROUNDS}" \
+  "Seed replay per partition" "${SEED_REPLAY_TRAIN_PER_PARTITION}" \
+  "Frontier train per partition" "${EXPAND_TRAIN_PER_PARTITION}" \
+  "Frontier row profile" "${FRONTIER_ROW_PROFILE}" \
+  "Learning rate" "${LEARNING_RATE:-recipe_default}" \
+  "Max steps" "${MAX_STEPS:-recipe_default}" \
+  "Train batch size" "${TRAIN_BATCH_SIZE}" \
+  "Eval batch size" "${EVAL_BATCH_SIZE}" \
+  "Dry run" "${DRY_RUN}" \
+  "Slurm job id" "${SLURM_JOB_ID:-unknown}" \
+  "Hostname" "$(hostname)"
 if [[ "${DRY_RUN}" == "1" ]]; then
   echo "[INFO] Dry run: skipping CUDA probes."
 else
