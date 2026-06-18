@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
 
 from self.core.attempt_outcome_models import AttemptOutcomeDeps, AttemptOutcomeResult
 from self.core.models import CandidateMetrics
 from self.core.round_model_dispatch_runtime import RoundModelDispatchDeps, RoundModelDispatchResult
-from self.core.training import TrainingConfig
+
+if TYPE_CHECKING:
+    from self.core.training import TrainingConfig
 
 
 @dataclass(frozen=True)

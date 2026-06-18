@@ -4184,3 +4184,39 @@ Acceptance criteria for first pilot:
   tests/test_driver_lazy_imports.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py tests/test_proposal_generation.py -q`
   (`47 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:09:39 UTC
+
+- Kept adaptive prompt and attempt orchestration modules import-light for
+  inspection and static tooling.
+- Removed the `self.tasks` package import from
+  `self/core/proposal_prompt_metadata.py` by using local target-mode
+  normalization and the stable `run_state` target-mode string needed only for
+  prompt metadata. This avoids loading task adapters and model-evaluation
+  dependencies while rendering proposal prompts.
+- Converted `TrainingConfig` imports in
+  `self/core/attempt_loop_runtime.py`,
+  `self/core/attempt_candidate_runtime.py`,
+  `self/core/round_model_dispatch_runtime.py`,
+  `self/core/run_initialization_runtime.py`, and
+  `self/core/seed_dispatch_runtime.py` to `TYPE_CHECKING` imports because those
+  modules use the class only in annotations.
+- Verified in base Python that `self.core.proposal_prompt_metadata`,
+  `self.core.proposal_prompts`, `self.core.round_model_dispatch_runtime`,
+  `self.core.seed_dispatch_runtime`, `self.core.run_initialization_runtime`,
+  `self.core.attempt_candidate_runtime`, and `self.core.attempt_loop_runtime`
+  import successfully without Torch installed.
+- Extended `tests/test_driver_lazy_imports.py` to pin those runtime contract
+  imports in a fresh subprocess without loading `self.tasks`,
+  `self.core.training`, Torch, or Transformers.
+- Verification: `python -m py_compile self/core/proposal_prompt_metadata.py
+  self/core/proposal_prompts.py self/core/round_model_dispatch_runtime.py
+  self/core/seed_dispatch_runtime.py self/core/run_initialization_runtime.py
+  self/core/attempt_candidate_runtime.py self/core/attempt_loop_runtime.py
+  tests/test_driver_lazy_imports.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_import_light_runtime
+  tests/test_driver_lazy_imports.py tests/test_proposal_generation.py
+  tests/test_adaptive_proposals_and_sandbox.py tests/test_attempt_candidate_runtime.py
+  tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`60 passed`, `7`
+  existing multiprocessing fork warnings).

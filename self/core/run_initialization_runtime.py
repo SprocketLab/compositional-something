@@ -6,10 +6,12 @@ import argparse
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, Sequence
 
 from self.core.checkpoints import CheckpointManager
-from self.core.training import TrainingConfig
+
+if TYPE_CHECKING:
+    from self.core.training import TrainingConfig
 
 
 JsonDict = Dict[str, Any]

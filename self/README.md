@@ -59,7 +59,8 @@ the supported public surface.
   cross-field checks, task-specific defaults, and derived size/count aliases.
 - `self/core/attempt_loop_runtime.py`: selected-round adaptive attempt loop
   orchestration across prompt construction, dry-run handling, candidate-attempt
-  dispatch, and loop state updates.
+  dispatch, and loop state updates. Training config references are type-only so
+  the loop module stays import-light for inspection.
 - `self/core/attempt_candidate_runtime.py`: model-backed candidate attempt
   body, including round-model dispatch, candidate scoring, candidate selection,
   trace writing, unselected checkpoint cleanup, and outcome application.
@@ -245,7 +246,8 @@ the supported public surface.
 - `self/core/proposal_prompt_metadata.py`: task-specific target-format
   descriptions, component-prediction examples, generated-program validation
   case selection, and the driver-selected default executable source-pair
-  policy.
+  policy. It avoids importing `self.tasks` so prompt rendering remains usable
+  without loading task adapters and model-evaluation dependencies.
 - `self/core/proposal_prompts.py`: prompt bundle dataclass, config/program
   prompt rendering, executable program/policy/meta prompt rendering, and
   compatibility reexports for prompt metadata helpers.
@@ -288,7 +290,8 @@ the supported public surface.
   artifact construction, and plan-log finalization.
 - `self/core/run_initialization_runtime.py`: adaptive output/data directory
   setup, initial split/eval artifact writing, checkpoint manager construction,
-  and source/exclusion pool initialization.
+  and source/exclusion pool initialization. Training config references are
+  type-only to keep initialization artifact code lightweight.
 - `self/core/run_orchestration.py`: high-level adaptive run sequence across
   argument normalization, seed initialization, selected-round attempt loop, and
   finalization. The driver injects concrete dependencies to preserve
@@ -297,9 +300,12 @@ the supported public surface.
   split/eval construction, trace JSONL loading, source-size extraction, and
   plan-log appends.
 - `self/core/round_model_dispatch_runtime.py`: per-attempt round-model
-  dispatch for local execution vs Slurm controller-worker execution.
+  dispatch for local execution vs Slurm controller-worker execution. It keeps
+  training config references type-only so dispatch contracts can be imported
+  without loading the training stack.
 - `self/core/seed_dispatch_runtime.py`: seed/dry-run model initialization,
-  seed Slurm dispatch parsing, and initial adaptive summary construction.
+  seed Slurm dispatch parsing, and initial adaptive summary construction, with
+  training config references kept type-only.
 - `self/core/slurm.py`: small Slurm submission/polling helpers.
 - `self/core/summaries.py`: non-adaptive round summary containers, metrics
   payload conversion, accuracy formatting, and console summary printing.

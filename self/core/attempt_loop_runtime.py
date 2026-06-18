@@ -6,7 +6,7 @@ import argparse
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Sequence
 
 from self.core.attempt_candidate_runtime import CandidateAttemptDeps, run_candidate_attempt
 from self.core.attempt_outcome_runtime import AttemptOutcomeDeps, AttemptOutcomeResult
@@ -14,7 +14,9 @@ from self.core.attempt_prompt_runtime import AttemptPromptDeps, AttemptPromptRes
 from self.core.dry_run_runtime import DryRunAttemptDeps, DryRunAttemptResult
 from self.core.models import CandidateMetrics
 from self.core.round_model_dispatch_runtime import RoundModelDispatchDeps, RoundModelDispatchResult
-from self.core.training import TrainingConfig
+
+if TYPE_CHECKING:
+    from self.core.training import TrainingConfig
 
 
 JsonDict = Dict[str, Any]

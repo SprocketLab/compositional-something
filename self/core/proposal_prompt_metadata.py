@@ -11,15 +11,19 @@ from self.core.program_sandbox_cases import (
 )
 from self.core.program_sandbox_models import SandboxCase
 from self.core.proposal_config_schema import ConfigProposal
-from self.tasks.bit_common import normalize_bit_target_mode
-from self.tasks.bit_parsing import RUN_LENGTH_TARGET_RUN_STATE
+
+RUN_LENGTH_TARGET_RUN_STATE = "run_state"
+
+
+def _normalize_bit_target_mode(args: argparse.Namespace, default: str = "default") -> str:
+    return str(getattr(args, "target_mode", default))
 
 
 def target_format_for_task(task_name: str, args: argparse.Namespace) -> str:
     if task_name == "addition":
         return "a non-negative integer string formed only from component prediction strings"
     if task_name == "run_length":
-        if normalize_bit_target_mode(args) == RUN_LENGTH_TARGET_RUN_STATE:
+        if _normalize_bit_target_mode(args) == RUN_LENGTH_TARGET_RUN_STATE:
             return "max_run|prefix_symbol|prefix_run|suffix_symbol|suffix_run"
         return "max_run|prefix_run|suffix_run"
     raise ValueError(f"Unsupported task={task_name!r}.")
@@ -29,7 +33,7 @@ def component_prediction_examples_for_task(task_name: str, args: argparse.Namesp
     if task_name == "addition":
         return ["46", "064", "1002"]
     if task_name == "run_length":
-        if normalize_bit_target_mode(args) == RUN_LENGTH_TARGET_RUN_STATE:
+        if _normalize_bit_target_mode(args) == RUN_LENGTH_TARGET_RUN_STATE:
             return ["3|0|2|1|1", "5|1|5|1|5"]
         return ["3|2|1", "5|5|5"]
     raise ValueError(f"Unsupported task={task_name!r}.")
@@ -39,7 +43,7 @@ def program_validation_cases(task_name: str, args: argparse.Namespace) -> List[S
     if task_name == "addition":
         return build_addition_program_cases()
     if task_name == "run_length":
-        if normalize_bit_target_mode(args) != RUN_LENGTH_TARGET_RUN_STATE:
+        if _normalize_bit_target_mode(args) != RUN_LENGTH_TARGET_RUN_STATE:
             return []
         return build_run_length_program_cases(random_seed=args.seed, random_count=8)
     raise ValueError(f"Unsupported task={task_name!r}.")

@@ -47,3 +47,46 @@ def test_driver_facade_does_not_import_heavy_bindings_for_public_api_listing() -
         "wrapper_exports_build_parser": True,
         "wrapper_exports_run": True,
     }
+
+
+def test_adaptive_runtime_contract_modules_do_not_import_training_stack() -> None:
+    script = textwrap.dedent(
+        """
+        import importlib
+        import json
+        import sys
+
+        modules = [
+            "self.core.proposal_prompt_metadata",
+            "self.core.proposal_prompts",
+            "self.core.round_model_dispatch_runtime",
+            "self.core.seed_dispatch_runtime",
+            "self.core.run_initialization_runtime",
+            "self.core.attempt_candidate_runtime",
+            "self.core.attempt_loop_runtime",
+        ]
+        for module_name in modules:
+            importlib.import_module(module_name)
+        print(json.dumps({
+            "tasks_loaded": "self.tasks" in sys.modules,
+            "training_loaded": "self.core.training" in sys.modules,
+            "torch_loaded": "torch" in sys.modules,
+            "transformers_loaded": "transformers" in sys.modules,
+        }, sort_keys=True))
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "tasks_loaded": False,
+        "torch_loaded": False,
+        "training_loaded": False,
+        "transformers_loaded": False,
+    }
