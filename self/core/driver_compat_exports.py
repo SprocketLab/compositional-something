@@ -100,8 +100,10 @@ from self.core.run_setup import source_sizes_from_examples
 from self.core.training import TrainingConfig
 from self.tasks.addition import AdditionTask
 from self.tasks.bit_common import (
-    RUN_LENGTH_TARGET_RUN_STATE,
     normalize_bit_target_mode,
+)
+from self.tasks.bit_parsing import (
+    RUN_LENGTH_TARGET_RUN_STATE,
     parse_run_length_prediction,
     parse_run_length_run_state_prediction,
 )

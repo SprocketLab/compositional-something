@@ -12,7 +12,7 @@ from core.addition_pipeline import (
 from self.core.args_normalization import normalize_args
 from self.core.proposal_config_schema import PROPOSAL_OUTPUT_SCHEMAS
 from self.core.proposal_grpo_traces import PROPOSAL_GRPO_REWARD_MODES, PROPOSAL_GRPO_ZERO_VARIANCE_MODES
-from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE
+from self.tasks.bit_parsing import RUN_LENGTH_TARGET_RUN_STATE
 
 
 TASK_CHOICES = ("addition", "run_length")

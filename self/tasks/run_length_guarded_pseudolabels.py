@@ -12,9 +12,11 @@ from self.tasks.bit_common import (
     normalize_bit_composition_path_mode,
     normalize_compose_arity,
     normalize_guarded_compose_rule,
+    run_length_guard_accepts_true_components,
+)
+from self.tasks.bit_parsing import (
     parse_run_length_prediction,
     parse_run_length_symbol_pair_prediction,
-    run_length_guard_accepts_true_components,
 )
 from self.tasks.run_length_data import (
     RunLengthExample,

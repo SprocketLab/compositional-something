@@ -13,10 +13,12 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from self.core.evaluation import generate_prediction_map as _default_generate_prediction_map
 from self.core.task_protocols import JsonDict, SelfImprovementTask
 from self.tasks.bit_common import (
-    MULTIPLICATION_FORMATS,
     build_direct_pseudo_examples,
-    format_multiplication_target,
     normalize_task_format_version,
+)
+from self.tasks.bit_parsing import (
+    MULTIPLICATION_FORMATS,
+    format_multiplication_target,
     parse_multiplication_prediction,
 )
 from self.tasks.multiplication_data import (

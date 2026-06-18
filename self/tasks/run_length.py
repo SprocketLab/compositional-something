@@ -15,15 +15,17 @@ from self.tasks.bit_common import (
     BIT_COMPOSE_ARITIES,
     BIT_GUARDED_COMPOSE_RULES,
     BIT_TARGET_MODES,
-    RUN_LENGTH_ALPHABET_SYMBOLS,
-    RUN_LENGTH_FORMATS,
-    RUN_LENGTH_TARGET_RUN_STATE,
     normalize_bit_composition_path_mode,
     normalize_bit_target_mode,
     normalize_compose_arity,
     normalize_guarded_compose_rule,
     normalize_symbol_alphabet_size,
     normalize_task_format_version,
+)
+from self.tasks.bit_parsing import (
+    RUN_LENGTH_ALPHABET_SYMBOLS,
+    RUN_LENGTH_FORMATS,
+    RUN_LENGTH_TARGET_RUN_STATE,
     parse_run_length_prediction,
 )
 from self.tasks.bit_composition import (

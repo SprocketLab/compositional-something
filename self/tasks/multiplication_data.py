@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from self.tasks.bit_common import format_multiplication_target
+from self.tasks.bit_parsing import format_multiplication_target
 
 
 MultiplicationKey = Tuple[int, int, int]

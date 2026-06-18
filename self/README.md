@@ -325,9 +325,12 @@ the supported public surface.
   pseudolabel derivation and pseudolabel diagnostics.
 - `self/tasks/bit_composition.py`: bit-string composition-path constants,
   component-size selection, and reachable target-size helpers.
-- `self/tasks/bit_common.py`: shared run-length/multiplication parsers,
-  normalization helpers, guarded pseudolabel refill, direct pseudolabel
-  utilities, and compatibility reexports for older bit-composition imports.
+- `self/tasks/bit_parsing.py`: run-length and multiplication prediction
+  parsing, run-length alphabet/target constants, and multiplication target
+  formatting.
+- `self/tasks/bit_common.py`: shared bit-task normalization helpers, guarded
+  pseudolabel refill, direct pseudolabel utilities, and compatibility reexports
+  for older bit-composition and parsing imports.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
   blocked-component pseudolabel derivation, metadata validation, and
   `MultiplicationTask`.

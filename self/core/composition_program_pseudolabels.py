@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 from self.core.models import ExecutableProposal
 from self.core.program_sandbox import execute_program_cases
 from self.core.program_sandbox_models import SandboxCase
-from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE, normalize_bit_target_mode
+from self.tasks.bit_common import normalize_bit_target_mode
+from self.tasks.bit_parsing import RUN_LENGTH_TARGET_RUN_STATE
 
 
 JsonDict = Dict[str, Any]

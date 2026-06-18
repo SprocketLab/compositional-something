@@ -14,8 +14,10 @@ from self.core.composition_program_pseudolabels import (
 from self.core.models import ExecutableProposal
 from self.core.proposal_config_schema import ConfigProposal
 from self.tasks.bit_common import (
-    RUN_LENGTH_TARGET_RUN_STATE,
     normalize_bit_target_mode,
+)
+from self.tasks.bit_parsing import (
+    RUN_LENGTH_TARGET_RUN_STATE,
     parse_run_length_prediction,
     parse_run_length_run_state_prediction,
 )

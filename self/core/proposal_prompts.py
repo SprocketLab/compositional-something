@@ -16,7 +16,8 @@ from self.core.program_sandbox_models import (
     SandboxCase,
 )
 from self.core.proposal_config_schema import ConfigProposal
-from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE, normalize_bit_target_mode
+from self.tasks.bit_common import normalize_bit_target_mode
+from self.tasks.bit_parsing import RUN_LENGTH_TARGET_RUN_STATE
 
 
 @dataclass(frozen=True)

@@ -9,10 +9,12 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from self.core.task_protocols import JsonDict
 from self.tasks.bit_common import (
-    INTEGER_PATTERN,
-    RUN_LENGTH_TARGET_RUN_STATE,
     build_direct_pseudo_examples,
     normalize_bit_target_mode,
+)
+from self.tasks.bit_parsing import (
+    INTEGER_PATTERN,
+    RUN_LENGTH_TARGET_RUN_STATE,
     parse_run_length_prediction,
     parse_run_length_run_state_prediction,
 )

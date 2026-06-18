@@ -7,7 +7,6 @@ import random
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from self.tasks.bit_common import (
-    RUN_LENGTH_ALPHABET_SYMBOLS,
     guard_slice_partition,
     normalize_bit_composition_path_mode,
     normalize_bit_target_mode,
@@ -17,6 +16,7 @@ from self.tasks.bit_common import (
     run_length_guard_accepts_true_components,
 )
 from self.tasks.bit_composition import bit_composed_target_sizes_from_examples
+from self.tasks.bit_parsing import RUN_LENGTH_ALPHABET_SYMBOLS
 from self.tasks.run_length_data import (
     RunLengthExample,
     build_run_length_composed_dataset,

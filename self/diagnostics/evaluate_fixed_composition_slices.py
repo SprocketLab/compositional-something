@@ -33,7 +33,7 @@ from self.core.recipes import (
     load_recipe_model,
     resolve_self_improvement_recipe,
 )
-from self.tasks.bit_common import (
+from self.tasks.bit_parsing import (
     RUN_LENGTH_ALPHABET_SYMBOLS,
     parse_run_length_prediction,
 )

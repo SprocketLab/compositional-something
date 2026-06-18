@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-from self.tasks.bit_common import RUN_LENGTH_TARGET_RUN_STATE
+from self.tasks.bit_parsing import RUN_LENGTH_TARGET_RUN_STATE
 
 
 def compute_run_stats(bitstring: str) -> Tuple[int, int, int]:
