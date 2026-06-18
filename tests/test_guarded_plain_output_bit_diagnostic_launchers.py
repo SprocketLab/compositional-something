@@ -87,9 +87,14 @@ def test_guarded_plain_output_bit_submitter_dry_run_prints_run_length(tmp_path):
     )
 
     stdout = result.stdout.replace("\\ ", " ")
-    assert "TASK=run_length" in stdout
-    assert "run_guarded_plain_output_bit_diagnostic_mig.sbatch" in stdout
+    combined = (result.stdout + result.stderr).replace("\\ ", " ")
+    assert "TASK=run_length" in combined
+    assert "--job-name guarded-bit-run-length" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert "run_guarded_plain_output_bit_diagnostic_mig.sbatch" in combined
     assert "DRY_RUN=1; sbatch not executed for run_length." in stdout
+    assert "job_id=dryrun-guarded-bit-run-length" in stdout
 
 
 def test_run_length_alpha10_baseline_pack_dry_run_prints_three_baselines(tmp_path):

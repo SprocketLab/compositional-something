@@ -556,7 +556,9 @@ the supported public surface.
   argument construction across GPU and CPU jobs.
 - `launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh` and
   `launchers/self/run_guarded_plain_output_bit_diagnostic_mig.sbatch` use the
-  generic helper for repo-root/Python setup and dry-run command printing.
+  generic helper for repo-root/Python setup and dry-run command printing. The
+  submitter uses the shared sbatch-script submission helper for per-task Slurm
+  metadata and explicit environment export payloads.
 - `launchers/self/run_multiplication_rectangular_square_seed_mig.sbatch`,
   `launchers/self/run_multiplication_rectangular_square_compose_diagnostic_mig.sbatch`,
   `launchers/self/submit_multiplication_rectangular_square_probe_mig.sh`, and
