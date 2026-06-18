@@ -7,11 +7,11 @@ import argparse
 import sys
 from typing import Any, List, Optional, Sequence
 
-from self.core import driver_default_bindings, driver_wiring
 from self.core.driver_compat_manifest import COMPAT_EXPORT_NAMES
+from self.core.driver_default_binding_manifest import DEFAULT_BINDING_NAMES
 from self.core.driver_public_api import install_driver_wiring_delegates
 
-_DEFAULT_BINDING_NAME_SET = frozenset(driver_default_bindings.DEFAULT_BINDING_NAMES)
+_DEFAULT_BINDING_NAME_SET = frozenset(DEFAULT_BINDING_NAMES)
 _COMPAT_EXPORT_NAME_SET = frozenset(COMPAT_EXPORT_NAMES)
 
 
@@ -19,9 +19,26 @@ def _bindings() -> Any:
     return sys.modules[__name__]
 
 
+def _default_bindings() -> Any:
+    from self.core import driver_default_bindings
+
+    return driver_default_bindings
+
+
+def _driver_wiring() -> Any:
+    from self.core import driver_wiring
+
+    return driver_wiring
+
+
+class _LazyDriverWiring:
+    def __getattr__(self, name: str) -> Any:
+        return getattr(_driver_wiring(), name)
+
+
 def __getattr__(name: str) -> Any:
     if name in _DEFAULT_BINDING_NAME_SET:
-        return getattr(driver_default_bindings, name)
+        return getattr(_default_bindings(), name)
     if name in _COMPAT_EXPORT_NAME_SET:
         from self.core import driver_compat_exports
 
@@ -33,15 +50,15 @@ def __dir__() -> List[str]:
     return sorted(set(globals()) | _DEFAULT_BINDING_NAME_SET | _COMPAT_EXPORT_NAME_SET)
 
 
-install_driver_wiring_delegates(globals(), driver_wiring=driver_wiring, get_bindings=_bindings)
+install_driver_wiring_delegates(globals(), driver_wiring=_LazyDriverWiring(), get_bindings=_bindings)
 
 
 def _default_bf16_on_cuda(args: argparse.Namespace, label: str) -> None:
-    return driver_default_bindings._default_bf16_on_cuda(args, label)
+    return _default_bindings()._default_bf16_on_cuda(args, label)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
-    return driver_wiring.main(_bindings(), argv)
+    return _driver_wiring().main(_bindings(), argv)
 
 
 __all__ = [name for name in __dir__() if not name.startswith("__")]

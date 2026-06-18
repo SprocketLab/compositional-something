@@ -51,6 +51,7 @@ from self.core.round_model_dispatch_runtime import run_round_model_dispatch
 from self.core.run_setup import append_plan_log, load_trace_jsonl, prepare_datasets
 from self.core.seed_dispatch_runtime import run_seed_dispatch
 from self.core.task_registry import task_for_name
+from self.core.driver_default_binding_manifest import DEFAULT_BINDING_NAMES
 
 
 def _default_bf16_on_cuda(args: argparse.Namespace, label: str) -> None:
@@ -67,60 +68,6 @@ _json_ready_key = worker_io.json_ready_key
 _key_from_json = worker_io.key_from_json
 write_key_set = worker_io.write_key_set
 load_key_set = worker_io.load_key_set
-
-
-DEFAULT_BINDING_NAMES = (
-    "PromptBundle",
-    "_PATH_ARG_NAMES",
-    "_default_bf16_on_cuda",
-    "_float_or_nan",
-    "_json_ready_args",
-    "_json_ready_key",
-    "_key_from_json",
-    "_load_json",
-    "_namespace_from_json_args",
-    "_prepare_candidate_worker_specs",
-    "_rows_for_round",
-    "_run_controller_worker_generic",
-    "_run_controller_worker_slurm",
-    "append_plan_log",
-    "apply_proposal_grpo_update",
-    "build_attempt_prompt",
-    "build_candidate_work_items",
-    "build_parser",
-    "build_round_outcome_trace_examples",
-    "build_selected_proposal_trace_example",
-    "candidate_metrics_from_json",
-    "choose_default_program_pair",
-    "ensure_dir",
-    "handle_attempt_outcome",
-    "load_fixture_proposals",
-    "load_key_set",
-    "load_trace_jsonl",
-    "make_config",
-    "normalize_args",
-    "prepare_datasets",
-    "render_config_prompt",
-    "render_program_candidate_prompt",
-    "run_dry_attempt",
-    "run_round_model_dispatch",
-    "run_round_model_phase",
-    "run_seed_dispatch",
-    "run_seed_phase",
-    "sanitize_json_value",
-    "save_examples",
-    "select_candidate",
-    "subprocess",
-    "task_for_name",
-    "train_and_score_candidate",
-    "validate_proposal_rows",
-    "work_item_from_worker_payload",
-    "work_item_to_worker_payload",
-    "write_json",
-    "write_key_set",
-    "write_round_trace",
-    "write_trace_jsonl",
-)
 
 
 __all__ = list(DEFAULT_BINDING_NAMES)

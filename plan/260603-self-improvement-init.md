@@ -4154,3 +4154,33 @@ Acceptance criteria for first pilot:
   tests/test_proposal_executable_validation.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`57 passed`, `7`
   existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:03:38 UTC
+
+- Made the adaptive driver facade lazy for concrete default bindings and driver
+  wiring imports.
+- Added `self/core/driver_default_binding_manifest.py` as a name-only manifest
+  for default binding names. `self/core/driver.py` now imports this lightweight
+  manifest instead of importing `self/core/driver_default_bindings.py` at module
+  import time.
+- Installed driver public delegates through a lazy wiring proxy, so
+  `dir(self.core.driver)`, `self.core.driver.__all__`, and the top-level
+  `self.adaptive_candidate_training` module proxy can enumerate compatibility
+  names without importing `driver_wiring`, `run_orchestration`, Torch, or
+  Transformers.
+- Preserved old behavior when a default binding or delegate is actually used:
+  default bindings still resolve through `self/core/driver_default_bindings.py`,
+  and delegates still call the same `driver_wiring` functions with the live
+  driver module as the binding surface.
+- Added `tests/test_driver_lazy_imports.py` to pin the import-light facade
+  behavior in a fresh subprocess.
+- Verification: base-Python import smoke confirmed `import self.core.driver`
+  and `import self.adaptive_candidate_training` succeed without loading
+  `self.core.driver_default_bindings` or `self.core.driver_wiring`;
+  `python -m py_compile self/core/driver.py
+  self/core/driver_default_bindings.py
+  self/core/driver_default_binding_manifest.py tests/test_driver_lazy_imports.py`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_lazy
+  tests/test_driver_lazy_imports.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py tests/test_proposal_generation.py -q`
+  (`47 passed`, `3` existing multiprocessing fork warnings).

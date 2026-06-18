@@ -12,6 +12,8 @@ the supported public surface.
 
 - `self/core/driver.py`: thin adaptive CLI/worker entry point and
   monkeypatch-compatible wrapper surface for the extracted adaptive runtime.
+  It installs name-only delegates at import time and lazily loads concrete
+  default bindings or wiring only when those paths are used.
 - `self/core/driver_wiring.py`: compatibility aggregation for driver bridge
   functions plus CLI entry point wiring. It reads through the live driver
   module so old monkeypatches still affect execution.
@@ -34,6 +36,10 @@ the supported public surface.
   exposed lazily by the driver for old imports and patch points such as
   `train_and_score_candidate`, `subprocess`, `_load_json`, and
   `_prepare_candidate_worker_specs`.
+- `self/core/driver_default_binding_manifest.py`: lightweight name-only
+  manifest for default driver binding names, kept separate so driver
+  `dir()`/`__all__` and top-level proxy setup do not import Torch/Transformers
+  runtime modules.
 - `self/core/driver_compat_exports.py`: lazy compatibility export surface for
   helpers and containers that older notebooks/tests imported through
   `self.adaptive_candidate_training`.
@@ -806,9 +812,9 @@ new implementation code:
   dispatch, selected-round attempt loop orchestration, candidate-worker
   runtime, candidate dispatch runtime/entrypoint wiring, candidate
   execution/aggregation, candidate selection, adaptive task-name lookup, driver
-  compatibility exports, driver default bindings, and driver dependency-wiring
-  pieces have already been extracted. `self/core/driver.py` is now a thin
-  wrapper module rather than the owner of adaptive run logic.
+  compatibility exports, lazy driver default bindings, and driver
+  dependency-wiring pieces have already been extracted. `self/core/driver.py`
+  is now a thin wrapper module rather than the owner of adaptive run logic.
 - Task-family splitting is complete for addition, multiplication, and
   run-length. `self/self_improvement_tasks.py` is now an explicit
   compatibility facade over canonical `self/tasks/*` and `self/core/*`
