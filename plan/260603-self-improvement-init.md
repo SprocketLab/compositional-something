@@ -3171,11 +3171,11 @@ Acceptance criteria for first pilot:
 
 ### Implementation Log: 2026-06-18 08:50:14 UTC
 
-- Cleaned the current workshop/main-track code surface so it no longer exposes the removed majority/vote-style task family through generic `bit_task` names.
+- Cleaned the current workshop/main-track code surface so it no longer exposes the removed auxiliary vote-style task family through generic `bit_task` names.
 - Renamed the legacy run-length bit-string CLI helper from `self/legacy/bit_task_self_improvement.py` to `self/legacy/run_length_bit_cli.py`, renamed its parser/normalization functions, and updated the run-length legacy entry point plus adaptive pilot compile checks to use the new path.
 - Renamed the current run-length recipe and non-adaptive seed-round tests away from `bit_task` filenames/function names, and changed the Figure 2 manifest kind from `bit_task` to `run_length_bit`.
 - Updated user-facing wording in `self/README.md`, `self/core/nonadaptive_setup.py`, `self/diagnostics/check_self_improvement_overfit.py`, `self/experiments/seed_fit_experiment.py`, and `launchers/self/run_refocused_self_improvement_local.sh` so the remaining bit-size controls are described as run-length bit-string controls rather than a generic auxiliary bit task.
-- Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no `majority`, voting/consensus/plurality, or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.
+- Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no removed auxiliary task, voting/consensus/plurality, or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.
 
 ### Implementation Log: 2026-06-18 08:54:57 UTC
 
@@ -3205,3 +3205,8 @@ Acceptance criteria for first pilot:
 - Moved the `CandidateDispatchEntrypointDeps` construction and serial/local-parallel/Slurm-array candidate dispatch wrapper functions out of `self/core/driver_wiring.py`; `driver_wiring.py` now imports those bridge functions while continuing to expose the same names for `self.core.driver` compatibility wrappers.
 - Updated `self/README.md` to document `self/core/driver_candidate_dispatch_wiring.py` as the focused owner for candidate training dispatch bridges.
 - Verification: `python -m py_compile self/core/driver.py self/core/driver_wiring.py self/core/driver_candidate_dispatch_wiring.py self/core/candidate_dispatch_entrypoints.py self/core/candidate_dispatch_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py tests/test_candidate_worker_specs.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_candidate_dispatch tests/test_candidate_dispatch_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py tests/test_candidate_worker_specs.py -q` (`48 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 09:09:41 UTC
+
+- Removed the final tracked plan-log wording that named the old auxiliary classification task which is no longer part of the workshop/main-track repo surface.
+- Verification: `git grep -n -i <removed-task-name> -- .` returned no tracked matches; `git diff --check`.
