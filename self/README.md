@@ -41,8 +41,8 @@ part of the supported surface.
   dispatch monkeypatch-compatible while `driver_wiring.py` stays focused on
   top-level orchestration wiring.
 - `self/core/driver_run_wiring.py`: driver-binding bridge for full adaptive
-  run orchestration. It builds `AdaptiveRunDeps` from live driver bindings so
-  run-level monkeypatches still flow into `run_orchestration.py`.
+  run orchestration. It builds `AdaptiveRunDeps` from live driver bindings and
+  lazy-loads the heavy run orchestration stack only when a run starts.
 - `self/core/driver_worker_wiring.py`: driver-binding bridge for candidate
   workers, packed candidate workers, and controller worker entry points. It
   keeps worker dispatch monkeypatch-compatible while `driver_wiring.py` stays
@@ -332,6 +332,8 @@ part of the supported surface.
   setup, initial split/eval artifact writing, checkpoint manager construction,
   and source/exclusion pool initialization. Training config references are
   type-only to keep initialization artifact code lightweight.
+- `self/core/run_models.py`: high-level adaptive run dependency containers.
+  `run_orchestration.py` reexports the old container name for compatibility.
 - `self/core/run_orchestration.py`: high-level adaptive run sequence across
   argument normalization, seed initialization, selected-round attempt loop, and
   finalization. The driver injects concrete dependencies to preserve

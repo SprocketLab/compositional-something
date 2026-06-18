@@ -4551,3 +4551,25 @@ Acceptance criteria for first pilot:
   tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`44 passed`, `3`
   existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 20:38:58 UTC
+
+- Split `AdaptiveRunDeps` from `self/core/run_orchestration.py` into
+  `self/core/run_models.py`.
+- Kept `self.core.run_orchestration.AdaptiveRunDeps` available by importing
+  the container from the new owner module.
+- Updated `self/core/driver_run_wiring.py` to import only `run_models` at
+  module load time and lazy-load `run_adaptive_candidate_training(...)` inside
+  `run(...)`. This keeps driver wiring imports from eagerly loading the
+  Torch/Transformers run orchestration stack.
+- Added `tests/test_run_models.py` for old-path compatibility and the lazy
+  import behavior.
+- Verification: `python -m py_compile self/core/run_models.py
+  self/core/run_orchestration.py self/core/driver_run_wiring.py
+  tests/test_run_models.py`; manual import check confirmed
+  `self.core.driver_run_wiring` does not load `self.core.run_orchestration`,
+  `torch`, or `transformers`; `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_run_models tests/test_run_models.py
+  tests/test_adaptive_self_improvement_controller.py
+  tests/test_adaptive_candidate_training.py -q` (`44 passed`, `3` existing
+  multiprocessing fork warnings); `git diff --check`.

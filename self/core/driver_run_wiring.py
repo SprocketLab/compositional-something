@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import Any, Dict
 
-from self.core.run_orchestration import AdaptiveRunDeps, run_adaptive_candidate_training
+from self.core.run_models import AdaptiveRunDeps
 
 
 JsonDict = Dict[str, Any]
@@ -51,4 +51,6 @@ def adaptive_run_deps(bindings: Any) -> AdaptiveRunDeps:
 
 
 def run(bindings: Any, args: argparse.Namespace) -> JsonDict:
+    from self.core.run_orchestration import run_adaptive_candidate_training
+
     return run_adaptive_candidate_training(args=args, deps=adaptive_run_deps(bindings))
