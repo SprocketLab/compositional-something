@@ -88,6 +88,8 @@ tests, notebooks, and older artifacts.
   self-improvement loop runtime, including dataset/resume handling,
   round-by-round training/evaluation, dynamic composed-pool refresh,
   pseudo-label generation, and summary writing.
+- `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
+  for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/program_sandbox.py`: sandboxed composition-program validation.
 - `self/core/proposals.py`: proposal schemas, prompts, parsing, validation,
   and trace row helpers.
@@ -469,6 +471,9 @@ new implementation code:
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
+- `self/core/nonadaptive_loop.py` still owns the main non-adaptive training
+  loop, but deterministic size/frontier arithmetic now lives in
+  `self/core/nonadaptive_schedule.py` with direct unit coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
   is a compatibility wrapper. Current `self/core`, `self/experiments`, and
   `self/diagnostics` modules import recipe helpers from the canonical core

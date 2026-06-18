@@ -42,6 +42,7 @@ from self.core.model_io import (
     lookup_single_token_id,
     sync_model_special_token_ids,
 )
+from self.core.nonadaptive_schedule import build_nonadaptive_size_schedule, normalize_frontier_min_size
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -106,11 +107,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             raise ValueError("stop_after_round must be greater than or equal to resume_from_round.")
     save_model_policy = resolve_save_model_policy(args)
     args.skip_save_model = save_model_policy == "none"
-    frontier_min_size = getattr(args, "frontier_min_size", None)
-    if frontier_min_size is not None:
-        frontier_min_size = int(frontier_min_size)
-        if frontier_min_size <= args.initial_max_size:
-            raise ValueError("frontier_min_size must be greater than initial_max_size.")
+    frontier_min_size = normalize_frontier_min_size(args)
     task.validate_args(args)
 
     recipe_name = str(getattr(args, "recipe", "none"))
@@ -127,27 +124,10 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             args.per_device_eval_batch_size = recipe_preset.per_device_eval_batch_size
 
     dynamic_composed = args.composed_refresh_mode == "dynamic"
-    if frontier_min_size is None:
-        final_max_size = args.initial_max_size + args.expand_num_size * args.num_expand_rounds
-        composed_min_size = args.initial_max_size + 1
-    else:
-        final_max_size = (
-            args.initial_max_size
-            if args.num_expand_rounds <= 0
-            else frontier_min_size + args.expand_num_size * args.num_expand_rounds - 1
-        )
-        composed_min_size = frontier_min_size
+    size_schedule = build_nonadaptive_size_schedule(args, frontier_min_size)
+    final_max_size = size_schedule.final_max_size
+    composed_min_size = size_schedule.composed_min_size
     reset_each_round = args.reset_in_each_round
-
-    def round_max_size_for_index(round_idx: int) -> int:
-        if frontier_min_size is None or round_idx <= 0:
-            return args.initial_max_size + round_idx * args.expand_num_size
-        return frontier_min_size + round_idx * args.expand_num_size - 1
-
-    def target_max_size_for_round(round_idx: int) -> int:
-        if frontier_min_size is None:
-            return args.initial_max_size + (round_idx + 1) * args.expand_num_size
-        return frontier_min_size + (round_idx + 1) * args.expand_num_size - 1
 
     original_output_dir = Path(args.output_dir)
     if reset_each_round:
@@ -231,7 +211,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         initial_dynamic_exclude = set(reserved_eval_keys)
         initial_dynamic_exclude.update(task.keys_for_examples(initial_train_examples))
 
-        initial_composed_max_size = target_max_size_for_round(0)
+        initial_composed_max_size = size_schedule.target_max_size_for_round(0)
         composed_examples, component_map, composed_keys = task.prepare_composed_train(
             rng,
             args,
@@ -476,7 +456,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         )
 
     for round_idx in range(args.num_expand_rounds + 1):
-        max_size = round_max_size_for_index(round_idx)
+        max_size = size_schedule.round_max_size_for_index(round_idx)
         round_dir = base_output_dir / f"round_{round_idx:02d}"
         ensure_dir(round_dir)
         round_dirs.append(round_dir)
@@ -636,7 +616,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
                         base_splits={**base_splits, "train": train_examples},
                         base_records=base_records,
                         min_size=composed_min_size,
-                        max_size=target_max_size_for_round(round_idx),
+                        max_size=size_schedule.target_max_size_for_round(round_idx),
                         additional_exclude=composed_build_exclude if composed_build_exclude else None,
                     )
                     save_examples(composed_pool_path, composed_examples, task.serialize_example)
@@ -648,7 +628,7 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
                     metadata["last_composed_refresh"] = f"skipped_round_{round_idx:02d}"
             persist_metadata()
 
-            target_max_size = target_max_size_for_round(round_idx)
+            target_max_size = size_schedule.target_max_size_for_round(round_idx)
             pseudo_rng = random.Random(rng.random())
             pseudo_decode_tokens = max(
                 train_base_decode_tokens,
