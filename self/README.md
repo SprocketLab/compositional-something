@@ -407,6 +407,9 @@ the supported public surface.
   sweep submission, stage-2 selection, and final heatmap refresh.
 - `self/experiments/figure2_paper_retune.py`: paper-facing Figure 2 schedule
   retuning and figure refresh.
+- `self/experiments/figure3_common.py`: shared Figure 3 JSON, Slurm
+  submission, seed-metric parsing, and final-summary helpers used by the
+  seed-quality and real-seed ablation scripts.
 - `self/experiments/figure3_seed_quality_sweep.py`: Figure 3 seed-quality and
   sample-size sweep submission/collection.
 - `self/experiments/figure3_real_seed_data_ablation.py`: Figure 3 real-task

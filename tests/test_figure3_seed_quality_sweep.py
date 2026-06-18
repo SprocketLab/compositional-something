@@ -17,6 +17,8 @@ from self.figure3_seed_quality_sweep import (
     missing_seed_bands,
     select_seed_bands,
 )
+from self.experiments import figure3_common
+from self.experiments import figure3_seed_quality_sweep
 
 
 WRAPPER = ROOT / "launchers" / "self" / "submit_figure3_seed_quality_sweep_mig.sh"
@@ -113,6 +115,14 @@ def test_build_self_improvement_jobs_uses_exact_figure3_settings(tmp_path: Path)
     assert sum(1 for entry in jobs if entry["kind"] == "sample_size_si") == 8
     assert {entry["sample_size"] for entry in jobs if entry["task"] == "run_length"} >= {500, 1000, 2000, 4000}
     assert {entry["sample_size"] for entry in jobs if entry["task"] == "addition"} >= {2500, 5000, 10000, 20000}
+
+
+def test_seed_quality_private_helpers_reexport_common_owner():
+    assert figure3_seed_quality_sweep._json_dump is figure3_common.json_dump
+    assert figure3_seed_quality_sweep._submit_sbatch_job is figure3_common.submit_sbatch_job
+    assert figure3_seed_quality_sweep._metric_from_seed_payload is figure3_common.metric_from_seed_payload
+    assert figure3_seed_quality_sweep._final_row is figure3_common.final_row
+    assert figure3_seed_quality_sweep._max_at_90 is figure3_common.max_at_90
 
 
 def test_submit_figure3_seed_quality_wrapper_dry_run_prints_expected_counts(tmp_path: Path):

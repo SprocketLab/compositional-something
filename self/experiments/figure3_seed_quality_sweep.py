@@ -6,15 +6,28 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import shlex
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
+from self.experiments.figure3_common import (
+    DEFAULT_LOG_DIR,
+    MIG_CPUS,
+    MIG_GRES,
+    MIG_MEM,
+    MIG_PARTITION,
+    MIG_TIME,
+    ROOT_DIR,
+    final_row as _final_row,
+    json_dump as _json_dump,
+    log_paths as _log_paths,
+    max_at_90 as _max_at_90,
+    metric_from_seed_payload as _metric_from_seed_payload,
+    run_command as _run_command,
+    slurm_config as _slurm_config,
+    submit_sbatch_job as _submit_sbatch_job,
+)
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_LOG_DIR = ROOT_DIR / "artifacts/logs"
 DEFAULT_RUN_LENGTH_HIGH_SEED_MODEL = (
     ROOT_DIR / "artifacts/runs/run_length_multisymbol_pair_alpha10_seed50k_steps15k_20260423_123229/seed/model"
 )
@@ -25,12 +38,6 @@ DEFAULT_ADDITION_HIGH_SEED_MODEL = ROOT_DIR / "artifacts/models/addition_recipe_
 DEFAULT_ADDITION_HIGH_SEED_RESULTS = (
     ROOT_DIR / "artifacts/runs/addition_recipe_recovery_mig_20260419_072835/diagnostic/summary.json"
 )
-
-MIG_PARTITION = "mig"
-MIG_GRES = "gpu:1g.10gb:1"
-MIG_MEM = "64G"
-MIG_CPUS = "1"
-MIG_TIME = "48:00:00"
 
 SEED_TRAIN_COUNTS = (250, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000)
 REFINEMENT_TRAIN_COUNTS = (50, 100, 150, 300, 750, 1_500, 3_000)
@@ -44,97 +51,6 @@ RUN_LENGTH_SAMPLE_SIZES = (500, 1_000, 2_000, 4_000)
 ADDITION_SAMPLE_SIZES = (2_500, 5_000, 10_000, 20_000)
 RUN_LENGTH_DEFAULT_SAMPLE_SIZE = 2_000
 ADDITION_DEFAULT_SAMPLE_SIZE = 10_000
-
-
-def _json_dump(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _slurm_config() -> Dict[str, str]:
-    return {
-        "partition": MIG_PARTITION,
-        "gres": MIG_GRES,
-        "mem": MIG_MEM,
-        "cpus_per_task": MIG_CPUS,
-        "time": MIG_TIME,
-    }
-
-
-def _log_paths(log_dir: Path, job_name: str) -> tuple[Path, Path]:
-    safe_name = job_name.replace("/", "-")
-    return log_dir / f"{safe_name}-%j.out", log_dir / f"{safe_name}-%j.err"
-
-
-def _run_command(cmd: Sequence[str], *, dry_run: bool) -> Optional[str]:
-    printable = shlex.join(list(cmd))
-    print(f"[INFO] Command: {printable}", flush=True)
-    if dry_run:
-        return None
-    completed = subprocess.run(
-        list(cmd),
-        cwd=ROOT_DIR,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    stdout = completed.stdout.strip()
-    stderr = completed.stderr.strip()
-    if stdout:
-        print(stdout, flush=True)
-    if stderr:
-        print(stderr, file=sys.stderr, flush=True)
-    return stdout
-
-
-def _submit_sbatch_job(
-    *,
-    job_name: str,
-    wrap_cmd: Sequence[str],
-    log_dir: Path,
-    dependency_job_ids: Sequence[str] = (),
-    dry_run: bool,
-) -> Optional[str]:
-    stdout_log, stderr_log = _log_paths(log_dir, job_name)
-    slurm = _slurm_config()
-    sbatch_cmd = [
-        "sbatch",
-        "--parsable",
-        f"--partition={slurm['partition']}",
-        f"--gres={slurm['gres']}",
-        f"--mem={slurm['mem']}",
-        f"--cpus-per-task={slurm['cpus_per_task']}",
-        f"--time={slurm['time']}",
-        f"--job-name={job_name}",
-        f"--output={stdout_log}",
-        f"--error={stderr_log}",
-    ]
-    if dependency_job_ids:
-        sbatch_cmd.append(f"--dependency=afterany:{':'.join(dependency_job_ids)}")
-    sbatch_cmd.append(f"--wrap={shlex.join(list(wrap_cmd))}")
-    result = _run_command(sbatch_cmd, dry_run=dry_run)
-    return None if result is None else result.split(";")[0].strip()
-
-
-def _metric_from_seed_payload(path: Path) -> Dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if "seed" in payload and isinstance(payload["seed"], dict):
-        seed_payload = payload["seed"]
-        validation_min = seed_payload.get("validation_min_per_digit_accuracy")
-        test_min = seed_payload.get("test_min_per_digit_accuracy")
-        results = seed_payload.get("results", {})
-    else:
-        validation_min = payload.get("validation_min_per_size_accuracy")
-        test_min = payload.get("test_min_per_size_accuracy")
-        results = payload.get("results", {})
-    if validation_min is None or test_min is None:
-        raise KeyError(f"Could not find validation/test seed minima in {path}")
-    return {
-        "validation_min_accuracy": float(validation_min),
-        "test_min_accuracy": float(test_min),
-        "worst_case_accuracy": min(float(validation_min), float(test_min)),
-        "results": results,
-    }
 
 
 def _seed_output_root(out_root: Path, task: str, train_count: int, *, refinement: bool = False) -> Path:
@@ -570,25 +486,6 @@ def submit_self_improvement_jobs(
                 flush=True,
             )
     return submitted
-
-
-def _final_row(results_path: Path) -> Dict[str, Any]:
-    rows = json.loads(results_path.read_text(encoding="utf-8"))
-    if not rows:
-        raise ValueError(f"Empty self-improvement results: {results_path}")
-    return dict(rows[-1])
-
-
-def _max_at_90(final_row: Mapping[str, Any]) -> Optional[int]:
-    for key in ("max_bits_at_90_accuracy", "max_digits_at_90_accuracy", "max_solved_size_at_90_accuracy"):
-        value = final_row.get(key)
-        if value is not None:
-            return int(value)
-    per_size = final_row.get("per_bit_accuracy") or final_row.get("per_digit_accuracy") or final_row.get("per_size_accuracy")
-    if isinstance(per_size, dict):
-        solved = [int(size) for size, accuracy in per_size.items() if accuracy is not None and float(accuracy) >= 0.90]
-        return max(solved) if solved else None
-    return None
 
 
 def collect_summary(*, selection_path: Path, output_path: Path) -> Dict[str, Any]:

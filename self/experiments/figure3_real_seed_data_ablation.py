@@ -6,18 +6,16 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import shlex
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-from self.experiments.figure3_seed_quality_sweep import (
-    _final_row,
-    _json_dump,
-    _max_at_90,
-    _metric_from_seed_payload,
-    _submit_sbatch_job,
+from self.experiments.figure3_common import (
+    final_row as _final_row,
+    json_dump as _json_dump,
+    max_at_90 as _max_at_90,
+    metric_from_seed_payload as _metric_from_seed_payload,
+    submit_sbatch_job as _submit_sbatch_job,
 )
 
 
@@ -54,25 +52,6 @@ SEED_BANDS = {
     "medium": (0.80, 0.90, 0.85),
     "high": (0.95, 1.01, 1.00),
 }
-
-
-def _run_command(cmd: Sequence[str], *, dry_run: bool) -> Optional[str]:
-    printable = shlex.join(list(cmd))
-    print(f"[INFO] Command: {printable}", flush=True)
-    if dry_run:
-        return None
-    completed = subprocess.run(
-        list(cmd),
-        cwd=ROOT_DIR,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    if completed.stdout.strip():
-        print(completed.stdout.strip(), flush=True)
-    if completed.stderr.strip():
-        print(completed.stderr.strip(), file=sys.stderr, flush=True)
-    return completed.stdout.strip()
 
 
 def _seed_entry(

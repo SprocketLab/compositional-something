@@ -3858,3 +3858,12 @@ Acceptance criteria for first pilot:
 - Updated the fake-`sbatch` launcher test to assert the shared helper's separated Slurm argument form.
 - Updated `self/README.md` with the Figure 2 wrapped-job submission boundary.
 - Verification: per-file `bash -n` on `launchers/self/lib/self_common.sh`, `launchers/self/submit_figure2_recipe_aggressive.sh`, `launchers/self/run_figure2_recipe_aggressive.sh`, and `launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure2_submit_helper tests/test_figure2_recipe_aggressive_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); tracked unsupported-pseudolabel terminology grep returned no matches.
+
+### Implementation Log: 2026-06-18 16:37:31 UTC
+
+- Added `self/experiments/figure3_common.py` for Figure 3 shared JSON writing, Slurm wrapped-job submission, seed-result metric parsing, final-row loading, and max-at-90 summary helpers.
+- Migrated `self/experiments/figure3_seed_quality_sweep.py` to import those shared helpers while preserving the old underscored helper names as module-level compatibility aliases.
+- Updated `self/experiments/figure3_real_seed_data_ablation.py` to import shared helpers from the new common owner instead of reaching into private helpers in the seed-quality script, and removed its unused duplicate command-runner helper.
+- Added a compatibility test pinning the old seed-quality helper aliases to the new common owner.
+- Updated `self/README.md` with the Figure 3 common helper ownership boundary.
+- Verification: `python -m py_compile self/experiments/figure3_common.py self/experiments/figure3_seed_quality_sweep.py self/experiments/figure3_real_seed_data_ablation.py self/figure3_seed_quality_sweep.py self/figure3_real_seed_data_ablation.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure3_common tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py tests/test_module_proxy.py -q` (`18 passed`); `git diff --check`.
