@@ -109,6 +109,8 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_evaluation.py`: non-adaptive base/composed round
   evaluation, composed-slice aggregation, and guarded-slice debug sample
   writing.
+- `self/core/nonadaptive_finalization.py`: non-adaptive final checkpoint
+  cleanup and final result-path reporting.
 - `self/core/nonadaptive_lifecycle.py`: non-adaptive post-round lifecycle
   handling, including stop/final-round decisions, trainer release, CUDA cache
   clearing, reset-each-round model release, and reset checkpoint/model reloads.
@@ -546,6 +548,8 @@ new implementation code:
   resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;
   RNG-state and metadata persistence lives in
   `self/core/nonadaptive_metadata_runtime.py`;
+  final checkpoint cleanup and result-path reporting live in
+  `self/core/nonadaptive_finalization.py`;
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
   IO and loaded-metadata compatibility checks live in

@@ -45,6 +45,7 @@ from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_dataset_context import prepare_nonadaptive_dataset_context
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
+from self.core.nonadaptive_finalization import finalize_nonadaptive_run
 from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 from self.core.nonadaptive_metadata_runtime import prepare_nonadaptive_metadata_runtime
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
@@ -370,7 +371,10 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         if post_round_action.should_continue:
             continue
 
-    if not args.keep_checkpoints and save_model_policy != "none":
-        cleanup_round_checkpoints(round_dirs)
-
-    print(f"[INFO] Saved round summaries to {results_path}", flush=True)
+    finalize_nonadaptive_run(
+        keep_checkpoints=bool(args.keep_checkpoints),
+        save_model_policy=save_model_policy,
+        round_dirs=round_dirs,
+        results_path=results_path,
+        cleanup_round_checkpoints_fn=cleanup_round_checkpoints,
+    )
