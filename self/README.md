@@ -166,7 +166,11 @@ the supported public surface.
   extraction, and failure/reward feedback rendering.
 - `self/core/experience_traces.py`: proposal trace construction and
   compatibility exports for older trace imports.
-- `self/core/frontier.py`: frontier selection and proposal-quality summaries.
+- `self/core/frontier_models.py`: frontier candidate/selection value objects.
+- `self/core/frontier_candidates.py`: weak-regime frontier candidate extraction
+  and scoring from diagnostics payloads.
+- `self/core/frontier.py`: frontier diagnostics loading, public selection
+  facade, proposal-quality summaries, and compatibility reexports.
 - `self/core/model_bootstrap_cache.py`: process-local model/tokenizer
   bootstrap cache containers, cache-key helpers, CPU state-dict cloning, and
   hit/miss summaries used by packed local candidate workers.
