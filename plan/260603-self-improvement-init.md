@@ -3410,3 +3410,12 @@ Acceptance criteria for first pilot:
 - Preserved the existing command arrays, dry-run flag insertion, output paths, figure paths, selection-env arguments, and Python module entry points; this pass only removes duplicated shell boilerplate.
 - Updated `self/README.md` to document that `self_common.sh` now owns generic context-banner and print-then-execute command helpers for launcher wrappers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_figure2_condition_sweep_mig.sh launchers/self/submit_figure3_seed_quality_sweep_mig.sh launchers/self/submit_figure3_real_seed_data_ablation_mig.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_launcher_common tests/test_figure2_condition_sweep.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py tests/test_figure2_recipe_aggressive_launchers.py -q` (`21 passed`).
+
+### Implementation Log: 2026-06-18 11:14:47 UTC
+
+- Extracted non-adaptive round iteration from `self/core/nonadaptive_loop.py` into `self/core/nonadaptive_round_loop.py`.
+- The new helper owns ordered round execution, injected dependency forwarding into `run_nonadaptive_round(...)`, round-directory collection for checkpoint finalization, and early-stop handling.
+- Kept the legacy patchable dependency surface in `self/core/nonadaptive_loop.py`: `self.self_improvement_core` still syncs patched globals into that module, and the loop passes those current globals through to the extracted round-loop helper.
+- Added `tests/test_nonadaptive_round_loop.py` for dependency forwarding, early-stop behavior, and empty-loop behavior.
+- Updated `self/README.md` to document the new non-adaptive round-loop owner and to narrow `nonadaptive_loop.py` to setup/bootstrap/finalization wiring.
+- Verification: `python -m py_compile self/core/nonadaptive_round_loop.py self/core/nonadaptive_loop.py tests/test_nonadaptive_round_loop.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_nonadaptive_round_loop tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_compat.py tests/test_nonadaptive_seed_round_zero.py tests/test_nonadaptive_results.py tests/test_nonadaptive_pseudo.py -q` (`13 passed`).

@@ -152,9 +152,9 @@ the supported public surface.
 - `self/core/nonadaptive_lifecycle.py`: non-adaptive post-round lifecycle
   handling, including stop/final-round decisions, trainer release, CUDA cache
   clearing, reset-each-round model release, and reset checkpoint/model reloads.
-- `self/core/nonadaptive_loop.py`: non-adaptive iterative
-  self-improvement loop runtime, including round-by-round orchestration,
-  training/evaluation dispatch, pseudo-label handoff, and summary writing.
+- `self/core/nonadaptive_loop.py`: top-level non-adaptive
+  self-improvement runtime, wiring run setup, dataset/bootstrap preparation,
+  round-loop dispatch, and finalization.
 - `self/core/nonadaptive_metadata_runtime.py`: non-adaptive RNG seeding,
   resumed RNG-state restoration, and metadata persistence runtime.
 - `self/core/nonadaptive_pseudo.py`: non-adaptive dynamic composed-pool
@@ -166,6 +166,9 @@ the supported public surface.
 - `self/core/nonadaptive_round_runtime.py`: single-round non-adaptive
   orchestration, wiring round setup, training, evaluation, next pseudo-label
   generation, summary recording, and lifecycle handling.
+- `self/core/nonadaptive_round_loop.py`: non-adaptive round iteration,
+  dependency forwarding into the single-round runtime, round-directory
+  collection, and early-stop handling.
 - `self/core/nonadaptive_round_setup.py`: per-round directory/save-policy
   planning plus round training/pseudo-example artifact persistence.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
@@ -640,8 +643,9 @@ new implementation code:
   construction remains in `self/core/experience_traces.py`, which still
   reexports old trace imports for compatibility.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive run setup,
-  bootstrap, round iteration, and finalization. Single-round orchestration now
-  lives in `self/core/nonadaptive_round_runtime.py`; dataset-context validation
+  bootstrap, and finalization. Round iteration now lives in
+  `self/core/nonadaptive_round_loop.py`; single-round orchestration now lives
+  in `self/core/nonadaptive_round_runtime.py`; dataset-context validation
   and reporting now live in `self/core/nonadaptive_dataset_context.py`;
   base/composed round evaluation now lives in `self/core/nonadaptive_evaluation.py`; per-round
   training setup and execution lives in `self/core/nonadaptive_training.py`;

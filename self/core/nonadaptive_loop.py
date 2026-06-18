@@ -51,6 +51,7 @@ from self.core.nonadaptive_round_runtime import (
     NonAdaptiveRoundRuntimeState,
     run_nonadaptive_round,
 )
+from self.core.nonadaptive_round_loop import run_nonadaptive_round_loop
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
@@ -263,36 +264,36 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         pseudo_examples=pseudo_examples,
     )
 
-    for round_idx in range(args.num_expand_rounds + 1):
-        round_result = run_nonadaptive_round(
-            context=round_context,
-            state=round_state,
-            round_idx=round_idx,
-            ensure_dir_fn=ensure_dir,
-            save_examples_fn=save_examples,
-            dataset_cls=TokenizedPromptTargetDataset,
-            make_training_args_fn=make_training_args,
-            build_trainer_fn=build_trainer,
-            evaluate_accuracy_fn=evaluate_accuracy_with_breakdown,
-            write_debug_samples_fn=write_prediction_debug_samples,
-            slice_metric_cls=SliceMetric,
-            round_summary_cls=RoundSummary,
-            summarize_round_fn=summarize_round,
-            summary_to_payload_fn=summary_to_payload,
-            write_summary_records_fn=write_summary_records,
-            json_module=json,
-            resolve_max_new_tokens_fn=resolve_max_new_tokens,
-            random_cls=random.Random,
-            path_cls=Path,
-            cuda_is_available_fn=torch.cuda.is_available,
-            empty_cache_fn=torch.cuda.empty_cache,
-            instantiate_recipe_model_fn=instantiate_recipe_model,
-            load_recipe_model_fn=load_recipe_model,
-            load_model_for_tokenizer_fn=load_model_for_tokenizer,
-        )
-        round_dirs.append(round_result.round_dir)
-        if round_result.should_break:
-            break
+    round_loop_result = run_nonadaptive_round_loop(
+        context=round_context,
+        state=round_state,
+        num_rounds=args.num_expand_rounds + 1,
+        run_round_fn=run_nonadaptive_round,
+        round_runtime_kwargs={
+            "ensure_dir_fn": ensure_dir,
+            "save_examples_fn": save_examples,
+            "dataset_cls": TokenizedPromptTargetDataset,
+            "make_training_args_fn": make_training_args,
+            "build_trainer_fn": build_trainer,
+            "evaluate_accuracy_fn": evaluate_accuracy_with_breakdown,
+            "write_debug_samples_fn": write_prediction_debug_samples,
+            "slice_metric_cls": SliceMetric,
+            "round_summary_cls": RoundSummary,
+            "summarize_round_fn": summarize_round,
+            "summary_to_payload_fn": summary_to_payload,
+            "write_summary_records_fn": write_summary_records,
+            "json_module": json,
+            "resolve_max_new_tokens_fn": resolve_max_new_tokens,
+            "random_cls": random.Random,
+            "path_cls": Path,
+            "cuda_is_available_fn": torch.cuda.is_available,
+            "empty_cache_fn": torch.cuda.empty_cache,
+            "instantiate_recipe_model_fn": instantiate_recipe_model,
+            "load_recipe_model_fn": load_recipe_model,
+            "load_model_for_tokenizer_fn": load_model_for_tokenizer,
+        },
+    )
+    round_dirs.extend(round_loop_result.round_dirs)
 
     finalize_nonadaptive_run(
         keep_checkpoints=bool(args.keep_checkpoints),
