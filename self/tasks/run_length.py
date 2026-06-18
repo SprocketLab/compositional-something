@@ -18,7 +18,6 @@ from self.tasks.bit_common import (
     RUN_LENGTH_ALPHABET_SYMBOLS,
     RUN_LENGTH_FORMATS,
     RUN_LENGTH_TARGET_RUN_STATE,
-    guard_slice_partition,
     normalize_bit_composition_path_mode,
     normalize_bit_target_mode,
     normalize_compose_arity,
@@ -26,13 +25,11 @@ from self.tasks.bit_common import (
     normalize_symbol_alphabet_size,
     normalize_task_format_version,
     parse_run_length_prediction,
-    run_length_guard_accepts_true_components,
 )
 from self.tasks.bit_composition import (
     BIT_COMPOSITION_PATH_FIXED_BINARY,
     BIT_COMPOSITION_PATH_MODES,
     BIT_COMPOSITION_PATH_RANDOM,
-    bit_composed_target_sizes_from_examples,
 )
 from self.tasks.run_length_data import (
     RunLengthExample,
@@ -50,6 +47,13 @@ from self.tasks.run_length_data import (
 )
 from self.tasks.run_length_logic import compute_run_stats, format_run_length_run_state, format_run_length_target
 from self.tasks.run_length_pseudolabels import derive_run_length_round_targets
+from self.tasks.run_length_splits import (
+    prepare_run_length_composed_eval,
+    prepare_run_length_composed_train,
+    prepare_run_length_eval_examples,
+    prepare_run_length_initial_splits,
+    split_run_length_composed_eval_slices,
+)
 
 SplitName = str
 
@@ -155,33 +159,7 @@ class RunLengthTask(SelfImprovementTask):
         rng: random.Random,
         args: Any,
     ) -> Tuple[Dict[SplitName, List[RunLengthExample]], Dict[SplitName, set[Tuple[int, str]]]]:
-        splits = {name: [] for name in ("train", "validation", "test")}
-        records: Dict[SplitName, set[Tuple[int, str]]] = {name: set() for name in splits}
-        split_order = ("validation", "test", "train") if getattr(args, "reserve_heldout_first", False) else (
-            "train",
-            "validation",
-            "test",
-        )
-        generated = build_run_length_length_bucket_dataset(
-            min_bits=args.initial_min_size,
-            max_bits=args.initial_max_size,
-            per_bit_counts={
-                "train": args.initial_train_per_size,
-                "validation": args.initial_eval_per_size,
-                "test": args.initial_eval_per_size,
-            },
-            rng=rng,
-            exclude_keys=getattr(args, "_initial_exclude_keys", None),
-            record_keys=records,
-            progress_name="initial",
-            format_version=normalize_task_format_version(args),
-            target_mode=normalize_bit_target_mode(args),
-            alphabet=RUN_LENGTH_ALPHABET_SYMBOLS[:normalize_symbol_alphabet_size(args)],
-            split_order=split_order,
-        )
-        for split in splits:
-            splits[split] = generated.get(split, [])
-        return splits, records
+        return prepare_run_length_initial_splits(rng, args)
 
     def prepare_composed_train(
         self,
@@ -193,59 +171,15 @@ class RunLengthTask(SelfImprovementTask):
         max_size: int,
         additional_exclude: Optional[set[Tuple[int, str]]] = None,
     ) -> Tuple[List[RunLengthExample], Dict[Tuple[int, str], List[Tuple[int, str]]], set[Tuple[int, str]]]:
-        if max_size < min_size or args.expand_train_per_size <= 0:
-            return [], {}, set()
-        composed_records: Dict[SplitName, set[Tuple[int, str]]] = {"train": set(), "validation": set(), "test": set()}
-        component_records: Dict[SplitName, Dict[Tuple[int, str], List[Tuple[int, str]]]] = {
-            "train": {},
-            "validation": {},
-            "test": {},
-        }
-        base_used = set().union(*base_records.values())
-        if additional_exclude:
-            base_used.update(additional_exclude)
-        compose_arity = normalize_compose_arity(args)
-        bit_composition_path_mode = normalize_bit_composition_path_mode(args)
-        target_sizes = bit_composed_target_sizes_from_examples(
-            base_splits.get("train", []),
-            size_getter=lambda example: example.bits,
-            min_size=min_size,
-            max_size=max_size,
-            compose_arity=compose_arity,
-            bit_composition_path_mode=bit_composition_path_mode,
+        return prepare_run_length_composed_train(
+            rng,
+            args,
+            base_splits,
+            base_records,
+            min_size,
+            max_size,
+            additional_exclude,
         )
-        if target_sizes is not None:
-            train_examples: List[RunLengthExample] = []
-            for bits in target_sizes:
-                composed_splits = build_run_length_composed_dataset(
-                    base_splits=base_splits,
-                    min_bits=bits,
-                    max_bits=bits,
-                    per_bit_counts={"train": args.expand_train_per_size, "validation": 0, "test": 0},
-                    rng=rng,
-                    exclude_keys=base_used,
-                    record_keys=composed_records,
-                    progress_name="composed",
-                    record_components=component_records,
-                    compose_arity=compose_arity,
-                    bit_composition_path_mode=bit_composition_path_mode,
-                )
-                train_examples.extend(composed_splits.get("train", []))
-            return train_examples, component_records.get("train", {}), composed_records.get("train", set())
-        composed_splits = build_run_length_composed_dataset(
-            base_splits=base_splits,
-            min_bits=min_size,
-            max_bits=max_size,
-            per_bit_counts={"train": args.expand_train_per_size, "validation": 0, "test": 0},
-            rng=rng,
-            exclude_keys=base_used,
-            record_keys=composed_records,
-            progress_name="composed",
-            record_components=component_records,
-            compose_arity=compose_arity,
-            bit_composition_path_mode=bit_composition_path_mode,
-        )
-        return composed_splits.get("train", []), component_records.get("train", {}), composed_records.get("train", set())
 
     def prepare_composed_eval(
         self,
@@ -257,64 +191,15 @@ class RunLengthTask(SelfImprovementTask):
         max_size: int,
         additional_exclude: Optional[set[Tuple[int, str]]] = None,
     ) -> Tuple[List[RunLengthExample], Dict[Tuple[int, str], List[Tuple[int, str]]], set[Tuple[int, str]]]:
-        if max_size < min_size or args.composed_eval_per_size <= 0:
-            return [], {}, set()
-        composed_records: Dict[SplitName, set[Tuple[int, str]]] = {"train": set(), "validation": set(), "test": set()}
-        component_records: Dict[SplitName, Dict[Tuple[int, str], List[Tuple[int, str]]]] = {
-            "train": {},
-            "validation": {},
-            "test": {},
-        }
-        base_used = set().union(*base_records.values())
-        if additional_exclude:
-            base_used.update(additional_exclude)
-        stitched_base_splits = {
-            "train": list(base_splits.get("train", [])),
-            "validation": list(base_splits.get("train", [])),
-            "test": list(base_splits.get("train", [])),
-        }
-        compose_arity = normalize_compose_arity(args)
-        bit_composition_path_mode = normalize_bit_composition_path_mode(args)
-        target_sizes = bit_composed_target_sizes_from_examples(
-            stitched_base_splits.get("train", []),
-            size_getter=lambda example: example.bits,
-            min_size=min_size,
-            max_size=max_size,
-            compose_arity=compose_arity,
-            bit_composition_path_mode=bit_composition_path_mode,
+        return prepare_run_length_composed_eval(
+            rng,
+            args,
+            base_splits,
+            base_records,
+            min_size,
+            max_size,
+            additional_exclude,
         )
-        if target_sizes is not None:
-            test_examples: List[RunLengthExample] = []
-            for bits in target_sizes:
-                composed_splits = build_run_length_composed_dataset(
-                    base_splits=stitched_base_splits,
-                    min_bits=bits,
-                    max_bits=bits,
-                    per_bit_counts={"train": 0, "validation": 0, "test": args.composed_eval_per_size},
-                    rng=rng,
-                    exclude_keys=base_used,
-                    record_keys=composed_records,
-                    progress_name="composed-eval",
-                    record_components=component_records,
-                    compose_arity=compose_arity,
-                    bit_composition_path_mode=bit_composition_path_mode,
-                )
-                test_examples.extend(composed_splits.get("test", []))
-            return test_examples, component_records.get("test", {}), composed_records.get("test", set())
-        composed_splits = build_run_length_composed_dataset(
-            base_splits=stitched_base_splits,
-            min_bits=min_size,
-            max_bits=max_size,
-            per_bit_counts={"train": 0, "validation": 0, "test": args.composed_eval_per_size},
-            rng=rng,
-            exclude_keys=base_used,
-            record_keys=composed_records,
-            progress_name="composed-eval",
-            record_components=component_records,
-            compose_arity=compose_arity,
-            bit_composition_path_mode=bit_composition_path_mode,
-        )
-        return composed_splits.get("test", []), component_records.get("test", {}), composed_records.get("test", set())
 
     def prepare_eval_examples(
         self,
@@ -324,33 +209,14 @@ class RunLengthTask(SelfImprovementTask):
         max_size: int,
         exclude: set[Tuple[int, str]],
     ) -> List[RunLengthExample]:
-        generated = build_run_length_length_bucket_dataset(
-            min_bits=min_size,
-            max_bits=max_size,
-            per_bit_counts={"train": 0, "validation": 0, "test": args.eval_per_size},
-            rng=rng,
-            exclude_keys=exclude,
-            record_keys={split: set() for split in ("train", "validation", "test")},
-            progress_name="evaluation",
-            format_version=normalize_task_format_version(args),
-            target_mode=normalize_bit_target_mode(args),
-            alphabet=RUN_LENGTH_ALPHABET_SYMBOLS[:normalize_symbol_alphabet_size(args)],
-        )
-        return list(generated.get("test", []))
+        return prepare_run_length_eval_examples(rng, args, min_size, max_size, exclude)
 
     def split_composed_eval_slices(
         self,
         examples: Sequence[RunLengthExample],
         component_map: Dict[Tuple[int, str], List[Tuple[int, str]]],
     ) -> Dict[str, List[RunLengthExample]]:
-        if examples and examples[0].target_mode in {"plain_output", "symbol_run_pair"}:
-            return guard_slice_partition(
-                examples,
-                component_map,
-                key_getter=run_length_key,
-                guard_fn=run_length_guard_accepts_true_components,
-            )
-        return {"all": list(examples)}
+        return split_run_length_composed_eval_slices(examples, component_map)
 
     def keys_for_examples(self, examples: Sequence[RunLengthExample]) -> set[Tuple[int, str]]:
         return {run_length_key(example) for example in examples}

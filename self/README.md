@@ -346,6 +346,8 @@ the supported public surface.
   formatting.
 - `self/tasks/run_length_pseudolabels.py`: run-length direct, guarded-pair,
   run-state, and default tuple pseudolabel derivation.
+- `self/tasks/run_length_splits.py`: run-length initial/eval/composed split
+  preparation and composed-eval guard-slice partitioning.
 - `self/tasks/compat_exports.py`: explicit legacy export manifest for
   `self.self_improvement_tasks`, grouping old-path task exports by protocol,
   evaluation, addition, bit-common, bit-composition, multiplication, and
@@ -696,6 +698,8 @@ new implementation code:
   construction into `self/tasks/run_length_data.py`, bit-string composition
   path helpers into `self/tasks/bit_composition.py`, and round-target
   pseudolabel derivation into `self/tasks/run_length_pseudolabels.py`.
+  Initial/eval/composed split preparation and composed-eval guard slicing live
+  in `self/tasks/run_length_splits.py`.
   Multiplication example/data construction now lives in
   `self/tasks/multiplication_data.py`, rectangular partition helpers live in
   `self/tasks/rectangular_partitions.py`, rectangular digit-order/reverse-CoT

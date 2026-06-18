@@ -3625,3 +3625,12 @@ Acceptance criteria for first pilot:
 - Updated candidate scoring/training/worker-input modules to import `ModelBootstrapCache` from the new owner module.
 - Extended cache tests to pin old `model_io.py` aliases against the new owner.
 - Verification: `python -m py_compile self/core/model_bootstrap_cache.py self/core/model_io.py self/core/candidate_worker_inputs.py self/core/candidate_training_runtime.py self/core/candidate_scoring.py tests/test_model_io_bootstrap_cache.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_pack_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_model_bootstrap_cache tests/test_model_io_bootstrap_cache.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_pack_runtime.py tests/test_candidate_training_runtime.py -q` (`10 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 13:48:09 UTC
+
+- Split run-length split preparation and composed-eval guard slicing from `self/tasks/run_length.py` into `self/tasks/run_length_splits.py`.
+- The new module owns initial split construction, composed train/eval construction, eval-example construction, fixed-binary target-size handling, and guard-slice partitioning for run-length composed evals.
+- Kept `RunLengthTask` as the task adapter and metadata/pseudolabel orchestration owner; its public methods now delegate to the split helper module without changing call signatures.
+- Reduced `self/tasks/run_length.py` from `479` to `345` lines in this pass, after earlier logic/data/pseudolabel extractions.
+- Updated `self/README.md` to document `self/tasks/run_length_splits.py`.
+- Verification: `python -m py_compile self/tasks/run_length.py self/tasks/run_length_splits.py self/tasks/run_length_data.py self/tasks/run_length_pseudolabels.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_splits tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`82 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

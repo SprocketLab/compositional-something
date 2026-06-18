@@ -477,6 +477,69 @@ def test_run_length_seed_split_can_reserve_heldout_first():
     assert len(generated["train"]) == 8
 
 
+def test_run_length_task_split_preparation_methods_build_expected_slices():
+    task = tasks.RunLengthTask()
+    args = SimpleNamespace(
+        initial_min_size=2,
+        initial_max_size=2,
+        initial_train_per_size=2,
+        initial_eval_per_size=1,
+        reserve_heldout_first=False,
+        expand_train_per_size=1,
+        composed_eval_per_size=1,
+        eval_per_size=1,
+        format_version="legacy",
+        target_mode="default",
+        symbol_alphabet_size=2,
+        compose_arity="exact2",
+        bit_composition_path_mode=tasks.BIT_COMPOSITION_PATH_FIXED_BINARY,
+        guarded_compose_rule="none",
+    )
+    rng = random.Random(3)
+
+    splits, records = task.prepare_initial_splits(rng, args)
+    assert {split: len(examples) for split, examples in splits.items()} == {
+        "train": 2,
+        "validation": 1,
+        "test": 1,
+    }
+
+    composed_train, train_components, train_keys = task.prepare_composed_train(
+        rng,
+        args,
+        splits,
+        records,
+        min_size=4,
+        max_size=4,
+    )
+    assert len(composed_train) == 1
+    assert set(train_components) == {tasks.run_length_key(composed_train[0])}
+    assert train_keys == {tasks.run_length_key(composed_train[0])}
+
+    composed_eval, eval_components, eval_keys = task.prepare_composed_eval(
+        rng,
+        args,
+        splits,
+        records,
+        min_size=4,
+        max_size=4,
+        additional_exclude=train_keys,
+    )
+    assert len(composed_eval) == 1
+    assert set(eval_components) == {tasks.run_length_key(composed_eval[0])}
+    assert eval_keys == {tasks.run_length_key(composed_eval[0])}
+    assert task.split_composed_eval_slices(composed_eval, eval_components) == {"all": composed_eval}
+
+    heldout_eval = task.prepare_eval_examples(
+        rng,
+        args,
+        min_size=3,
+        max_size=3,
+        exclude=task.keys_for_examples(splits["train"] + splits["validation"] + splits["test"]),
+    )
+    assert len(heldout_eval) == 1
+
+
 def test_run_length_exact2_composed_dataset_records_two_children():
     base_examples = [
         tasks.RunLengthExample(bitstring="0000", bits=4, max_run=0, prefix_run=0, suffix_run=0),
