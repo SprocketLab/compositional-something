@@ -89,6 +89,9 @@ tests, notebooks, and older artifacts.
   decode-budget derivation, and resumed pseudo-seed loading.
 - `self/core/nonadaptive_datasets.py`: non-adaptive initial/composed/eval
   dataset generation and persisted dataset loading.
+- `self/core/nonadaptive_evaluation.py`: non-adaptive base/composed round
+  evaluation, composed-slice aggregation, and guarded-slice debug sample
+  writing.
 - `self/core/nonadaptive_loop.py`: non-adaptive iterative
   self-improvement loop runtime, including round-by-round
   training/evaluation, dynamic composed-pool refresh, pseudo-label
@@ -483,9 +486,10 @@ new implementation code:
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
-  evaluation, dynamic refresh, and pseudo-label loop. Per-round training setup
-  and execution now lives in `self/core/nonadaptive_training.py`; dataset
-  generation/loading lives in `self/core/nonadaptive_datasets.py`;
+  dynamic refresh, pseudo-label, and summary loop. Base/composed round
+  evaluation now lives in `self/core/nonadaptive_evaluation.py`; per-round
+  training setup and execution lives in `self/core/nonadaptive_training.py`;
+  dataset generation/loading lives in `self/core/nonadaptive_datasets.py`;
   resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata

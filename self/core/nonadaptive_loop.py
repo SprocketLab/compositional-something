@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import math
 import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -44,6 +43,7 @@ from self.core.model_io import (
 )
 from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
+from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
@@ -266,57 +266,25 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         model = round_training.model
         trainer: Optional[Trainer] = round_training.trainer
 
-        eval_accuracy, per_size_accuracy = evaluate_accuracy_with_breakdown(
+        evaluation = evaluate_nonadaptive_round(
             model=model,
             tokenizer=tokenizer,
-            examples=eval_examples,
+            task=task,
+            eval_examples=eval_examples,
+            composed_eval_slices=composed_eval_slices,
+            composed_eval_component_map=composed_eval_component_map,
+            round_dir=round_dir,
             batch_size=config.per_device_eval_batch_size,
-            max_new_tokens=eval_decode_tokens,
-            size_getter=task.size_of,
-            prediction_parser=task.prediction_parser,
+            eval_decode_tokens=eval_decode_tokens,
+            composed_eval_decode_tokens=composed_eval_decode_tokens,
+            evaluate_accuracy_fn=evaluate_accuracy_with_breakdown,
+            write_debug_samples_fn=write_prediction_debug_samples,
+            slice_metric_cls=SliceMetric,
         )
-
-        composed_slice_metrics: Dict[str, SliceMetric] = {}
-        composed_correct_total = 0.0
-        composed_count_total = 0
-        for slice_name, slice_examples in composed_eval_slices.items():
-            if slice_examples:
-                slice_accuracy, slice_per_size_accuracy = evaluate_accuracy_with_breakdown(
-                    model=model,
-                    tokenizer=tokenizer,
-                    examples=slice_examples,
-                    batch_size=config.per_device_eval_batch_size,
-                    max_new_tokens=composed_eval_decode_tokens,
-                    size_getter=task.size_of,
-                    prediction_parser=task.prediction_parser,
-                )
-            else:
-                slice_accuracy = math.nan
-                slice_per_size_accuracy = {}
-            composed_slice_metrics[slice_name] = SliceMetric(
-                accuracy=slice_accuracy,
-                count=len(slice_examples),
-                per_size_accuracy=slice_per_size_accuracy,
-            )
-            if slice_name in {"accepted_by_guard", "rejected_by_guard"} and slice_examples:
-                write_prediction_debug_samples(
-                    round_dir / f"composed_eval_{slice_name}_debug.jsonl",
-                    model=model,
-                    tokenizer=tokenizer,
-                    examples=slice_examples,
-                    batch_size=config.per_device_eval_batch_size,
-                    max_new_tokens=composed_eval_decode_tokens,
-                    size_getter=task.size_of,
-                    key_getter=task.key_for_example,
-                    component_map=composed_eval_component_map,
-                    prediction_parser=task.prediction_parser,
-                )
-            if slice_examples and not math.isnan(slice_accuracy):
-                composed_correct_total += slice_accuracy * len(slice_examples)
-                composed_count_total += len(slice_examples)
-        composed_eval_accuracy = (
-            composed_correct_total / composed_count_total if composed_count_total > 0 else math.nan
-        )
+        eval_accuracy = evaluation.eval_accuracy
+        per_size_accuracy = evaluation.per_size_accuracy
+        composed_eval_accuracy = evaluation.composed_eval_accuracy
+        composed_slice_metrics = evaluation.composed_slice_metrics
 
         pseudo_generation_stats: JsonDict = {}
         if round_idx >= args.num_expand_rounds:
