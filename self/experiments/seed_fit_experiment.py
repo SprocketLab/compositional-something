@@ -80,7 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         choices=("random", "fixed_binary"),
         default="random",
-        help="Bit-task composition path mode forwarded to task adapters that use composed examples.",
+        help="Run-length bit-string composition path mode forwarded to task adapters that use composed examples.",
     )
     parser.add_argument(
         "--guarded-compose-rule",

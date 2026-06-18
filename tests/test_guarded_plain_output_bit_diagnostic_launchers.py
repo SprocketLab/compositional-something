@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from self.legacy.bit_task_self_improvement import build_bit_task_parser
+from self.legacy.run_length_bit_cli import build_run_length_bit_parser
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,8 +13,8 @@ SUBMITTER = ROOT / "launchers" / "self" / "submit_guarded_plain_output_bit_diagn
 RUN_LENGTH_ALPHA10_BASELINE_PACK = ROOT / "launchers" / "self" / "submit_run_length_alpha10_baseline_pack_mig.sh"
 
 
-def test_bit_task_cli_defaults_to_all_round_model_saving():
-    parser = build_bit_task_parser(description="test", default_output_dir="out")
+def test_run_length_bit_cli_defaults_to_all_round_model_saving():
+    parser = build_run_length_bit_parser(description="test", default_output_dir="out")
     args = parser.parse_args([])
     assert args.save_model_policy == "all_rounds"
     assert args.self_improve_warmup_steps is None

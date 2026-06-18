@@ -41,7 +41,7 @@ def test_run_length_launcher_normalizes_bit_schedule():
     assert args.composed_eval_per_size == 11
 
 
-def test_bit_task_launchers_preserve_recipe_and_bucket_flags():
+def test_run_length_launcher_preserves_recipe_and_bucket_flags():
     args = run_length_launcher.normalize_args(
         run_length_launcher.parse_args(
             [

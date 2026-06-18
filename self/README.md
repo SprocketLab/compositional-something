@@ -219,8 +219,8 @@ tests, notebooks, and older artifacts.
   preparation, boundary-carry slicing, and numeric-target corruption helper.
 - `self/tasks/addition_pseudolabels.py`: addition direct/compose/corrupt
   pseudolabel derivation and pseudolabel diagnostics.
-- `self/tasks/bit_common.py`: shared bit-task constants, parsers,
-  composition-size helpers, guarded pseudolabel refill, and direct
+- `self/tasks/bit_common.py`: shared run-length bit-string constants,
+  parsers, composition-size helpers, guarded pseudolabel refill, and direct
   pseudolabel utilities.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
   blocked-component pseudolabel derivation, metadata validation, and
@@ -335,8 +335,8 @@ tests, notebooks, and older artifacts.
   self-improvement CLI and resumable round implementation. Active launchers
   still call `python -m self.self_improvement`, which is kept as a
   compatibility wrapper.
-- `self/legacy/bit_task_self_improvement.py`: shared parser/normalization
-  helper for historical run-length bit-string self-improvement CLIs.
+- `self/legacy/run_length_bit_cli.py`: parser/normalization helper for
+  historical run-length bit-string self-improvement CLIs.
 - `self/legacy/run_length_self_improvement.py`: historical run-length
   self-improvement CLI backed by the shared non-adaptive loop.
 - `self/legacy/multiplication_self_improvement.py`: historical multiplication

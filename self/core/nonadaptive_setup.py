@@ -80,7 +80,11 @@ def prepare_nonadaptive_run_setup(
     use_recipe = recipe_enabled_fn(recipe_name)
     recipe_preset = resolve_recipe_fn(recipe_name) if use_recipe else None
     if use_recipe and getattr(args, "tokenizer_mode", "auto") != "auto":
-        print("[INFO] Recipe-backed bit-task path ignores --tokenizer-mode and uses the recipe tokenizer.", flush=True)
+        print(
+            "[INFO] Recipe-backed run-length bit-string path ignores --tokenizer-mode "
+            "and uses the recipe tokenizer.",
+            flush=True,
+        )
     if use_recipe and not args.bf16 and not args.fp16 and recipe_preset is not None:
         args.bf16 = bool(recipe_preset.bf16)
     if use_recipe and recipe_preset is not None:

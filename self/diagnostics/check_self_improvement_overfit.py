@@ -83,8 +83,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="auto",
         help="Tokenizer mode for scratch models.",
     )
-    parser.add_argument("--bit-task-min-bits", type=int, default=4)
-    parser.add_argument("--bit-task-max-bits", type=int, default=8)
+    parser.add_argument("--run-length-min-bits", type=int, default=4)
+    parser.add_argument("--run-length-max-bits", type=int, default=8)
     parser.add_argument("--multiplication-min-digits", type=int, default=2)
     parser.add_argument("--multiplication-max-digits", type=int, default=3)
     return parser.parse_args(argv)
@@ -97,8 +97,8 @@ def build_task_bundle(
     format_version: str,
     seed_args: argparse.Namespace,
 ) -> Tuple[Any, Any]:
-    bit_task_min_bits = getattr(seed_args, "bit_task_min_bits", 4)
-    bit_task_max_bits = getattr(seed_args, "bit_task_max_bits", 8)
+    run_length_min_bits = getattr(seed_args, "run_length_min_bits", 4)
+    run_length_max_bits = getattr(seed_args, "run_length_max_bits", 8)
     multiplication_min_digits = getattr(seed_args, "multiplication_min_digits", 2)
     multiplication_max_digits = getattr(seed_args, "multiplication_max_digits", 2)
     if task_name == "addition":
@@ -146,9 +146,9 @@ def build_task_bundle(
                     "--output-dir",
                     "artifacts/tmp_overfit_run_length",
                     "--initial-min-bits",
-                    str(bit_task_min_bits),
+                    str(run_length_min_bits),
                     "--initial-max-bits",
-                    str(bit_task_max_bits),
+                    str(run_length_max_bits),
                     "--initial-train-per-bit",
                     "20",
                     "--initial-eval-per-bit",

@@ -6,11 +6,11 @@ from __future__ import annotations
 import argparse
 from typing import Optional, Sequence
 
-from self.legacy.bit_task_self_improvement import build_bit_task_parser, normalize_bit_task_args
+from self.legacy.run_length_bit_cli import build_run_length_bit_parser, normalize_run_length_bit_args
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
-    parser = build_bit_task_parser(
+    parser = build_run_length_bit_parser(
         description="Self-improvement run-length experiment (resumable)",
         default_output_dir="artifacts/runs/self_improvement_run_length",
     )
@@ -18,7 +18,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
 
 def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
-    return normalize_bit_task_args(args)
+    return normalize_run_length_bit_args(args)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:

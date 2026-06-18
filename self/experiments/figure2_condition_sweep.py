@@ -180,7 +180,7 @@ def build_stage1_manifest(
                 )
                 stage1_jobs.append(
                     {
-                        "kind": "bit_task",
+                        "kind": "run_length_bit",
                         "task": task,
                         "baseline": "compose",
                         "schedule_label": f"expand{expand_num_bits}_train{expand_train_per_bit}",
@@ -290,7 +290,7 @@ def submit_stage1_jobs(
     addition_seed_model = str(manifest["meta"]["addition_seed_model"])
     submitted: List[Dict[str, Any]] = []
     for entry in manifest["stage1_jobs"]:
-        if entry["kind"] == "bit_task":
+        if entry["kind"] == "run_length_bit":
             wrap_cmd = _bit_stage1_wrap_cmd(entry, python_bin=python_bin)
             job_name = f"fig2-{entry['task']}-{entry['schedule_label']}"
         else:

@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Shared CLI helpers for bit-string self-improvement tasks."""
+"""CLI helpers for legacy run-length bit-string self-improvement."""
 
 from __future__ import annotations
 
 import argparse
-from typing import Any, Optional, Sequence
 
 from self.self_improvement_recipe import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1
 
 
-def build_bit_task_parser(*, description: str, default_output_dir: str) -> argparse.ArgumentParser:
+def build_run_length_bit_parser(*, description: str, default_output_dir: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument("--model-name", type=str, default="HuggingFaceTB/SmolLM2-360M")
@@ -41,7 +40,7 @@ def build_bit_task_parser(*, description: str, default_output_dir: str) -> argpa
         choices=("random", "fixed_binary"),
         default="random",
         help=(
-            "How bit-task component sizes are chosen. random preserves the existing stochastic "
+            "How run-length component sizes are chosen. random preserves the existing stochastic "
             "path selection; fixed_binary uses floor(L/2)+ceil(L/2) for each target length."
         ),
     )
@@ -186,7 +185,7 @@ def build_bit_task_parser(*, description: str, default_output_dir: str) -> argpa
         type=str,
         choices=("none", RECIPE_ALGORITHMIC_SELF_IMPROVE_V1),
         default="none",
-        help="Optional recipe model/training preset for bit-string tasks.",
+        help="Optional recipe model/training preset for run-length bit-string experiments.",
     )
     parser.add_argument(
         "--treat-seed-as-round-zero",
@@ -250,7 +249,7 @@ def build_bit_task_parser(*, description: str, default_output_dir: str) -> argpa
     return parser
 
 
-def normalize_bit_task_args(args: argparse.Namespace) -> argparse.Namespace:
+def normalize_run_length_bit_args(args: argparse.Namespace) -> argparse.Namespace:
     args.initial_min_size = args.initial_min_bits
     args.initial_max_size = args.initial_max_bits
     args.initial_train_per_size = args.initial_train_per_bit
@@ -266,17 +265,3 @@ def normalize_bit_task_args(args: argparse.Namespace) -> argparse.Namespace:
     if getattr(args, "save_model_policy", "final_only") == "none":
         args.skip_save_model = True
     return args
-
-
-def run_bit_task(
-    argv: Optional[Sequence[str]],
-    *,
-    description: str,
-    default_output_dir: str,
-    task: Any,
-) -> None:
-    from self.self_improvement_core import run_self_improvement
-
-    parser = build_bit_task_parser(description=description, default_output_dir=default_output_dir)
-    args = normalize_bit_task_args(parser.parse_args(argv))
-    run_self_improvement(args, task)

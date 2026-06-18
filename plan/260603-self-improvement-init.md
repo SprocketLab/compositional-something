@@ -3168,3 +3168,11 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh` to route its root/model/log/Slurm/schedule context output through `self_print_context(...)` while preserving the fullpack command construction, dry-run output, Slurm resource helper use, and manifest format.
 - Updated `self/README.md` to note that the exact-digits addition submitter now routes its schedule banner through the shared context printer in addition to common MIG resource helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_exact_digits_context tests/test_addition_exact_digits_fixed_binary_launcher.py -q` (`2 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 08:50:14 UTC
+
+- Cleaned the current workshop/main-track code surface so it no longer exposes the removed majority/vote-style task family through generic `bit_task` names.
+- Renamed the legacy run-length bit-string CLI helper from `self/legacy/bit_task_self_improvement.py` to `self/legacy/run_length_bit_cli.py`, renamed its parser/normalization functions, and updated the run-length legacy entry point plus adaptive pilot compile checks to use the new path.
+- Renamed the current run-length recipe and non-adaptive seed-round tests away from `bit_task` filenames/function names, and changed the Figure 2 manifest kind from `bit_task` to `run_length_bit`.
+- Updated user-facing wording in `self/README.md`, `self/core/nonadaptive_setup.py`, `self/diagnostics/check_self_improvement_overfit.py`, `self/experiments/seed_fit_experiment.py`, and `launchers/self/run_refocused_self_improvement_local.sh` so the remaining bit-size controls are described as run-length bit-string controls rather than a generic auxiliary bit task.
+- Tracked search over current `self`, `core`, `launchers`, `tests`, `docs`, and `self/README.md` now has no `majority`, voting/consensus/plurality, or old generic `bit_task` helper references. Historical plan-log verification lines are intentionally left as history.

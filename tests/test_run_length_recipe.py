@@ -5,7 +5,7 @@ from self.self_improvement_recipe import RECIPE_ALGORITHMIC_SELF_IMPROVE_V1, bui
 from self.self_improvement_tasks import RunLengthExample
 
 
-def test_algorithmic_recipe_instantiates_scratch_model_for_bit_tasks(monkeypatch):
+def test_algorithmic_recipe_instantiates_scratch_model_for_run_length(monkeypatch):
     monkeypatch.setattr("torch.cuda.is_available", lambda: False)
 
     model, tokenizer = instantiate_model_and_tokenizer(

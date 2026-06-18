@@ -283,7 +283,7 @@ if [[ ${#ADDITION_INDEXES[@]} -gt 0 ]]; then
   echo "[INFO] Addition GPUs: ${ADDITION_GPU_LIST[*]}"
 fi
 if [[ ${#BIT_INDEXES[@]} -gt 0 ]]; then
-  echo "[INFO] Bit-task GPUs: ${BIT_GPU_LIST[*]}"
+  echo "[INFO] Run-length bit-string GPUs: ${BIT_GPU_LIST[*]}"
 fi
 echo "[INFO] Manifest written to ${MANIFEST_PATH}"
 

@@ -120,7 +120,7 @@ class _DummyTask:
         return {}
 
 
-def test_treat_seed_as_round_zero_skips_round0_training(monkeypatch, tmp_path: Path):
+def test_nonadaptive_treat_seed_as_round_zero_skips_round0_training(monkeypatch, tmp_path: Path):
     import self.self_improvement_core as core
 
     trainer_called = {"value": False}
