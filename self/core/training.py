@@ -17,8 +17,10 @@ from transformers import Trainer, TrainingArguments
 from self.core.recipes import (
     BatchSamplerWarmupStableDecayTrainer,
     WarmupStableDecayTrainer,
-    fit_recipe_phase_to_max_steps,
     make_recipe_training_args,
+)
+from self.core.recipe_presets import (
+    fit_recipe_phase_to_max_steps,
     recipe_enabled,
     resolve_recipe_phase,
     resolve_self_improvement_recipe,

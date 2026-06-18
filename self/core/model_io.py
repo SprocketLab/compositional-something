@@ -15,6 +15,8 @@ from self.core.recipes import (
     build_recipe_tokenizer,
     instantiate_recipe_model,
     load_recipe_model,
+)
+from self.core.recipe_presets import (
     recipe_enabled,
     resolve_self_improvement_recipe,
 )

@@ -19,7 +19,7 @@ from self.core.training import (
     build_trainer,
     make_training_args,
 )
-from self.core.recipes import recipe_enabled
+from self.core.recipe_presets import recipe_enabled
 
 
 def make_config(args: argparse.Namespace) -> TrainingConfig:
