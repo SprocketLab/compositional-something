@@ -141,9 +141,11 @@ the supported public surface.
   prediction sample writing.
 - `self/core/experience_trace_models.py`: proposal/outcome trace example
   data models, JSON parsing, and replay sampling.
-- `self/core/experience_outcome_traces.py`: outcome trace construction,
-  compact state/action rendering, numeric/textual target formatting, and
-  failure/reward feedback rendering.
+- `self/core/experience_outcome_traces.py`: outcome trace construction and
+  compatibility reexports for older outcome-rendering helper imports.
+- `self/core/experience_outcome_rendering.py`: compact outcome-trace
+  state/action rendering, numeric/textual target formatting, candidate payload
+  extraction, and failure/reward feedback rendering.
 - `self/core/experience_traces.py`: proposal trace construction and
   compatibility exports for older trace imports.
 - `self/core/frontier.py`: frontier selection and proposal-quality summaries.
@@ -679,8 +681,9 @@ new implementation code:
   keeps grouped `__all__` exports so legacy imports and patch points remain
   auditable.
 - Experience trace example models, JSON parsing, and replay sampling now live
-  in `self/core/experience_trace_models.py`; outcome trace construction and
-  rendering live in `self/core/experience_outcome_traces.py`; proposal trace
+  in `self/core/experience_trace_models.py`; outcome trace construction lives
+  in `self/core/experience_outcome_traces.py`; outcome rendering/payload
+  helpers live in `self/core/experience_outcome_rendering.py`; proposal trace
   construction remains in `self/core/experience_traces.py`, which still
   reexports old trace imports for compatibility.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive run setup,

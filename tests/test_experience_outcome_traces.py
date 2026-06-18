@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from self.core import experience_traces
+from self.core import experience_outcome_rendering, experience_outcome_traces, experience_traces
 from self.core.experience_outcome_traces import build_outcome_trace_example, build_round_outcome_trace_examples
 
 
@@ -54,6 +54,18 @@ def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity
     assert completion["frontier_delta_error"] == 0.05
     assert completion["final_delta_from_init_error"] == 0.05
     assert "feedback" in completion
+
+
+def test_outcome_rendering_owner_is_reexported_for_compatibility():
+    assert experience_outcome_traces._outcome_completion is experience_outcome_rendering._outcome_completion
+    assert (
+        experience_outcome_traces._render_outcome_trace_prompt
+        is experience_outcome_rendering._render_outcome_trace_prompt
+    )
+    assert (
+        experience_outcome_traces._candidate_payload_from_result
+        is experience_outcome_rendering._candidate_payload_from_result
+    )
 
 
 def test_round_outcome_trace_builder_skips_disabled_modes_and_bad_indices():
