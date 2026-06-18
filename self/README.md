@@ -575,6 +575,7 @@ new implementation code:
 - `self/self_improvement.py` -> `self/legacy/addition_self_improvement.py`
   with wrapper attribute writes forwarded to the legacy module for old
   monkeypatch-based tests.
+- `self/self_improvement_experiment.py` -> `self/legacy/addition_self_improvement.py`
 - `self/self_improvement_multiplication_cot_pseudo_addition.py` -> `self/legacy/multiplication_cot_pseudo_addition.py`
 - `self/multiplication_self_improvement.py` -> `self/legacy/multiplication_self_improvement.py`
 - `self/run_length_self_improvement.py` -> `self/legacy/run_length_self_improvement.py`
