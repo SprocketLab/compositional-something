@@ -573,7 +573,7 @@ the supported public surface.
   generic helper for repo-root/Python setup, boolean parsing, and stdout/stderr
   command-printing helpers while preserving their existing dry-run streams.
   The seed-sweep and fullpack submitters also use the shared sbatch-script
-  submission helper.
+  submission helper for per-job names, logs, and explicit export payloads.
 - `launchers/self/submit_multiplication_rectangular_tune_mig.sh` uses the
   generic helper for repo-root/Python setup, boolean parsing, and stdout
   command printing before delegating to the rectangular tune CLI.

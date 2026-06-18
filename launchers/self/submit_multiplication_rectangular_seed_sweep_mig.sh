@@ -10,6 +10,7 @@ LAUNCHER="${ROOT_DIR}/launchers/self/run_multiplication_rectangular_seed_mig.sba
 MODEL_LINK="${ROOT_DIR}/artifacts/models/multiplication_rectangular_seed_best"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-60}"
 DRY_RUN="${DRY_RUN:-0}"
+LOG_DIR="${LOG_DIR:-${ROOT_DIR}/artifacts/logs}"
 SEED="${SEED:-0}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-256}"
 EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-256}"
@@ -23,13 +24,14 @@ STAGE1_TRAIN_COUNTS=(25000 50000)
 STAGE1_LRS=(2e-5 5e-5 1e-4)
 STAGE3_TRAIN_PER_PARTITION=100000
 
-mkdir -p "${OUT_ROOT}"
+mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
 mkdir -p "$(dirname "${MODEL_LINK}")"
 
 self_print_context \
   "Root dir" "${ROOT_DIR}" \
   "Python" "${PYTHON_BIN}" \
   "Output root" "${OUT_ROOT}" \
+  "Log dir" "${LOG_DIR}" \
   "Launcher" "${LAUNCHER}" \
   "Stable model link" "${MODEL_LINK}" \
   "Dry run" "${DRY_RUN}"
@@ -51,15 +53,18 @@ submit_job() {
   local max_steps="$4"
   local heldout_per_partition="$5"
   local save_model="$6"
+  local out_slug="${out_dir#${OUT_ROOT}/}"
+  out_slug="$(echo "${out_slug}" | sed 's#[^A-Za-z0-9_-]#-#g; s#_#-#g')"
+  local job_name="mult-rect-seed-${out_slug}"
+  local log_stem="${LOG_DIR}/${job_name}-%j"
 
-  local -a cmd=(
-    sbatch
-    --parsable
-    --export "ALL,OUT_ROOT=${out_dir},LR=${lr},TRAIN_PER_PARTITION=${train_per_partition},MAX_STEPS=${max_steps},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=${save_model},HELDOUT_PER_PARTITION=${heldout_per_partition}"
+  self_submit_sbatch_script \
+    "dryrun" \
+    "${job_name}" \
+    "${log_stem}.out" \
+    "${log_stem}.err" \
+    "ALL,OUT_ROOT=${out_dir},LR=${lr},TRAIN_PER_PARTITION=${train_per_partition},MAX_STEPS=${max_steps},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=${save_model},HELDOUT_PER_PARTITION=${heldout_per_partition}" \
     "${LAUNCHER}"
-  )
-
-  self_submit_sbatch_command "dryrun" "${cmd[@]}"
 }
 
 job_state() {

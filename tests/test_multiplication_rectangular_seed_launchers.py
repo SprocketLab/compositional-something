@@ -81,6 +81,7 @@ def test_multiplication_seed_wrapper_dry_run_emits_six_stage1_jobs(tmp_path):
     env = os.environ.copy()
     env["DRY_RUN"] = "1"
     env["OUT_ROOT"] = str(tmp_path / "seed_wrapper")
+    env["LOG_DIR"] = str(tmp_path / "logs")
 
     result = subprocess.run(
         ["bash", str(WRAPPER)],
@@ -92,6 +93,7 @@ def test_multiplication_seed_wrapper_dry_run_emits_six_stage1_jobs(tmp_path):
     )
 
     stdout = result.stdout
+    combined = result.stdout + result.stderr
     assert stdout.count("[INFO] Stage 1 dry-run job=") == 6
     assert "train_25000_lr_2em5" in stdout
     assert "train_25000_lr_5em5" in stdout
@@ -100,3 +102,8 @@ def test_multiplication_seed_wrapper_dry_run_emits_six_stage1_jobs(tmp_path):
     assert "train_50000_lr_5em5" in stdout
     assert "train_50000_lr_1em4" in stdout
     assert "[INFO] Status: dry_run" in stdout
+    assert "--job-name mult-rect-seed-stage0-overfit" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert r"--export ALL\,OUT_ROOT=" in combined
+    assert r"\,TRAIN_PER_PARTITION=10\," in combined
