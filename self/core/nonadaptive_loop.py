@@ -44,15 +44,12 @@ from self.core.model_io import (
 from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_dataset_context import prepare_nonadaptive_dataset_context
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
-from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_finalization import finalize_nonadaptive_run
-from self.core.nonadaptive_lifecycle import NonAdaptiveRoundResources, finish_nonadaptive_round
 from self.core.nonadaptive_metadata_runtime import prepare_nonadaptive_metadata_runtime
-from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
-from self.core.nonadaptive_results import record_nonadaptive_round_summary
-from self.core.nonadaptive_round_setup import (
-    prepare_nonadaptive_round_plan,
-    prepare_nonadaptive_round_training_data,
+from self.core.nonadaptive_round_runtime import (
+    NonAdaptiveRoundRuntimeContext,
+    NonAdaptiveRoundRuntimeState,
+    run_nonadaptive_round,
 )
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
@@ -60,7 +57,6 @@ from self.core.nonadaptive_state import (
     prepare_nonadaptive_run_state,
     write_nonadaptive_config_args,
 )
-from self.core.nonadaptive_training import train_nonadaptive_round_model
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -223,140 +219,70 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     summary_records = bootstrap.summary_records
     pseudo_examples = bootstrap.pseudo_examples
     round_dirs: List[Path] = []
+    round_context = NonAdaptiveRoundRuntimeContext(
+        args=args,
+        task=task,
+        base_output_dir=base_output_dir,
+        base_splits=base_splits,
+        base_records=base_records,
+        eval_examples=eval_examples,
+        composed_eval_slices=composed_eval_slices,
+        composed_eval_component_map=composed_eval_component_map,
+        composed_pool_path=composed_pool_path,
+        component_map_path=component_map_path,
+        metadata=metadata,
+        eval_keys=eval_keys,
+        size_schedule=size_schedule,
+        composed_min_size=composed_min_size,
+        final_max_size=final_max_size,
+        train_base_decode_tokens=train_base_decode_tokens,
+        eval_decode_tokens=eval_decode_tokens,
+        composed_eval_decode_tokens=composed_eval_decode_tokens,
+        config=config,
+        data_collator=data_collator,
+        tokenizer=tokenizer,
+        rng=rng,
+        new_run=new_run,
+        dynamic_composed=dynamic_composed,
+        save_model_policy=save_model_policy,
+        resume_requested=resume_requested,
+        resume_round=resume_round,
+        stop_after_round=stop_after_round,
+        reset_each_round=reset_each_round,
+        use_recipe=use_recipe,
+        recipe_name=recipe_name,
+        recipe_preset=recipe_preset,
+        summary_records=summary_records,
+        results_path=results_path,
+        persist_metadata_fn=metadata_runtime.persist_metadata,
+    )
+    round_state = NonAdaptiveRoundRuntimeState(
+        model=model,
+        composed_examples=composed_examples,
+        component_map=component_map,
+        pseudo_examples=pseudo_examples,
+    )
 
     for round_idx in range(args.num_expand_rounds + 1):
-        round_plan = prepare_nonadaptive_round_plan(
-            base_output_dir=base_output_dir,
+        round_result = run_nonadaptive_round(
+            context=round_context,
+            state=round_state,
             round_idx=round_idx,
-            size_schedule=size_schedule,
-            save_model_policy=save_model_policy,
-            num_expand_rounds=args.num_expand_rounds,
-            resume_requested=resume_requested,
-            resume_round=resume_round,
             ensure_dir_fn=ensure_dir,
-        )
-        max_size = round_plan.max_size
-        round_dir = round_plan.round_dir
-        round_dirs.append(round_dir)
-        save_model_this_round = round_plan.save_model_this_round
-
-        if round_plan.should_skip_completed_round:
-            print(f"[INFO] Skipping already completed round {round_idx}.", flush=True)
-            continue
-
-        round_training_data = prepare_nonadaptive_round_training_data(
-            round_dir=round_dir,
-            base_train_examples=base_splits["train"],
-            pseudo_examples=pseudo_examples,
-            task=task,
             save_examples_fn=save_examples,
-        )
-        train_examples = round_training_data.train_examples
-        pseudo_used_count = round_training_data.pseudo_used_count
-
-        round_training = train_nonadaptive_round_model(
-            args=args,
-            task=task,
-            model=model,
-            tokenizer=tokenizer,
-            train_examples=train_examples,
-            round_dir=round_dir,
-            config=config,
-            data_collator=data_collator,
-            round_idx=round_idx,
-            new_run=new_run,
-            save_model_this_round=save_model_this_round,
-            use_recipe=use_recipe,
-            recipe_name=recipe_name,
             dataset_cls=TokenizedPromptTargetDataset,
             make_training_args_fn=make_training_args,
             build_trainer_fn=build_trainer,
-        )
-        model = round_training.model
-        trainer: Optional[Trainer] = round_training.trainer
-
-        evaluation = evaluate_nonadaptive_round(
-            model=model,
-            tokenizer=tokenizer,
-            task=task,
-            eval_examples=eval_examples,
-            composed_eval_slices=composed_eval_slices,
-            composed_eval_component_map=composed_eval_component_map,
-            round_dir=round_dir,
-            batch_size=config.per_device_eval_batch_size,
-            eval_decode_tokens=eval_decode_tokens,
-            composed_eval_decode_tokens=composed_eval_decode_tokens,
             evaluate_accuracy_fn=evaluate_accuracy_with_breakdown,
             write_debug_samples_fn=write_prediction_debug_samples,
             slice_metric_cls=SliceMetric,
-        )
-
-        next_pseudo_round = prepare_nonadaptive_next_pseudo_round(
-            args=args,
-            task=task,
-            model=model,
-            tokenizer=tokenizer,
-            rng=rng,
-            round_idx=round_idx,
-            round_dir=round_dir,
-            train_examples=train_examples,
-            base_splits=base_splits,
-            base_records=base_records,
-            composed_examples=composed_examples,
-            component_map=component_map,
-            composed_pool_path=composed_pool_path,
-            component_map_path=component_map_path,
-            metadata=metadata,
-            eval_keys=eval_keys,
-            size_schedule=size_schedule,
-            composed_min_size=composed_min_size,
-            final_max_size=final_max_size,
-            train_base_decode_tokens=train_base_decode_tokens,
-            config_decode_max_new_tokens=config.decode_max_new_tokens,
-            eval_batch_size=config.per_device_eval_batch_size,
-            dynamic_composed=dynamic_composed,
-            persist_metadata_fn=metadata_runtime.persist_metadata,
-            save_examples_fn=save_examples,
-            resolve_max_new_tokens_fn=resolve_max_new_tokens,
-            random_cls=random.Random,
-        )
-        composed_examples = next_pseudo_round.composed_examples
-        component_map = next_pseudo_round.component_map
-        pseudo_examples = next_pseudo_round.pseudo_examples
-        pseudo_generation_stats = next_pseudo_round.pseudo_generation_stats
-
-        record_nonadaptive_round_summary(
-            round_idx=round_idx,
-            max_size=max_size,
-            train_example_count=len(train_examples),
-            pseudo_used_count=pseudo_used_count,
-            evaluation=evaluation,
-            pseudo_generation_stats=pseudo_generation_stats,
-            round_dir=round_dir,
-            save_model_policy=save_model_policy,
-            save_model_this_round=save_model_this_round,
-            summary_records=summary_records,
-            results_path=results_path,
-            task=task,
             round_summary_cls=RoundSummary,
             summarize_round_fn=summarize_round,
             summary_to_payload_fn=summary_to_payload,
             write_summary_records_fn=write_summary_records,
             json_module=json,
-        )
-
-        round_resources = NonAdaptiveRoundResources(model=model, trainer=trainer)
-        model = None
-        trainer = None
-        post_round_action = finish_nonadaptive_round(
-            args=args,
-            tokenizer=tokenizer,
-            resources=round_resources,
-            round_idx=round_idx,
-            stop_after_round=stop_after_round,
-            reset_each_round=reset_each_round,
-            use_recipe=use_recipe,
-            recipe_preset=recipe_preset,
+            resolve_max_new_tokens_fn=resolve_max_new_tokens,
+            random_cls=random.Random,
             path_cls=Path,
             cuda_is_available_fn=torch.cuda.is_available,
             empty_cache_fn=torch.cuda.empty_cache,
@@ -364,12 +290,9 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             load_recipe_model_fn=load_recipe_model,
             load_model_for_tokenizer_fn=load_model_for_tokenizer,
         )
-        model = round_resources.model
-        trainer = round_resources.trainer
-        if post_round_action.should_break:
+        round_dirs.append(round_result.round_dir)
+        if round_result.should_break:
             break
-        if post_round_action.should_continue:
-            continue
 
     finalize_nonadaptive_run(
         keep_checkpoints=bool(args.keep_checkpoints),

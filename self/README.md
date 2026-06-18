@@ -125,6 +125,9 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_results.py`: non-adaptive round summary creation,
   console summary dispatch, `metrics.json` writing, run-level summary-record
   updates, and compatibility-injected summary/payload bindings.
+- `self/core/nonadaptive_round_runtime.py`: single-round non-adaptive
+  orchestration, wiring round setup, training, evaluation, next pseudo-label
+  generation, summary recording, and lifecycle handling.
 - `self/core/nonadaptive_round_setup.py`: per-round directory/save-policy
   planning plus round training/pseudo-example artifact persistence.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
@@ -539,8 +542,9 @@ new implementation code:
   monkeypatch-based tests. Current `self/core`, `self/tasks`,
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
-- `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
-  dynamic refresh, pseudo-label, and summary loop. Dataset-context validation
+- `self/core/nonadaptive_loop.py` still owns the main non-adaptive run setup,
+  bootstrap, round iteration, and finalization. Single-round orchestration now
+  lives in `self/core/nonadaptive_round_runtime.py`; dataset-context validation
   and reporting now live in `self/core/nonadaptive_dataset_context.py`;
   base/composed round evaluation now lives in `self/core/nonadaptive_evaluation.py`; per-round
   training setup and execution lives in `self/core/nonadaptive_training.py`;
