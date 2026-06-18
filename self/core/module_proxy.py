@@ -53,3 +53,11 @@ def install_module_proxy(
     module.__dict__["__getattr__"] = _compat_getattr
     module.__dict__["__dir__"] = _compat_dir
     module.__class__ = ModuleProxy
+
+
+def module_star_export_names(impl: ModuleType) -> list[str]:
+    """Return names exported by ``from impl import *``."""
+
+    if hasattr(impl, "__all__"):
+        return list(impl.__all__)
+    return [name for name in dir(impl) if not name.startswith("_")]

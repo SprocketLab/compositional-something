@@ -1,12 +1,27 @@
 from __future__ import annotations
 
+import importlib
+
 from self import addition_recipe
 from self import multiplication_rectangular as legacy_rectangular
 from self import self_improvement_experiment
 from self.core import recipes
+from self.core.module_proxy import module_star_export_names
 from self.legacy import addition_self_improvement
 from self.tasks import rectangular_composition
 from self.tasks import rectangular_multiplication
+
+
+STAR_CLI_PROXY_PAIRS = (
+    ("self.addition_recipe_diagnostic", "self.diagnostics.addition_recipe_diagnostic"),
+    ("self.analyze_symbolic_training_dynamics", "self.diagnostics.analyze_symbolic_training_dynamics"),
+    ("self.check_self_improvement_overfit", "self.diagnostics.check_self_improvement_overfit"),
+    ("self.evaluate_fixed_composition_slices", "self.diagnostics.evaluate_fixed_composition_slices"),
+    ("self.plot_appendix_baseline_heatmaps", "self.analysis.plot_appendix_baseline_heatmaps"),
+    ("self.plot_self_improvement_figure", "self.analysis.plot_self_improvement_figure"),
+    ("self.summarize_seed_fit_grid", "self.analysis.summarize_seed_fit_grid"),
+    ("self.run_length_balanced_eval", "self.diagnostics.run_length_balanced_eval"),
+)
 
 
 def test_module_proxy_exposes_canonical_rectangular_exports():
@@ -49,3 +64,27 @@ def test_old_self_improvement_experiment_proxies_legacy_addition_module():
         assert addition_self_improvement.parse_args is fake_parse_args
     finally:
         self_improvement_experiment.parse_args = original
+
+
+def test_module_star_export_names_matches_star_import_policy():
+    class NoAll:
+        public = object()
+        _private = object()
+
+    class WithAll:
+        __all__ = ["public", "_explicit_private"]
+        public = object()
+        _explicit_private = object()
+
+    assert "public" in module_star_export_names(NoAll)
+    assert "_private" not in module_star_export_names(NoAll)
+    assert module_star_export_names(WithAll) == ["public", "_explicit_private"]
+
+
+def test_star_cli_wrappers_proxy_canonical_modules():
+    for wrapper_name, impl_name in STAR_CLI_PROXY_PAIRS:
+        wrapper = importlib.import_module(wrapper_name)
+        impl = importlib.import_module(impl_name)
+
+        assert wrapper.main is impl.main
+        assert wrapper.__all__ == module_star_export_names(impl)

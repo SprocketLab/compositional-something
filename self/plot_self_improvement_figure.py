@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-from self.analysis.plot_self_improvement_figure import *  # noqa: F401,F403
-from self.analysis.plot_self_improvement_figure import main as _main
+from self.analysis import plot_self_improvement_figure as _impl
+from self.core.module_proxy import install_module_proxy, module_star_export_names
+
+install_module_proxy(__name__, _impl, export_names=module_star_export_names(_impl))
 
 
 if __name__ == "__main__":
-    _main()
+    _impl.main()
