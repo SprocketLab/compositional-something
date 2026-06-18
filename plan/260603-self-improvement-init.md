@@ -4403,3 +4403,19 @@ Acceptance criteria for first pilot:
   tests/test_nonadaptive_round_context.py tests/test_nonadaptive_round_runtime.py
   tests/test_nonadaptive_round_loop.py tests/test_nonadaptive_compat.py
   tests/test_nonadaptive_seed_round_zero.py -q` (`12 passed`).
+
+### Implementation Log: 2026-06-18 20:03:32 UTC
+
+- Added `self/analysis/adaptive_summary_artifacts.py` with
+  `adaptive_run_overview_records(...)` and
+  `adaptive_validity_summary_records_for_runs(...)`.
+- Reexported the new notebook-facing helpers through
+  `self.analysis.artifacts`.
+- The helpers give notebooks stable per-run overview rows and
+  validity-by-attempt rows without hard-coding `attempt_*`,
+  `proposal_results.json`, `candidate_metrics.json`, or local-dispatch paths.
+- Verification: `python -m py_compile
+  self/analysis/adaptive_summary_artifacts.py self/analysis/artifacts.py
+  tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env
+  pytest --basetemp=.pytest_tmp_adaptive_summary_artifacts
+  tests/test_analysis_artifacts.py -q` (`6 passed`).

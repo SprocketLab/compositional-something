@@ -5,6 +5,7 @@ from self.analysis import (
     adaptive_artifact_common,
     adaptive_artifacts,
     adaptive_candidate_artifacts,
+    adaptive_summary_artifacts,
     adaptive_trace_artifacts,
     nonadaptive_artifacts,
 )
@@ -18,11 +19,13 @@ from self.analysis.artifacts import (
     adaptive_prompt_records,
     adaptive_proposal_grpo_records,
     adaptive_proposal_records,
+    adaptive_run_overview_records,
     adaptive_selected_per_size_timeline_records,
     adaptive_submission_job_records,
     adaptive_trace_records,
     adaptive_trace_rows,
     adaptive_validity_summary_records,
+    adaptive_validity_summary_records_for_runs,
     discover_adaptive_runs,
     discover_submission_manifests,
     iter_candidate_dirs,
@@ -50,6 +53,130 @@ def _write_json(path: Path, payload: object) -> None:
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+
+
+def test_adaptive_summary_artifacts_aggregate_runs_and_validity(tmp_path: Path):
+    assert adaptive_run_overview_records is adaptive_summary_artifacts.adaptive_run_overview_records
+    assert (
+        adaptive_validity_summary_records_for_runs
+        is adaptive_summary_artifacts.adaptive_validity_summary_records_for_runs
+    )
+
+    root = tmp_path / "adaptive_runs"
+    run_dir = root / "addition-config"
+    attempt_1 = run_dir / "attempt_0001"
+    attempt_2 = run_dir / "attempt_0002"
+    _write_json(
+        run_dir / "summary.json",
+        {
+            "task": "addition",
+            "condition": "config",
+            "attempts_completed": 2,
+            "selected_rounds_completed": 1,
+            "init_final_accuracy": 0.25,
+        },
+    )
+    _write_json(run_dir / "adaptive_candidate_training_results.json", [{"eval_accuracy": 0.25}])
+    _write_json(run_dir / "round_00" / "metrics.json", {"eval_accuracy": 0.25})
+    _write_json(
+        attempt_1 / "attempt_summary.json",
+        {
+            "attempt": 1,
+            "selected_round": 1,
+            "selected": {"id": "model_candidate_0"},
+            "no_selection": False,
+        },
+    )
+    _write_json(
+        attempt_1 / "proposal_results.json",
+        [
+            {"id": "model_candidate_0", "valid": True, "validation_category": "valid"},
+            {"id": "model_candidate_1", "valid": False, "validation_category": "schema_error"},
+        ],
+    )
+    _write_json(
+        attempt_1 / "candidate_metrics.json",
+        [
+            {
+                "id": "model_candidate_0",
+                "index": 0,
+                "valid": True,
+                "final_accuracy": 0.5,
+            },
+            {
+                "id": "model_candidate_1",
+                "index": 1,
+                "valid": False,
+                "failure_reason": "schema_error",
+            },
+        ],
+    )
+    _write_json(
+        attempt_1 / "candidates" / "candidate_00" / "candidate_metrics.json",
+        {"id": "model_candidate_0", "index": 0, "valid": True, "final_accuracy": 0.5},
+    )
+    _write_json(
+        attempt_1 / "candidates" / "candidate_01" / "worker_failure.json",
+        {"error": "worker OOM"},
+    )
+    _write_json(
+        attempt_1 / "candidate_jobs" / "local_dispatch.json",
+        {
+            "candidate_count": 2,
+            "packed_workers": True,
+        },
+    )
+    _write_json(
+        attempt_2 / "attempt_summary.json",
+        {
+            "attempt": 2,
+            "selected_round": 1,
+            "no_selection": True,
+        },
+    )
+    _write_json(
+        attempt_2 / "proposal_results.json",
+        [
+            {"id": "model_candidate_2", "valid": False, "validation_category": "parse_error"},
+        ],
+    )
+    _write_json(attempt_2 / "candidate_metrics.json", [])
+
+    validity_rows = adaptive_validity_summary_records_for_runs(root, max_attempt=1)
+    assert len(validity_rows) == 1
+    assert validity_rows[0]["attempt"] == 1
+    assert validity_rows[0]["valid_rate"] == 0.5
+
+    overview_rows = adaptive_run_overview_records(root)
+    assert overview_rows == [
+        {
+            "run_dir": str(run_dir),
+            "run_name": "addition-config",
+            "task": "addition",
+            "condition": "config",
+            "selected_rounds_completed": 1,
+            "attempts_completed": 2,
+            "init_final_accuracy": 0.25,
+            "attempt_records": 2,
+            "last_attempt": 2,
+            "selected_attempts": 1,
+            "no_selection_attempts": 1,
+            "proposal_count": 3,
+            "valid_proposal_count": 1,
+            "invalid_proposal_count": 2,
+            "valid_proposal_rate": 1 / 3,
+            "candidate_count": 2,
+            "valid_candidate_count": 1,
+            "valid_candidate_rate": 0.5,
+            "selected_candidate_count": 1,
+            "worker_failure_count": 1,
+            "missing_candidate_metrics_count": 0,
+            "local_dispatch_attempts": 1,
+            "packed_local_dispatch_attempts": 1,
+            "final_accuracy": 0.5,
+            "final_accuracy_delta_from_init": 0.25,
+        }
+    ]
 
 
 def test_adaptive_artifact_loader_flattens_attempts_proposals_and_candidates(tmp_path: Path):

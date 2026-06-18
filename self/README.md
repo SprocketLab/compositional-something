@@ -509,6 +509,10 @@ the supported public surface.
   `submission_manifest.json` discovery, loading, and job-row flattening so
   notebooks can recover submitted condition metadata without hard-coding raw
   manifest paths.
+- `self/analysis/adaptive_summary_artifacts.py`: adaptive run-overview rows and
+  cross-run proposal-validity time series for notebooks, built from the stable
+  run/attempt/candidate artifact loaders instead of raw `attempt_*` path
+  assumptions.
 - `self/analysis/nonadaptive_artifacts.py`: non-adaptive result-path
   resolution, round loading, per-size accuracy row construction, and
   records-to-DataFrame conversion.
