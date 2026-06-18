@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/self_common.sh"
 self_cd_repo_root
 
+ADDITION_MOREDATA_CONFIG="${ADDITION_MOREDATA_CONFIG:-${ROOT_DIR}/launchers/self/config/addition_fixedwidth_moredata.env}"
+self_source_config_file "${ADDITION_MOREDATA_CONFIG}" "addition fixed-width more-data config"
+
 TS="$(date +%Y%m%d_%H%M%S)"
 RUN_ROOT="${RUN_ROOT:-${ROOT_DIR}/artifacts/runs/addition_fixedwidth_moredata_sweep_${TS}}"
 LOG_DIR="${LOG_DIR:-${RUN_ROOT}/logs}"
@@ -20,6 +23,12 @@ SEED_REPLAY_TRAIN_PER_DIGIT="${SEED_REPLAY_TRAIN_PER_DIGIT:-5000}"
 NUM_EXPAND_ROUNDS="${NUM_EXPAND_ROUNDS:-8}"
 EXPAND_NUM_DIGITS="${EXPAND_NUM_DIGITS:-2}"
 DRY_RUN="${DRY_RUN:-0}"
+
+read -r -a ADDITION_MOREDATA_SCHEDULE_ROWS <<< "${ADDITION_MOREDATA_SCHEDULE_ROWS_RAW}"
+if (( ${#ADDITION_MOREDATA_SCHEDULE_ROWS[@]} == 0 )); then
+  echo "[ERROR] Addition fixed-width more-data schedule cannot be empty." >&2
+  exit 2
+fi
 
 mkdir -p "${LOG_DIR}"
 printf "job_id\tschedule_id\tcomposition_path_mode\texpand_train_per_digit\tmax_steps\tself_improve_warmup_steps\tself_improve_stable_steps\tself_improve_decay_steps\tout_root\tresults_path\n" > "${MANIFEST}"
@@ -96,15 +105,21 @@ self_print_context \
   "Run root" "${RUN_ROOT}" \
   "Seed model" "${SEED_MODEL}" \
   "Launcher" "${FULLPACK_LAUNCHER}" \
+  "Config" "${ADDITION_MOREDATA_CONFIG}" \
+  "Schedule rows" "${ADDITION_MOREDATA_SCHEDULE_ROWS[*]}" \
   "Logs" "${LOG_DIR}" \
   "Manifest" "${MANIFEST}" \
   "Slurm" "partition=${SBATCH_PARTITION} gres=${SBATCH_GRES} cpus=${SBATCH_CPUS} mem=${SBATCH_MEM} time=${SBATCH_TIME}" \
   "Fixed knobs" "baseline=with_carry_filtered width_mode=fixed_width_mixed_prompt sampling=balanced_visible_lengths rounds=${NUM_EXPAND_ROUNDS} expand_num_digits=${EXPAND_NUM_DIGITS} seed_replay_train_per_digit=${SEED_REPLAY_TRAIN_PER_DIGIT}"
 
-submit_candidate fixed_binary 20000 4500 3500 1000
-submit_candidate fixed_binary 40000 6000 5000 1000
-submit_candidate random 20000 4500 3500 1000
-submit_candidate random 40000 6000 5000 1000
+for schedule_row in "${ADDITION_MOREDATA_SCHEDULE_ROWS[@]}"; do
+  IFS=: read -r path_mode expand_train_per_digit max_steps stable_steps decay_steps extra_field <<< "${schedule_row}"
+  if [[ -z "${path_mode}" || -z "${expand_train_per_digit}" || -z "${max_steps}" || -z "${stable_steps}" || -z "${decay_steps}" || -n "${extra_field:-}" ]]; then
+    echo "[ERROR] Invalid addition more-data schedule row: ${schedule_row}" >&2
+    exit 2
+  fi
+  submit_candidate "${path_mode}" "${expand_train_per_digit}" "${max_steps}" "${stable_steps}" "${decay_steps}"
+done
 
 echo "[INFO] Stage 1 fixed-width more-data sweep submitted."
 echo "[INFO] Manifest: ${MANIFEST}"

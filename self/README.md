@@ -560,7 +560,9 @@ the supported public surface.
   generic launcher helper for repo-root setup and common MIG Slurm resource
   argument construction. Both submitters use the shared env-wrapped command
   builder and resource-backed wrapped-job submitter; the exact-digits submitter
-  also routes its schedule banner through the shared context printer.
+  also routes its schedule banner through the shared context printer. The
+  more-data submitter's default Stage 1 grid lives in
+  `launchers/self/config/addition_fixedwidth_moredata.env`.
 - `launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch`,
   `launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh`, and
   `launchers/self/submit_addition_fixedwidth_mixed_mig.sh` use the generic

@@ -11,10 +11,11 @@ FULLPACK = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_recipe_f
 MIXED_SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_mixed_mig.sh"
 MIXED_CONFIG = ROOT / "launchers" / "self" / "config" / "addition_fixedwidth_mixed.env"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_moredata_mig.sh"
+MOREDATA_CONFIG = ROOT / "launchers" / "self" / "config" / "addition_fixedwidth_moredata.env"
 
 
 def test_addition_fixedwidth_moredata_launchers_have_valid_bash_syntax():
-    for launcher in (SEED, FULLPACK, MIXED_SUBMITTER, MIXED_CONFIG, SUBMITTER):
+    for launcher in (SEED, FULLPACK, MIXED_SUBMITTER, MIXED_CONFIG, SUBMITTER, MOREDATA_CONFIG):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
 
@@ -238,3 +239,43 @@ def test_addition_fixedwidth_moredata_submitter_dry_run_emits_stage1_grid(tmp_pa
     assert "fixed_binary_expand40000_steps6000" in manifest_text
     assert "random_expand20000_steps4500" in manifest_text
     assert "random_expand40000_steps6000" in manifest_text
+
+
+def test_addition_fixedwidth_moredata_submitter_can_source_custom_grid_config(tmp_path: Path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["RUN_ROOT"] = str(tmp_path / "moredata_custom")
+    env["ADDITION_MOREDATA_CONFIG"] = str(tmp_path / "moredata.env")
+    Path(env["ADDITION_MOREDATA_CONFIG"]).write_text(
+        "\n".join(
+            [
+                "ADDITION_MOREDATA_SCHEDULE_ROWS_RAW='fixed_binary:123:111:99:12 random:456:222:188:34'",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    manifest = tmp_path / "moredata_custom" / "stage1_manifest.tsv"
+    manifest_text = manifest.read_text(encoding="utf-8")
+
+    assert "Loaded addition fixed-width more-data config" in stdout
+    assert "Schedule rows: fixed_binary:123:111:99:12 random:456:222:188:34" in stdout
+    assert stdout.count("[DRYRUN] fixed_binary_expand") == 1
+    assert stdout.count("[DRYRUN] random_expand") == 1
+    assert "fixed_binary_expand123_steps111" in stdout
+    assert "random_expand456_steps222" in stdout
+    assert "--self-improve-stable-steps 99" in stdout
+    assert "--self-improve-decay-steps 34" in stdout
+    assert "fixed_binary_expand123_steps111\tfixed_binary\t123\t111\t0\t99\t12" in manifest_text
+    assert "random_expand456_steps222\trandom\t456\t222\t0\t188\t34" in manifest_text
