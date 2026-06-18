@@ -46,6 +46,7 @@ from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
     prepare_nonadaptive_run_state,
+    validate_loaded_nonadaptive_metadata,
     write_nonadaptive_config_args,
 )
 from self.core.summaries import (
@@ -144,7 +145,6 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
     eval_path = paths.eval_path
     composed_eval_path = paths.composed_eval_path
     composed_eval_component_map_path = paths.composed_eval_component_map_path
-    stored_value = run_state.stored_value
     new_run = run_state.new_run
 
     if new_run:
@@ -246,67 +246,15 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         )
     else:
         print(f"[INFO] Loading {task.name} datasets from disk.", flush=True)
-        if not metadata:
-            raise ValueError("metadata.json missing; cannot resume without dataset metadata.")
-
-        stored_task = metadata.get("task")
-        if stored_task is not None and stored_task != task.name:
-            raise ValueError(f"Output directory contains task={stored_task!r}, but current run requests {task.name!r}.")
-
-        stored_initial_min = stored_value("initial_min_size", f"initial_min_{task.size_alias_plural}")
-        stored_initial_max = stored_value("initial_max_size", f"initial_max_{task.size_alias_plural}")
-        stored_frontier_min = stored_value("frontier_min_size")
-        stored_composed_max = stored_value("composed_max_size", f"composed_max_{task.size_alias_plural}")
-        if stored_initial_min is None or stored_initial_max is None or stored_composed_max is None:
-            raise ValueError("metadata.json is missing required size-range keys; please regenerate datasets.")
-        if int(stored_initial_min) != args.initial_min_size:
-            raise ValueError(
-                f"initial_min_size mismatch (stored={stored_initial_min} requested={args.initial_min_size})."
-            )
-        if int(stored_initial_max) != args.initial_max_size:
-            raise ValueError(
-                f"initial_max_size mismatch (stored={stored_initial_max} requested={args.initial_max_size})."
-            )
-        normalized_stored_frontier_min = None if stored_frontier_min is None else int(stored_frontier_min)
-        if normalized_stored_frontier_min != frontier_min_size:
-            raise ValueError(
-                f"frontier_min_size mismatch (stored={normalized_stored_frontier_min} requested={frontier_min_size})."
-            )
-        if final_max_size > int(stored_composed_max):
-            raise ValueError(
-                "Requested num_expand_rounds requires more sizes than available in stored composed data. "
-                "Regenerate datasets with a larger range."
-            )
-
-        stored_reset_flag = bool(metadata.get("reset_each_round", False))
-        if stored_reset_flag != reset_each_round:
-            raise ValueError(
-                "Output directory was created with a different reset_each_round setting. "
-                "Please choose a different --output-dir to avoid mixing trajectories."
-            )
-
-        stored_refresh_mode = metadata.get("composed_refresh_mode", "static")
-        if stored_refresh_mode not in ("dynamic", "static"):
-            stored_refresh_mode = "dynamic" if dynamic_composed else "static"
-        if stored_refresh_mode == "static" and dynamic_composed:
-            raise ValueError(
-                "Existing output directory was created with static composed pools but current run requests dynamic refresh."
-            )
-        if stored_refresh_mode == "dynamic" and not dynamic_composed:
-            raise ValueError(
-                "Existing output directory was created with dynamic composed pools but current run requests static refresh."
-            )
-
-        stored_composed_eval_per = stored_value(
-            "composed_eval_per_size",
-            f"composed_eval_per_{task.size_alias_singular}",
+        validate_loaded_nonadaptive_metadata(
+            args,
+            task,
+            run_state,
+            final_max_size=final_max_size,
+            frontier_min_size=frontier_min_size,
+            reset_each_round=reset_each_round,
+            dynamic_composed=dynamic_composed,
         )
-        if stored_composed_eval_per is not None and int(stored_composed_eval_per) != args.composed_eval_per_size:
-            raise ValueError(
-                "composed_eval_per_size does not match stored datasets. Please regenerate datasets or use a matching value."
-            )
-
-        task.validate_loaded_metadata(args, metadata, final_max_size, dynamic_composed)
 
         base_splits = {
             "train": load_examples(base_train_path, task.deserialize_example),

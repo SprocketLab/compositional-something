@@ -91,8 +91,8 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
   for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path
-  construction, metadata/result loading, metadata persistence, and config-arg
-  snapshot writing.
+  construction, metadata/result loading, loaded-metadata compatibility
+  validation, metadata persistence, and config-arg snapshot writing.
 - `self/core/program_sandbox.py`: sandboxed composition-program validation.
 - `self/core/proposals.py`: proposal schemas, prompts, parsing, validation,
   and trace row helpers.
@@ -478,7 +478,8 @@ new implementation code:
   generation/loading, training, evaluation, and pseudo-label loop.
   Preflight/default normalization and derived setup values now live in
   `self/core/nonadaptive_setup.py`, output/data artifact paths plus metadata
-  IO live in `self/core/nonadaptive_state.py`, and deterministic
+  IO and loaded-metadata compatibility checks live in
+  `self/core/nonadaptive_state.py`, and deterministic
   size/frontier arithmetic lives in `self/core/nonadaptive_schedule.py`; these
   helpers have direct unit coverage.
 - Recipe helpers now live in `self/core/recipes.py`; `self/self_improvement_recipe.py`
