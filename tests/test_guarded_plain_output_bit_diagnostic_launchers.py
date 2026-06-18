@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "launchers" / "self" / "run_guarded_plain_output_bit_diagnostic_mig.sbatch"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_guarded_plain_output_bit_diagnostic_mig.sh"
 RUN_LENGTH_ALPHA10_BASELINE_PACK = ROOT / "launchers" / "self" / "submit_run_length_alpha10_baseline_pack_mig.sh"
+RUN_LENGTH_ALPHA10_BASELINE_CONFIG = ROOT / "launchers" / "self" / "config" / "run_length_alpha10_baseline_pack.env"
 
 
 def test_run_length_bit_cli_defaults_to_all_round_model_saving():
@@ -22,7 +23,7 @@ def test_run_length_bit_cli_defaults_to_all_round_model_saving():
 
 
 def test_guarded_plain_output_bit_launchers_have_valid_bash_syntax():
-    for launcher in (RUNNER, SUBMITTER, RUN_LENGTH_ALPHA10_BASELINE_PACK):
+    for launcher in (RUNNER, SUBMITTER, RUN_LENGTH_ALPHA10_BASELINE_PACK, RUN_LENGTH_ALPHA10_BASELINE_CONFIG):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
 
@@ -132,3 +133,46 @@ def test_run_length_alpha10_baseline_pack_dry_run_prints_three_baselines(tmp_pat
     assert "DRY_RUN=1; sbatch not executed for direct." in stdout
     assert "DRY_RUN=1; sbatch not executed for unfiltered_compose." in stdout
     assert "DRY_RUN=1; sbatch not executed for guarded_compose." in stdout
+
+
+def test_run_length_alpha10_baseline_pack_can_source_custom_config(tmp_path):
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "rl_alpha10_custom")
+    env["LOG_DIR"] = str(tmp_path / "logs")
+    env["RUN_LENGTH_ALPHA10_BASELINE_CONFIG"] = str(tmp_path / "alpha10.env")
+    Path(env["RUN_LENGTH_ALPHA10_BASELINE_CONFIG"]).write_text(
+        "\n".join(
+            [
+                "RUN_LENGTH_ALPHA10_BASELINE_ROWS_RAW='direct:direct:none guarded_only:compose:run_length_no_boundary_continue'",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["bash", str(RUN_LENGTH_ALPHA10_BASELINE_PACK)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout.replace("\\ ", " ")
+    combined = (result.stdout + result.stderr).replace("\\ ", " ")
+    manifest_text = (tmp_path / "rl_alpha10_custom" / "manifest.tsv").read_text(encoding="utf-8")
+
+    assert "Loaded run-length alpha10 baseline config" in stdout
+    assert "Baseline rows: direct:direct:none guarded_only:compose:run_length_no_boundary_continue" in stdout
+    assert "DRY_RUN=1; sbatch not executed for direct." in stdout
+    assert "DRY_RUN=1; sbatch not executed for guarded_only." in stdout
+    assert "DRY_RUN=1; sbatch not executed for unfiltered_compose." not in stdout
+    assert "--output-dir " + str(tmp_path / "rl_alpha10_custom" / "guarded_only") in combined
+    assert "--pseudo-label-mode direct" in combined
+    assert "--pseudo-label-mode compose" in combined
+    assert "--guarded-compose-rule run_length_no_boundary_continue" in combined
+    assert "direct\tdryrun-direct\t" in manifest_text
+    assert "guarded_only\tdryrun-guarded_only\t" in manifest_text
+    assert "unfiltered_compose" not in manifest_text

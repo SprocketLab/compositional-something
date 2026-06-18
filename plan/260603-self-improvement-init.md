@@ -3949,3 +3949,11 @@ Acceptance criteria for first pilot:
 - Preserved the default five baseline submissions, exact-digits schedule knobs, manifest columns, dry-run output shape, and wrapped-job submission path while allowing alternate lists through `ADDITION_EXACT_DIGITS_CONFIG`.
 - Added dry-run coverage for custom exact-digits config sourcing and updated `self/README.md` with the new config boundary.
 - Verification: `bash -n launchers/self/submit_addition_exact_digits_fixed_binary_mig.sh launchers/self/config/addition_exact_digits_fixed_binary.env launchers/self/run_addition_recipe_fullpack.sh`; `python -m py_compile tests/test_addition_exact_digits_fixed_binary_launcher.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_exact_digits_config tests/test_addition_exact_digits_fixed_binary_launcher.py tests/test_self_common_launcher_helpers.py -q` (`6 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:22:06 UTC
+
+- Added `launchers/self/config/run_length_alpha10_baseline_pack.env` as the explicit row config for the run-length alpha10 baseline pack.
+- Updated `launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh` to source the config, parse `baseline:pseudo_label_mode:guarded_compose_rule` rows, validate row shape, and print the resolved rows in the context banner.
+- Preserved the default direct, unfiltered-compose, and guarded-compose jobs, command flags, manifest format, dry-run output shape, and wrapped-job submission path while allowing alternate rows through `RUN_LENGTH_ALPHA10_BASELINE_CONFIG`.
+- Added dry-run coverage for custom alpha10 baseline row config sourcing and updated `self/README.md` with the new config boundary.
+- Verification: `bash -n launchers/self/submit_run_length_alpha10_baseline_pack_mig.sh launchers/self/config/run_length_alpha10_baseline_pack.env`; `python -m py_compile tests/test_guarded_plain_output_bit_diagnostic_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_alpha10_config tests/test_guarded_plain_output_bit_diagnostic_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.

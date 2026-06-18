@@ -653,7 +653,9 @@ the supported public surface.
   `launchers/self/run_self_improvement_qwen_no_growth.sbatch` now source the
   generic helper for repo-root/Python setup, boolean parsing, Slurm resource
   construction where applicable, shell-quoted repo-command wrapping,
-  wrapped-job submission, and dry-run/print-only command verification.
+  wrapped-job submission, and dry-run/print-only command verification. The
+  alpha10 baseline-pack matrix lives in
+  `launchers/self/config/run_length_alpha10_baseline_pack.env`.
 
 ## Runtime Notes
 
