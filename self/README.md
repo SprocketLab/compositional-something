@@ -633,7 +633,8 @@ new implementation code:
   diagnostic launcher and recipe focused/fullpack/recovery workflow share the
   same helper path, with focused/fullpack/recovery context banners routed
   through `self_print_context`; the run-length fixed-binary submitter uses the
-  generic explicit-resource helper for its mixed GPU/CPU jobs; the guarded
+  generic explicit-resource and context-printing helpers for its mixed GPU/CPU
+  jobs; the guarded
   plain-output bit diagnostic runner and submitter share generic
   repo-root/Python/context-printing/command-printing helpers; the rectangular
   square

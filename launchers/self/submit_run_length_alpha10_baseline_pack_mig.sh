@@ -31,16 +31,17 @@ MANIFEST="${OUT_ROOT}/manifest.tsv"
 mkdir -p "${OUT_ROOT}"
 printf "baseline\tjob_id\toutput_dir\tresults_path\n" > "${MANIFEST}"
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Seed model: ${SEED_MODEL}"
-echo "[INFO] Num rounds: ${NUM_EXPAND_ROUNDS}"
-echo "[INFO] Expand num bits: ${EXPAND_NUM_BITS}"
-echo "[INFO] Expand train per bit: ${EXPAND_TRAIN_PER_BIT}"
-echo "[INFO] Round warmup steps: ${ROUND_WARMUP_STEPS}"
-echo "[INFO] Trainer seed: ${SEED}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Seed model" "${SEED_MODEL}" \
+  "Num rounds" "${NUM_EXPAND_ROUNDS}" \
+  "Expand num bits" "${EXPAND_NUM_BITS}" \
+  "Expand train per bit" "${EXPAND_TRAIN_PER_BIT}" \
+  "Round warmup steps" "${ROUND_WARMUP_STEPS}" \
+  "Trainer seed" "${SEED}" \
+  "Dry run" "${DRY_RUN}"
 
 for baseline in "${BASELINES[@]}"; do
   out_dir="${OUT_ROOT}/${baseline}"
