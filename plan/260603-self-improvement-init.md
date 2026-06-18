@@ -4245,3 +4245,37 @@ Acceptance criteria for first pilot:
   tests/test_proposal_grpo_traces.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`60 passed`, `7`
   existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:25:19 UTC
+
+- Converted `self/core/nonadaptive_facade_exports.py` from an eager
+  compatibility barrel to a lazy resolver for the old
+  `self.self_improvement_core` public surface.
+- Updated `self/self_improvement_core.py` so importing, listing, or inspecting
+  the legacy facade no longer star-imports model IO, evaluation, training,
+  Torch, Transformers, or the canonical non-adaptive loop.
+- Preserved legacy attribute imports and monkeypatch behavior: requested names
+  resolve to the same canonical owners, and `run_self_improvement(...)` loads
+  default values for all `NONADAPTIVE_PATCHABLE_NAMES` before syncing facade
+  globals into `self.core.nonadaptive_loop`.
+- Added `tests/test_driver_lazy_imports.py` coverage showing that
+  `self.self_improvement_core` and `self.core.nonadaptive_facade_exports` can
+  be imported/listed in a fresh subprocess without loading the non-adaptive
+  loop, training stack, Torch, or Transformers.
+- Verification: `python -m py_compile
+  self/core/nonadaptive_facade_exports.py self/self_improvement_core.py
+  tests/test_driver_lazy_imports.py`; base-Python smoke confirmed facade
+  import/listing leaves heavy modules unloaded; `PYTHONPATH=. conda run -n
+  torch-env pytest --basetemp=.pytest_tmp_nonadaptive_lazy
+  tests/test_driver_lazy_imports.py tests/test_nonadaptive_compat.py
+  tests/test_training_data.py tests/test_self_improvement_tasks.py
+  tests/test_run_length_recipe.py tests/test_nonadaptive_seed_round_zero.py -q`
+  (`55 passed`); final focused check with adaptive smoke coverage:
+  `PYTHONPATH=. conda run -n torch-env pytest
+  --basetemp=.pytest_tmp_nonadaptive_lazy_final
+  tests/test_driver_lazy_imports.py tests/test_nonadaptive_compat.py
+  tests/test_training_data.py tests/test_self_improvement_tasks.py
+  tests/test_run_length_recipe.py tests/test_nonadaptive_seed_round_zero.py
+  tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`97 passed`, `3`
+  existing multiprocessing fork warnings).

@@ -1,87 +1,11 @@
 #!/usr/bin/env python3
-"""Compatibility export manifest for :mod:`self.self_improvement_core`."""
+"""Lazy compatibility exports for :mod:`self.self_improvement_core`."""
 
 from __future__ import annotations
 
-import json
-import math
-import random
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+import importlib
+from typing import Any
 
-import torch
-from transformers import set_seed
-
-from self.core.data_io import (
-    cleanup_round_checkpoints,
-    decode_rng_state,
-    encode_rng_state,
-    ensure_dir,
-    load_examples,
-    load_summary_records,
-    resolve_save_model_policy,
-    sanitize_json_value,
-    save_examples,
-    write_summary_records,
-)
-from self.core.evaluation import (
-    build_generation_encodings,
-    evaluate_accuracy_with_breakdown,
-    extract_numeric_answer,
-    generate_prediction_map,
-    parse_prediction,
-    resolve_max_new_tokens,
-    write_prediction_debug_samples,
-)
-from self.core.model_io import (
-    add_token_initializers,
-    initialize_copied_embeddings,
-    instantiate_model_and_tokenizer,
-    load_model_for_tokenizer,
-    load_model_from_config,
-    lookup_single_token_id,
-    sync_model_special_token_ids,
-)
-from self.core.nonadaptive_compat import (
-    NONADAPTIVE_PATCHABLE_NAMES,
-    sync_nonadaptive_loop_globals,
-)
-from self.core.recipe_models import (
-    instantiate_recipe_model,
-    load_recipe_model,
-)
-from self.core.recipe_presets import (
-    recipe_enabled,
-    resolve_self_improvement_recipe,
-)
-from self.core.recipe_training import PaddingAwareCausalLMDataCollator
-from self.core.summaries import (
-    RoundSummary,
-    SliceMetric,
-    format_accuracy,
-    summarize_round,
-    summary_to_payload,
-)
-from self.core.task_protocols import (
-    JsonDict,
-    KeyGetter,
-    PredictionParser,
-    PromptTargetExample,
-    SelfImprovementTask,
-    SizeGetter,
-    SplitName,
-)
-from self.core.training import (
-    TRAINING_ARGUMENT_FIELDS,
-    BatchSamplerTrainer,
-    CausalLMDataCollator,
-    SizeBucketBatchSampler,
-    TokenizedPromptTargetDataset,
-    TrainingConfig,
-    build_trainer,
-    make_training_args,
-    training_arg_supported,
-)
 
 MODULE_EXPORTS = (
     "annotations",
@@ -193,5 +117,92 @@ NONADAPTIVE_FACADE_BASE_EXPORT_NAMES = tuple(
     name for group in NONADAPTIVE_FACADE_BASE_EXPORT_GROUPS for name in group
 )
 NONADAPTIVE_FACADE_EXPORT_NAMES = (*NONADAPTIVE_FACADE_BASE_EXPORT_NAMES, "run_self_improvement")
+
+_EXPORT_TARGETS: dict[str, tuple[str, str | None]] = {
+    "annotations": ("__future__", "annotations"),
+    "json": ("json", None),
+    "math": ("math", None),
+    "random": ("random", None),
+    "Path": ("pathlib", "Path"),
+    "torch": ("torch", None),
+    "set_seed": ("transformers", "set_seed"),
+    "Any": ("typing", "Any"),
+    "Dict": ("typing", "Dict"),
+    "List": ("typing", "List"),
+    "Optional": ("typing", "Optional"),
+    "cleanup_round_checkpoints": ("self.core.data_io", "cleanup_round_checkpoints"),
+    "decode_rng_state": ("self.core.data_io", "decode_rng_state"),
+    "encode_rng_state": ("self.core.data_io", "encode_rng_state"),
+    "ensure_dir": ("self.core.data_io", "ensure_dir"),
+    "load_examples": ("self.core.data_io", "load_examples"),
+    "load_summary_records": ("self.core.data_io", "load_summary_records"),
+    "resolve_save_model_policy": ("self.core.data_io", "resolve_save_model_policy"),
+    "sanitize_json_value": ("self.core.data_io", "sanitize_json_value"),
+    "save_examples": ("self.core.data_io", "save_examples"),
+    "write_summary_records": ("self.core.data_io", "write_summary_records"),
+    "build_generation_encodings": ("self.core.evaluation", "build_generation_encodings"),
+    "evaluate_accuracy_with_breakdown": ("self.core.evaluation", "evaluate_accuracy_with_breakdown"),
+    "extract_numeric_answer": ("self.core.evaluation", "extract_numeric_answer"),
+    "generate_prediction_map": ("self.core.evaluation", "generate_prediction_map"),
+    "parse_prediction": ("self.core.evaluation", "parse_prediction"),
+    "resolve_max_new_tokens": ("self.core.evaluation", "resolve_max_new_tokens"),
+    "write_prediction_debug_samples": ("self.core.evaluation", "write_prediction_debug_samples"),
+    "add_token_initializers": ("self.core.model_io", "add_token_initializers"),
+    "initialize_copied_embeddings": ("self.core.model_io", "initialize_copied_embeddings"),
+    "instantiate_model_and_tokenizer": ("self.core.model_io", "instantiate_model_and_tokenizer"),
+    "load_model_for_tokenizer": ("self.core.model_io", "load_model_for_tokenizer"),
+    "load_model_from_config": ("self.core.model_io", "load_model_from_config"),
+    "lookup_single_token_id": ("self.core.model_io", "lookup_single_token_id"),
+    "sync_model_special_token_ids": ("self.core.model_io", "sync_model_special_token_ids"),
+    "NONADAPTIVE_PATCHABLE_NAMES": ("self.core.nonadaptive_compat", "NONADAPTIVE_PATCHABLE_NAMES"),
+    "sync_nonadaptive_loop_globals": ("self.core.nonadaptive_compat", "sync_nonadaptive_loop_globals"),
+    "instantiate_recipe_model": ("self.core.recipe_models", "instantiate_recipe_model"),
+    "load_recipe_model": ("self.core.recipe_models", "load_recipe_model"),
+    "recipe_enabled": ("self.core.recipe_presets", "recipe_enabled"),
+    "resolve_self_improvement_recipe": ("self.core.recipe_presets", "resolve_self_improvement_recipe"),
+    "PaddingAwareCausalLMDataCollator": ("self.core.recipe_training", "PaddingAwareCausalLMDataCollator"),
+    "RoundSummary": ("self.core.summaries", "RoundSummary"),
+    "SliceMetric": ("self.core.summaries", "SliceMetric"),
+    "format_accuracy": ("self.core.summaries", "format_accuracy"),
+    "summarize_round": ("self.core.summaries", "summarize_round"),
+    "summary_to_payload": ("self.core.summaries", "summary_to_payload"),
+    "JsonDict": ("self.core.task_protocols", "JsonDict"),
+    "KeyGetter": ("self.core.task_protocols", "KeyGetter"),
+    "PredictionParser": ("self.core.task_protocols", "PredictionParser"),
+    "PromptTargetExample": ("self.core.task_protocols", "PromptTargetExample"),
+    "SelfImprovementTask": ("self.core.task_protocols", "SelfImprovementTask"),
+    "SizeGetter": ("self.core.task_protocols", "SizeGetter"),
+    "SplitName": ("self.core.task_protocols", "SplitName"),
+    "BatchSamplerTrainer": ("self.core.training", "BatchSamplerTrainer"),
+    "CausalLMDataCollator": ("self.core.training", "CausalLMDataCollator"),
+    "SizeBucketBatchSampler": ("self.core.training", "SizeBucketBatchSampler"),
+    "TRAINING_ARGUMENT_FIELDS": ("self.core.training", "TRAINING_ARGUMENT_FIELDS"),
+    "TokenizedPromptTargetDataset": ("self.core.training", "TokenizedPromptTargetDataset"),
+    "TrainingConfig": ("self.core.training", "TrainingConfig"),
+    "build_trainer": ("self.core.training", "build_trainer"),
+    "make_training_args": ("self.core.training", "make_training_args"),
+    "training_arg_supported": ("self.core.training", "training_arg_supported"),
+}
+
+_MISSING_EXPORT_TARGETS = set(NONADAPTIVE_FACADE_BASE_EXPORT_NAMES) - set(_EXPORT_TARGETS)
+if _MISSING_EXPORT_TARGETS:
+    missing = ", ".join(sorted(_MISSING_EXPORT_TARGETS))
+    raise RuntimeError(f"Missing lazy non-adaptive facade targets: {missing}")
+
+
+def __getattr__(name: str) -> Any:
+    target = _EXPORT_TARGETS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attr_name = target
+    module = importlib.import_module(module_name)
+    value = module if attr_name is None else getattr(module, attr_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(NONADAPTIVE_FACADE_BASE_EXPORT_NAMES))
+
 
 __all__ = list(NONADAPTIVE_FACADE_BASE_EXPORT_NAMES)

@@ -316,8 +316,8 @@ the supported public surface.
   non-adaptive loop before execution, preserving old monkeypatch-based tests
   and scripts without making implementation modules import through the facade.
 - `self/core/nonadaptive_facade_exports.py`: explicit legacy export manifest
-  for `self.self_improvement_core`, grouping compatibility names by canonical
-  owner while keeping the old facade small and auditable.
+  and lazy resolver for `self.self_improvement_core`, grouping compatibility
+  names by canonical owner while keeping old-path import/listing lightweight.
 - `self/core/task_protocols.py`: shared task/example protocols and type
   aliases used by task-agnostic self-improvement code.
 - `self/core/task_registry.py`: adaptive task-name lookup for concrete task
@@ -341,9 +341,9 @@ the supported public surface.
   evaluation/generation helpers, training construction, summary helpers, task
   protocols, non-adaptive loop execution, and non-adaptive monkeypatch sync
   policy have moved into focused `self/core/` modules. Its public compatibility
-  exports now come from `self/core/nonadaptive_facade_exports.py`, and the
-  patchable names synced into the non-adaptive loop are tested against that
-  export surface.
+  exports resolve lazily through `self/core/nonadaptive_facade_exports.py`, and
+  the patchable names synced into the non-adaptive loop are loaded only when
+  `run_self_improvement(...)` executes or a legacy attribute is requested.
 
 ## Current Tasks
 

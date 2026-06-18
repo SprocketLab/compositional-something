@@ -88,6 +88,44 @@ def test_driver_compat_exports_are_lazy_for_listing() -> None:
     }
 
 
+def test_nonadaptive_facade_is_lazy_for_listing() -> None:
+    script = textwrap.dedent(
+        """
+        import importlib
+        import json
+        import sys
+
+        facade = importlib.import_module("self.self_improvement_core")
+        exports = importlib.import_module("self.core.nonadaptive_facade_exports")
+        print(json.dumps({
+            "facade_exports_training_config": "TrainingConfig" in facade.__all__,
+            "exports_has_training_config": "TrainingConfig" in dir(exports),
+            "nonadaptive_loop_loaded": "self.core.nonadaptive_loop" in sys.modules,
+            "training_loaded": "self.core.training" in sys.modules,
+            "torch_loaded": "torch" in sys.modules,
+            "transformers_loaded": "transformers" in sys.modules,
+        }, sort_keys=True))
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "exports_has_training_config": True,
+        "facade_exports_training_config": True,
+        "nonadaptive_loop_loaded": False,
+        "torch_loaded": False,
+        "training_loaded": False,
+        "transformers_loaded": False,
+    }
+
+
 def test_adaptive_runtime_contract_modules_do_not_import_training_stack() -> None:
     script = textwrap.dedent(
         """

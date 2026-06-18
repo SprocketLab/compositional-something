@@ -1,29 +1,50 @@
 #!/usr/bin/env python3
-"""Task-agnostic scaffold for iterative compositional self-improvement."""
+"""Compatibility facade for iterative compositional self-improvement."""
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import sys
+from typing import Any
 
-from self.core import nonadaptive_loop as _nonadaptive_loop
-from self.core.nonadaptive_facade_exports import *  # noqa: F401,F403
-from self.core.nonadaptive_facade_exports import NONADAPTIVE_FACADE_EXPORT_NAMES
+from self.core import nonadaptive_facade_exports as _facade_exports
 from self.core.nonadaptive_compat import (
     NONADAPTIVE_PATCHABLE_NAMES,
     sync_nonadaptive_loop_globals,
 )
-from self.core.task_protocols import (
-    SelfImprovementTask,
-)
+from self.core.nonadaptive_facade_exports import NONADAPTIVE_FACADE_EXPORT_NAMES
 
 __all__ = list(NONADAPTIVE_FACADE_EXPORT_NAMES)
 
 _NONADAPTIVE_PATCHABLE_NAMES = NONADAPTIVE_PATCHABLE_NAMES
+_NONADAPTIVE_FACADE_EXPORT_NAME_SET = frozenset(NONADAPTIVE_FACADE_EXPORT_NAMES)
 
 
-def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
+def __getattr__(name: str) -> Any:
+    if name == "run_self_improvement":
+        return run_self_improvement
+    if name not in _NONADAPTIVE_FACADE_EXPORT_NAME_SET:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(_facade_exports, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | _NONADAPTIVE_FACADE_EXPORT_NAME_SET)
+
+
+def _ensure_patchable_defaults() -> None:
+    for name in _NONADAPTIVE_PATCHABLE_NAMES:
+        if name not in globals():
+            globals()[name] = getattr(_facade_exports, name)
+
+
+def run_self_improvement(args: Any, task: "SelfImprovementTask") -> None:
+    from self.core import nonadaptive_loop as _nonadaptive_loop
+
+    _ensure_patchable_defaults()
     sync_nonadaptive_loop_globals(
-        source_globals=globals(),
+        source_globals=sys.modules[__name__].__dict__,
         target_module=_nonadaptive_loop,
         names=_NONADAPTIVE_PATCHABLE_NAMES,
     )
