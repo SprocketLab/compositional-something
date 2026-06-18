@@ -12,7 +12,7 @@ from transformers import set_seed
 
 from self.core.attempt_prompt_runtime import build_attempt_prompt
 from self.core.candidate_data import attach_pseudo_labels, build_candidate_work_items
-from self.core.candidate_scoring import evaluate_model, train_checkpoint
+from self.core.candidate_training_runtime import evaluate_model, train_checkpoint
 from self.core.controller_phases import RoundModelPhaseResult, SeedPhaseResult
 from self.core.proposal_runtime import load_or_generate_proposal_rows, validate_proposal_rows
 from self.core import worker_io

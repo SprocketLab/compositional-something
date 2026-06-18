@@ -26,11 +26,8 @@ from self.core.args import (
     TASK_CHOICES,
 )
 from self.core.candidate_data import attach_pseudo_labels, examples_by_key
-from self.core.candidate_scoring import (
-    evaluate_model,
-    train_checkpoint,
-)
 from self.core.candidate_rewards import mean_accuracy_for_sizes, static_frontier_sizes
+from self.core.candidate_training_runtime import evaluate_model, train_checkpoint
 from self.core.checkpoints import CheckpointManager, cleanup_replaced_model_checkpoint, cleanup_unselected_models
 from self.core.composition import (
     build_exact_pair_addition_dataset,

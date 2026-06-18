@@ -32,8 +32,12 @@ tests, notebooks, and older artifacts.
 - `self/core/attempt_outcome_runtime.py`: selected/no-selection adaptive
   attempt outcome handling, including outcome traces, selected proposal traces,
   source-pool updates, proposal-GRPO follow-up updates, and attempt summaries.
-- `self/core/candidate_scoring.py`: candidate checkpoint training,
-  post-task proposal rehearsal, evaluation, and reward/metric construction.
+- `self/core/candidate_scoring.py`: candidate scoring orchestration across
+  train-mix setup, checkpoint training, optional proposal rehearsal,
+  evaluation, reward construction, metric artifact writing, and cleanup.
+- `self/core/candidate_training_runtime.py`: candidate `TrainingConfig`
+  construction, checkpoint fine-tuning, held-out evaluation, CUDA cache
+  clearing, and post-task proposal rehearsal training/summary writing.
 - `self/core/candidate_selection.py`: candidate eligibility filtering and
   selection tie-break policy.
 - `self/core/candidate_data.py`: candidate composed-data construction,
@@ -522,12 +526,12 @@ new implementation code:
 - Continue splitting `self/core/driver.py` into smaller modules for round-loop
   orchestration. The CLI/args, shared data model, composition/pseudolabel,
   generic controller-worker dispatch, controller-worker spec runtime,
-  seed/round-model controller phases, candidate train/eval scoring, candidate
-  training-mix construction/artifact writing, candidate reward/metric
-  construction, checkpoint cleanup, proposal runtime generation/validation,
-  proposal prompt rendering, candidate data construction, dry-run attempt
-  handling, selected/no-selection attempt outcome handling, proposal-GRPO
-  dispatch, run setup/trace loading,
+  seed/round-model controller phases, candidate train/eval runtime, candidate
+  scoring orchestration, candidate training-mix construction/artifact writing,
+  candidate reward/metric construction, checkpoint cleanup, proposal runtime
+  generation/validation, proposal prompt rendering, candidate data
+  construction, dry-run attempt handling, selected/no-selection attempt outcome
+  handling, proposal-GRPO dispatch, run setup/trace loading,
   final result/log finalization, output/data initialization, worker-spec
   JSON/key serialization, attempt-level proposal prompt construction, seed
   initialization/initial summary construction, round-model local/Slurm

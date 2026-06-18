@@ -18,7 +18,8 @@ from self.core.attempt_outcome_runtime import handle_attempt_outcome
 from self.core.attempt_prompt_runtime import build_attempt_prompt
 from self.core.candidate_data import build_candidate_work_items
 from self.core.candidate_execution import work_item_from_worker_payload, work_item_to_worker_payload
-from self.core.candidate_scoring import make_config, train_and_score_candidate
+from self.core.candidate_scoring import train_and_score_candidate
+from self.core.candidate_training_runtime import make_config
 from self.core.candidate_selection import select_candidate
 from self.core.candidate_workers import prepare_candidate_worker_specs as _prepare_candidate_worker_specs
 from self.core.controller_phase_runtime import run_round_model_phase, run_seed_phase
