@@ -50,6 +50,7 @@ from self.core.nonadaptive_state import (
     prepare_nonadaptive_run_state,
     write_nonadaptive_config_args,
 )
+from self.core.nonadaptive_training import train_nonadaptive_round_model
 from self.core.summaries import (
     RoundSummary,
     SliceMetric,
@@ -244,78 +245,26 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         save_examples(round_dir / "train_examples.jsonl", train_examples, task.serialize_example)
         save_examples(round_dir / "pseudo_examples_used.jsonl", pseudo_examples, task.serialize_example)
 
-        recipe_phase_name = "seed" if use_recipe and round_idx == 0 else "self_improve"
-        skip_round_training = bool(getattr(args, "treat_seed_as_round_zero", False) and new_run and round_idx == 0)
-        trainer: Optional[Trainer] = None
-        recipe_phase_name = (
-            "seed"
-            if use_recipe and round_idx == 0 and not getattr(args, "treat_seed_as_round_zero", False)
-            else "self_improve"
+        round_training = train_nonadaptive_round_model(
+            args=args,
+            task=task,
+            model=model,
+            tokenizer=tokenizer,
+            train_examples=train_examples,
+            round_dir=round_dir,
+            config=config,
+            data_collator=data_collator,
+            round_idx=round_idx,
+            new_run=new_run,
+            save_model_this_round=save_model_this_round,
+            use_recipe=use_recipe,
+            recipe_name=recipe_name,
+            dataset_cls=TokenizedPromptTargetDataset,
+            make_training_args_fn=make_training_args,
+            build_trainer_fn=build_trainer,
         )
-        recipe_phase_overrides: Optional[Dict[str, object]] = None
-        if use_recipe and recipe_phase_name == "self_improve":
-            overrides: Dict[str, object] = {}
-            lr_override = getattr(args, "self_improve_learning_rate", None)
-            lr_switch_round = getattr(args, "self_improve_lr_switch_round", None)
-            lr_after_switch = getattr(args, "self_improve_learning_rate_after_switch", None)
-            if (
-                lr_switch_round is not None
-                and lr_after_switch is not None
-                and round_idx >= int(lr_switch_round)
-            ):
-                lr_override = lr_after_switch
-            if lr_override is not None:
-                overrides["learning_rate"] = float(lr_override)
-            warmup_override = getattr(args, "self_improve_warmup_steps", None)
-            if warmup_override is not None:
-                overrides["warmup_steps"] = int(warmup_override)
-            if overrides:
-                recipe_phase_overrides = overrides
-
-        if skip_round_training:
-            print(
-                "[INFO] Treating seed checkpoint as completed round_00; skipping round-0 training.",
-                flush=True,
-            )
-            if save_model_this_round:
-                model.save_pretrained(round_dir)
-                tokenizer.save_pretrained(round_dir)
-        else:
-            train_dataset = TokenizedPromptTargetDataset(train_examples, tokenizer)
-            training_args = make_training_args(
-                round_dir,
-                config,
-                bf16=args.bf16,
-                fp16=args.fp16,
-                skip_save=not bool(getattr(args, "keep_checkpoints", False)),
-                keep_checkpoints=bool(getattr(args, "keep_checkpoints", False)),
-                seed=args.seed,
-                recipe=recipe_name,
-                recipe_phase_name=recipe_phase_name,
-                recipe_phase_overrides=recipe_phase_overrides,
-            )
-            trainer = build_trainer(
-                model=model,
-                training_args=training_args,
-                train_dataset=train_dataset,
-                data_collator=data_collator,
-                seed=args.seed + round_idx * 9973,
-                size_getter=task.size_of,
-                bucket_train_batches_by_size=bool(
-                    getattr(args, "bucket_train_batches_by_size", getattr(args, "bucket_train_batches_by_bits", False))
-                ),
-                recipe=recipe_name,
-                recipe_phase_name=recipe_phase_name,
-                recipe_phase_overrides=recipe_phase_overrides,
-            )
-            trainer.train()
-            model = trainer.model
-            if save_model_this_round:
-                if use_recipe:
-                    trainer.save_model(str(round_dir))
-                else:
-                    trainer.save_model()
-                tokenizer.save_pretrained(round_dir)
+        model = round_training.model
+        trainer: Optional[Trainer] = round_training.trainer
 
         eval_accuracy, per_size_accuracy = evaluate_accuracy_with_breakdown(
             model=model,

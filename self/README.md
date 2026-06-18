@@ -98,6 +98,9 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path
   construction, metadata/result loading, loaded-metadata compatibility
   validation, metadata persistence, and config-arg snapshot writing.
+- `self/core/nonadaptive_training.py`: non-adaptive per-round recipe phase
+  resolution, training argument/trainer construction, round training, and
+  model/tokenizer save handling.
 - `self/core/program_sandbox.py`: sandboxed composition-program validation.
 - `self/core/proposals.py`: proposal schemas, prompts, parsing, validation,
   and trace row helpers.
@@ -480,8 +483,9 @@ new implementation code:
   `self/experiments`, `self/diagnostics`, and `self/analysis`
   implementation modules no longer import through this facade.
 - `self/core/nonadaptive_loop.py` still owns the main non-adaptive training,
-  evaluation, dynamic refresh, and pseudo-label loop. Dataset
-  generation/loading now lives in `self/core/nonadaptive_datasets.py`;
+  evaluation, dynamic refresh, and pseudo-label loop. Per-round training setup
+  and execution now lives in `self/core/nonadaptive_training.py`; dataset
+  generation/loading lives in `self/core/nonadaptive_datasets.py`;
   resume/model/bootstrap setup lives in `self/core/nonadaptive_bootstrap.py`;
   preflight/default normalization and derived setup values live in
   `self/core/nonadaptive_setup.py`; output/data artifact paths plus metadata
