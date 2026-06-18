@@ -3455,3 +3455,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_candidate_worker_pack_runtime.py` for cache-aware packed runners, legacy no-cache runners, and the old runtime reexport.
 - Updated `self/README.md` to document the packed-worker runtime owner and narrow `candidate_worker_runtime.py` to single-spec execution plus compatibility.
 - Verification: `python -m py_compile self/core/candidate_worker_pack_runtime.py self/core/candidate_worker_runtime.py self/core/worker_entrypoints.py tests/test_candidate_worker_pack_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_candidate_worker_pack_runtime tests/test_candidate_worker_pack_runtime.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_failures.py tests/test_adaptive_candidate_training.py::test_candidate_worker_spec_roundtrip_loads_inputs tests/test_adaptive_candidate_training.py::test_candidate_pack_worker_reuses_shared_inputs tests/test_adaptive_candidate_training.py::test_candidate_pack_worker_passes_tokenizer_cache_without_base_state tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py -q` (`17 passed`).
+
+### Implementation Log: 2026-06-18 11:39:45 UTC
+
+- Split candidate-level adaptive artifact helpers out of `self/analysis/adaptive_artifacts.py` into `self/analysis/adaptive_candidate_artifacts.py`.
+- The new module owns `AdaptiveCandidateArtifacts`, candidate directory discovery, candidate metrics/train-mix/worker-failure loading, and candidate/candidate-artifact/train-mix/per-size row flatteners.
+- Preserved old notebook import paths by reexporting the moved names from `self/analysis/adaptive_artifacts.py`; the umbrella `self/analysis/artifacts.py` now imports candidate helpers from the new owner module.
+- Extended `tests/test_analysis_artifacts.py` to pin the new owner module and the old compatibility aliases.
+- Updated `self/README.md` to document the split between run/attempt adaptive loaders and candidate-level adaptive loaders.
+- Verification: `python -m py_compile self/analysis/adaptive_artifacts.py self/analysis/adaptive_candidate_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_analysis_candidate_split tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`10 passed`).
