@@ -18,10 +18,11 @@ DIAG_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_their_recipe_diagnostic.s
 FOCUSED_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_recipe_focused.sh"
 FULLPACK_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_recipe_fullpack.sh"
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Device target: ${DEVICE_TARGET}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Output root" "${OUT_ROOT}" \
+  "Device target" "${DEVICE_TARGET}" \
+  "Dry run" "${DRY_RUN}"
 
 env \
   DRY_RUN="${DRY_RUN}" \

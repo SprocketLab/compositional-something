@@ -76,12 +76,13 @@ fi
 
 CMD=("${PYTHON_BIN}" -m self.self_improvement "${COMMON_ARGS[@]}" "${BASELINE_ARGS[@]}")
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Seed model: ${SEED_MODEL}"
-echo "[INFO] Baseline: ${BASELINE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Seed model" "${SEED_MODEL}" \
+  "Baseline" "${BASELINE}" \
+  "Dry run" "${DRY_RUN}"
 self_print_command_stdout "${CMD[@]}"
 
 if self_parse_bool "${DRY_RUN}"; then

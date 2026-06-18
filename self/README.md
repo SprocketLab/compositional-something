@@ -629,9 +629,10 @@ new implementation code:
   fullpack-filtered runner/submitter share generic
   repo-root/Python/boolean/command-printing helpers; the addition recipe
   diagnostic launcher and recipe focused/fullpack/recovery workflow share the
-  same helper path; the run-length fixed-binary submitter uses the generic
-  explicit-resource helper for its mixed GPU/CPU jobs; the guarded plain-output
-  bit diagnostic runner and submitter share generic
+  same helper path, with focused/fullpack/recovery context banners routed
+  through `self_print_context`; the run-length fixed-binary submitter uses the
+  generic explicit-resource helper for its mixed GPU/CPU jobs; the guarded
+  plain-output bit diagnostic runner and submitter share generic
   repo-root/Python/command-printing helpers; the rectangular square
   seed/diagnostic runners and probe/resweep submitters share generic
   repo-root/Python/boolean/command-printing helpers; the rectangular non-square

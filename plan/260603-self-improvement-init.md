@@ -3052,3 +3052,10 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/run_figure2_paper_retune.sh` to use `self_add_dry_run_arg(...)` and `self_print_context(...)` while preserving its Python CLI command construction and optional override forwarding.
 - Updated `self/README.md` to note that the Figure 2 recipe runner/submitter/retune scripts now share context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_figure2_recipe_aggressive.sh launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_fig2_recipe_helpers tests/test_figure2_recipe_aggressive_launchers.py -q` (`5 passed`).
+
+### Implementation Log: 2026-06-18 07:55:15 UTC
+
+- Extended the shared launcher context helper cleanup to the addition recipe focused/fullpack/recovery workflow.
+- Updated `launchers/self/run_addition_recipe_focused.sh`, `launchers/self/run_addition_recipe_fullpack.sh`, and `launchers/self/run_addition_recipe_recovery.sh` to route their top-level `[INFO]` context banners through `self_print_context(...)` while preserving per-baseline status lines, schedule resolution, gate logic, and command execution behavior.
+- Updated `self/README.md` to note that the addition recipe focused/fullpack/recovery context banners now use the shared helper path.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_recipe_focused.sh launchers/self/run_addition_recipe_fullpack.sh launchers/self/run_addition_recipe_recovery.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_recipe_helpers tests/test_addition_recipe_recovery_launchers.py -q` (`6 passed`).
