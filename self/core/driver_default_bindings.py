@@ -28,8 +28,8 @@ from self.core.controller_workers import (
 )
 from self.core.data_io import ensure_dir, sanitize_json_value, save_examples, write_json
 from self.core.dry_run_runtime import run_dry_attempt
+from self.core.experience_outcome_traces import build_round_outcome_trace_examples
 from self.core.experience_traces import (
-    build_round_outcome_trace_examples,
     build_selected_proposal_trace_example,
     write_round_trace,
 )

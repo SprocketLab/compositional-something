@@ -53,9 +53,9 @@ from self.core.controller_workers import (
 )
 from self.core.data_io import load_examples
 from self.core.evaluation import build_generation_encodings, generate_prediction_map, resolve_max_new_tokens
+from self.core.experience_outcome_traces import build_outcome_trace_example
 from self.core.experience_traces import (
     build_candidate_proposal_trace_example,
-    build_outcome_trace_example,
     proposal_trace_metadata,
 )
 from self.core.experience_trace_models import (
