@@ -3634,3 +3634,13 @@ Acceptance criteria for first pilot:
 - Reduced `self/tasks/run_length.py` from `479` to `345` lines in this pass, after earlier logic/data/pseudolabel extractions.
 - Updated `self/README.md` to document `self/tasks/run_length_splits.py`.
 - Verification: `python -m py_compile self/tasks/run_length.py self/tasks/run_length_splits.py self/tasks/run_length_data.py self/tasks/run_length_pseudolabels.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_splits tests/test_self_improvement_tasks.py tests/test_run_length_recipe.py tests/test_nonadaptive_pseudo.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`82 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 13:56:53 UTC
+
+- Split multiplication split preparation and composed-eval overlap/carry slicing from `self/tasks/multiplication.py` into `self/tasks/multiplication_splits.py`.
+- The new module owns seed/long initial split construction, composed train/eval construction, eval-example construction, composed-size rounding to block boundaries, and overlap/carry slice partitioning.
+- Kept `MultiplicationTask` as the task adapter and blocked-component pseudolabel orchestration owner; its public methods now delegate to the split helper module without changing call signatures.
+- Reduced `self/tasks/multiplication.py` from `449` to `367` lines in this pass, while preserving old helper imports through `self.tasks.multiplication`.
+- Added a direct task-adapter test covering multiplication initial/composed/eval split delegation and composed-eval slice partitioning.
+- Updated `self/README.md` to document `self/tasks/multiplication_splits.py`.
+- Verification: `python -m py_compile self/tasks/multiplication.py self/tasks/multiplication_splits.py self/tasks/multiplication_data.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_multiplication_splits tests/test_self_improvement_tasks.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`93 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

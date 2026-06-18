@@ -348,6 +348,65 @@ def test_multiplication_slice_partition_is_total():
     assert sum(len(bucket) for bucket in slices.values()) == len(examples)
 
 
+def test_multiplication_task_split_preparation_methods_build_expected_slices():
+    task = tasks.MultiplicationTask()
+    args = SimpleNamespace(
+        block_size=2,
+        initial_min_size=2,
+        initial_max_size=2,
+        initial_train_per_size=2,
+        initial_eval_per_size=1,
+        expand_train_per_size=1,
+        composed_eval_per_size=1,
+        eval_per_size=1,
+        format_version="legacy",
+    )
+    rng = random.Random(4)
+
+    splits, records = task.prepare_initial_splits(rng, args)
+    assert {split: len(examples) for split, examples in splits.items()} == {
+        "train": 2,
+        "validation": 1,
+        "test": 1,
+    }
+
+    composed_train, train_components, train_keys = task.prepare_composed_train(
+        rng,
+        args,
+        splits,
+        records,
+        min_size=4,
+        max_size=4,
+    )
+    assert len(composed_train) == 1
+    assert set(train_components) == {tasks.multiplication_key(composed_train[0])}
+    assert train_keys == {tasks.multiplication_key(composed_train[0])}
+
+    composed_eval, eval_components, eval_keys = task.prepare_composed_eval(
+        rng,
+        args,
+        splits,
+        records,
+        min_size=4,
+        max_size=4,
+        additional_exclude=train_keys,
+    )
+    assert len(composed_eval) == 1
+    assert set(eval_components) == {tasks.multiplication_key(composed_eval[0])}
+    assert eval_keys == {tasks.multiplication_key(composed_eval[0])}
+    slices = task.split_composed_eval_slices(composed_eval, eval_components)
+    assert sum(len(bucket) for bucket in slices.values()) == 1
+
+    heldout_eval = task.prepare_eval_examples(
+        rng,
+        args,
+        min_size=3,
+        max_size=3,
+        exclude=task.keys_for_examples(splits["train"] + splits["validation"] + splits["test"]),
+    )
+    assert len(heldout_eval) == 1
+
+
 def test_run_length_parse_and_compose():
     left = tasks.RunLengthExample(bitstring="0111", bits=4, max_run=3, prefix_run=1, suffix_run=3)
     right = tasks.RunLengthExample(bitstring="1101", bits=4, max_run=2, prefix_run=2, suffix_run=1)

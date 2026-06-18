@@ -321,6 +321,8 @@ the supported public surface.
 - `self/tasks/multiplication_data.py`: multiplication example container, key
   encoding, seed/long dataset construction, blocked component payloads, slice
   naming, and override cloning.
+- `self/tasks/multiplication_splits.py`: multiplication initial/eval/composed
+  split preparation and composed-eval overlap/carry slice partitioning.
 - `self/tasks/rectangular_partitions.py`: rectangular multiplication partition
   aliases, edge partition defaults, partition parsing/labels, partition-grid
   construction, and partition bucket IDs.
@@ -701,7 +703,9 @@ new implementation code:
   Initial/eval/composed split preparation and composed-eval guard slicing live
   in `self/tasks/run_length_splits.py`.
   Multiplication example/data construction now lives in
-  `self/tasks/multiplication_data.py`, rectangular partition helpers live in
+  `self/tasks/multiplication_data.py`; initial/eval/composed split preparation
+  and composed-eval overlap/carry slicing live in
+  `self/tasks/multiplication_splits.py`. Rectangular partition helpers live in
   `self/tasks/rectangular_partitions.py`, rectangular digit-order/reverse-CoT
   helpers live in `self/tasks/rectangular_digits.py`, and rectangular example,
   parsing, prediction-normalization, and sampled-data helpers live in
