@@ -8,10 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "launchers" / "self" / "run_multiplication_rectangular_self_improvement_mig.sbatch"
 WRAPPER = ROOT / "launchers" / "self" / "submit_multiplication_rectangular_fullpack_mig.sh"
+FULLPACK_CONFIG = ROOT / "launchers" / "self" / "config" / "multiplication_rectangular_fullpack.env"
 
 
 def test_multiplication_self_improvement_launchers_have_valid_bash_syntax():
-    for script in (LAUNCHER, WRAPPER):
+    for script in (LAUNCHER, WRAPPER, FULLPACK_CONFIG):
         assert script.exists()
         subprocess.run(["bash", "-n", str(script)], check=True)
 
@@ -118,3 +119,64 @@ def test_multiplication_self_improvement_wrapper_dry_run_emits_four_baselines(tm
     assert r"--export ALL\,OUT_ROOT=" in combined
     assert r"\,BASELINE=compose_corrupt\," in combined
     assert "job_id=dryrun" in stdout
+
+
+def test_multiplication_self_improvement_wrapper_accepts_partial_config_override(tmp_path):
+    config_path = tmp_path / "mult_rect_fullpack_override.env"
+    config_path.write_text(
+        "\n".join(
+            [
+                "MULT_RECT_FULLPACK_BASELINES_RAW='direct compose'",
+                "TRAIN_BATCH_SIZE=33",
+                "EVAL_BATCH_SIZE=34",
+                "SEED_REPLAY_TRAIN_PER_PARTITION=35",
+                "EXPAND_TRAIN_PER_PARTITION=36",
+                "FRONTIER_ROW_PROFILE=hard_rows_v1",
+                "INITIAL_MAX_B_DIGITS=7",
+                "EXPAND_B_DIGITS=3",
+                "NUM_EXPAND_ROUNDS=5",
+                "HELDOUT_PER_PARTITION=37",
+                "LEARNING_RATE=9e-5",
+                "MAX_STEPS=1234",
+                "SAVE_MODEL=0",
+                "SEED=99",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["DRY_RUN"] = "1"
+    env["OUT_ROOT"] = str(tmp_path / "rect_si_pack_custom")
+    env["SEED_MODEL"] = str(ROOT / "artifacts" / "models" / "addition_recipe_seed_best")
+    env["MULT_RECT_FULLPACK_CONFIG"] = str(config_path)
+
+    result = subprocess.run(
+        ["bash", str(WRAPPER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    combined = result.stdout + result.stderr
+    assert "Loaded multiplication rectangular fullpack override config" in combined
+    assert stdout.count("[INFO] baseline=") == 2
+    assert "baseline=direct" in stdout
+    assert "baseline=compose" in stdout
+    assert "baseline=short_only" not in stdout
+    assert r"\,TRAIN_BATCH_SIZE=33\," in combined
+    assert r"\,EVAL_BATCH_SIZE=34\," in combined
+    assert r"\,SEED_REPLAY_TRAIN_PER_PARTITION=35\," in combined
+    assert r"\,EXPAND_TRAIN_PER_PARTITION=36\," in combined
+    assert r"\,FRONTIER_ROW_PROFILE=hard_rows_v1\," in combined
+    assert r"\,INITIAL_MAX_B_DIGITS=7\," in combined
+    assert r"\,EXPAND_B_DIGITS=3\," in combined
+    assert r"\,NUM_EXPAND_ROUNDS=5\," in combined
+    assert r"\,HELDOUT_PER_PARTITION=37\," in combined
+    assert r"\,LEARNING_RATE=9e-5\," in combined
+    assert r"\,MAX_STEPS=1234\," in combined
+    assert r"\,SAVE_MODEL=0\," in combined
+    assert r"\,SEED=99\," in combined

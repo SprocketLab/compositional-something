@@ -3992,3 +3992,12 @@ Acceptance criteria for first pilot:
 - Extended `tests/test_run_length_fixed_binary_launchers.py` with dry-run coverage for partial config overrides reaching paper, alpha-10 template, and beam commands.
 - Updated `self/README.md` with the new fixed-binary run-length config boundary.
 - Verification: `bash -n launchers/self/submit_run_length_fixed_binary_mig.sh launchers/self/config/run_length_fixed_binary.env`; `python -m py_compile tests/test_run_length_fixed_binary_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_run_length_fixed_binary_config tests/test_run_length_fixed_binary_launchers.py tests/test_self_common_launcher_helpers.py -q` (`7 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 17:48:13 UTC
+
+- Added `launchers/self/config/multiplication_rectangular_fullpack.env` as the explicit default config for rectangular multiplication fullpack baselines, seed model path, train/eval batch sizes, replay/expand budgets, frontier profile, round schedule, held-out budget, LR/max-step overrides, save policy, and seed.
+- Updated `launchers/self/submit_multiplication_rectangular_fullpack_mig.sh` to source the tracked default config first and then optionally source a partial `MULT_RECT_FULLPACK_CONFIG` override file before parsing the baseline list.
+- Preserved existing runner-facing environment variable names in the sbatch export payload while moving the defaults out of the submitter body.
+- Extended `tests/test_multiplication_rectangular_self_improvement_launchers.py` with syntax coverage for the new config and dry-run coverage for partial fullpack overrides.
+- Updated `self/README.md` with the new rectangular fullpack config boundary.
+- Verification: `bash -n launchers/self/submit_multiplication_rectangular_fullpack_mig.sh launchers/self/config/multiplication_rectangular_fullpack.env launchers/self/run_multiplication_rectangular_self_improvement_mig.sbatch`; `python -m py_compile tests/test_multiplication_rectangular_self_improvement_launchers.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_mult_rect_fullpack_config tests/test_multiplication_rectangular_self_improvement_launchers.py tests/test_self_common_launcher_helpers.py -q` (`9 passed`); `git diff --check`.

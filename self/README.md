@@ -632,7 +632,9 @@ the supported public surface.
   The seed-sweep and fullpack submitters also use the shared sbatch-script
   submission helper for per-job names, logs, and explicit export payloads.
   The seed-sweep matrix defaults live in
-  `launchers/self/config/multiplication_rectangular_seed_sweep.env`.
+  `launchers/self/config/multiplication_rectangular_seed_sweep.env`, and the
+  fullpack baseline/training defaults live in
+  `launchers/self/config/multiplication_rectangular_fullpack.env`.
 - `launchers/self/submit_multiplication_rectangular_tune_mig.sh` uses the
   generic helper for repo-root/Python setup, boolean parsing, and stdout
   command printing before delegating to the rectangular tune CLI.
