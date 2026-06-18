@@ -336,7 +336,7 @@ tests, notebooks, and older artifacts.
   still call `python -m self.self_improvement`, which is kept as a
   compatibility wrapper.
 - `self/legacy/bit_task_self_improvement.py`: shared parser/normalization
-  helper for historical bit-string self-improvement CLIs.
+  helper for historical run-length bit-string self-improvement CLIs.
 - `self/legacy/run_length_self_improvement.py`: historical run-length
   self-improvement CLI backed by the shared non-adaptive loop.
 - `self/legacy/multiplication_self_improvement.py`: historical multiplication
@@ -520,7 +520,6 @@ new implementation code:
   with wrapper attribute writes forwarded to the legacy module for old
   monkeypatch-based tests.
 - `self/self_improvement_multiplication_cot_pseudo_addition.py` -> `self/legacy/multiplication_cot_pseudo_addition.py`
-- `self/bit_task_self_improvement.py` -> `self/legacy/bit_task_self_improvement.py`
 - `self/multiplication_self_improvement.py` -> `self/legacy/multiplication_self_improvement.py`
 - `self/run_length_self_improvement.py` -> `self/legacy/run_length_self_improvement.py`
 - `self/slurm_utils.py` -> `self/core/slurm.py`
@@ -612,8 +611,9 @@ new implementation code:
   multiplication experiment batches have moved under canonical package
   directories, the rectangular multiplication shared helper now lives under
   `self/tasks/`, and the historical addition self-improvement CLI now lives
-  in `self/legacy/addition_self_improvement.py`. The historical run-length,
-  multiplication, and bit-task CLI helpers have moved under `self/legacy/`,
+  in `self/legacy/addition_self_improvement.py`. The historical run-length
+  and multiplication CLIs, plus the run-length bit-string helper, have moved
+  under `self/legacy/`,
   the multiplication CoT
   pseudo-addition curriculum script has
   moved under `self/legacy/`, and the balanced run-length evaluation

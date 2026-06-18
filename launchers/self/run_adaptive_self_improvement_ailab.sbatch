@@ -33,7 +33,7 @@ adaptive_print_worker_context "Adaptive self-improvement pilot"
 echo "[INFO] Compile check"
 "${PYTHON_BIN}" -m py_compile \
   self/self_improvement_tasks.py \
-  self/bit_task_self_improvement.py \
+  self/legacy/bit_task_self_improvement.py \
   self/seed_fit_experiment.py \
   self/core/proposals.py \
   self/core/program_sandbox.py \

@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from self.bit_task_self_improvement import build_bit_task_parser
+from self.legacy.bit_task_self_improvement import build_bit_task_parser
 
 
 ROOT = Path(__file__).resolve().parents[1]
