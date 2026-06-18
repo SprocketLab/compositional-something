@@ -3044,3 +3044,11 @@ Acceptance criteria for first pilot:
 - Updated `launchers/self/submit_figure2_condition_sweep_mig.sh`, `launchers/self/submit_figure3_seed_quality_sweep_mig.sh`, and `launchers/self/submit_figure3_real_seed_data_ablation_mig.sh` to use the new helpers while preserving their Python CLI delegation and dry-run command output.
 - Updated `self/README.md` to note that the small Figure 2/3 wrappers now share dry-run and context-printing helpers as well as the generic setup path.
 - Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/submit_figure2_condition_sweep_mig.sh launchers/self/submit_figure3_seed_quality_sweep_mig.sh launchers/self/submit_figure3_real_seed_data_ablation_mig.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_figure_launchers tests/test_figure2_condition_sweep.py tests/test_figure3_seed_quality_sweep.py tests/test_figure3_real_seed_data_ablation.py -q` (`16 passed`).
+
+### Implementation Log: 2026-06-18 07:52:13 UTC
+
+- Extended the shared launcher helper cleanup to the Figure 2 recipe family.
+- Updated `launchers/self/run_figure2_recipe_aggressive.sh` and `launchers/self/submit_figure2_recipe_aggressive.sh` to use `self_print_context(...)` for repeated `[INFO]` context output while preserving schedule resolution, stage orchestration, and Slurm submission logic.
+- Updated `launchers/self/run_figure2_paper_retune.sh` to use `self_add_dry_run_arg(...)` and `self_print_context(...)` while preserving its Python CLI command construction and optional override forwarding.
+- Updated `self/README.md` to note that the Figure 2 recipe runner/submitter/retune scripts now share context-printing helpers in addition to repo-root/Python/boolean and command-printing helpers.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_figure2_recipe_aggressive.sh launchers/self/submit_figure2_recipe_aggressive.sh launchers/self/run_figure2_paper_retune.sh`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_fig2_recipe_helpers tests/test_figure2_recipe_aggressive_launchers.py -q` (`5 passed`).

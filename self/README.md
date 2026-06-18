@@ -646,8 +646,9 @@ new implementation code:
   the small Figure 2/3 submitter wrappers share the helper path, including
   shared dry-run flag insertion and context printing, before delegating to
   their Python experiment CLIs; the Figure 2 recipe
-  runner/submitter/retune scripts share generic repo-root/Python/boolean and
-  command-printing helpers; the composition-error sweep now invokes the
+  runner/submitter/retune scripts share generic repo-root/Python/boolean,
+  context-printing, and command-printing helpers; the composition-error sweep
+  now invokes the
   canonical `self.experiments.composition_error_sweep` module while preserving
   the old top-level wrapper, and the local/refocused
   workshop batchers, run-length alpha10 baseline submitter, and self-improvement

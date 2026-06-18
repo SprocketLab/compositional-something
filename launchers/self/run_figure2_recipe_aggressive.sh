@@ -497,23 +497,24 @@ run_stage_for_task() {
   esac
 }
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Figure dir: ${FIGURE_DIR}"
-echo "[INFO] Device target: ${DEVICE_TARGET}"
-echo "[INFO] Stage: ${STAGE}"
-echo "[INFO] Tasks: ${TASKS}"
-echo "[INFO] Baselines: ${BASELINES}"
-echo "[INFO] Run pilot gate: ${RUN_PILOT_GATE}"
-echo "[INFO] Dry run: ${DRY_RUN}"
-echo "[INFO] Paper schedule env: ${PAPER_SCHEDULE_ENV}"
-echo "[INFO] Initial train per bit: ${INITIAL_TRAIN_PER_BIT}"
-echo "[INFO] Initial eval per bit: ${INITIAL_EVAL_PER_BIT}"
-echo "[INFO] Composed eval per bit: ${COMPOSED_EVAL_PER_BIT}"
-echo "[INFO] Default bit composition path mode: ${BIT_COMPOSITION_PATH_MODE}"
-echo "[INFO] Default target mode: ${TARGET_MODE}"
-echo "[INFO] Figure style: ${FIGURE_STYLE}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Figure dir" "${FIGURE_DIR}" \
+  "Device target" "${DEVICE_TARGET}" \
+  "Stage" "${STAGE}" \
+  "Tasks" "${TASKS}" \
+  "Baselines" "${BASELINES}" \
+  "Run pilot gate" "${RUN_PILOT_GATE}" \
+  "Dry run" "${DRY_RUN}" \
+  "Paper schedule env" "${PAPER_SCHEDULE_ENV}" \
+  "Initial train per bit" "${INITIAL_TRAIN_PER_BIT}" \
+  "Initial eval per bit" "${INITIAL_EVAL_PER_BIT}" \
+  "Composed eval per bit" "${COMPOSED_EVAL_PER_BIT}" \
+  "Default bit composition path mode" "${BIT_COMPOSITION_PATH_MODE}" \
+  "Default target mode" "${TARGET_MODE}" \
+  "Figure style" "${FIGURE_STYLE}"
 for task in "${TASK_LIST[@]}"; do
   echo "[INFO] Task schedule ${task}: seed_model=$(resolve_seed_model_for_task "${task}") num_expand_rounds=$(resolve_num_expand_rounds_for_task "${task}") expand_num_bits=$(resolve_expand_num_bits_for_task "${task}") expand_train_per_bit=$(resolve_expand_train_per_bit_for_task "${task}") bit_composition_path_mode=$(resolve_bit_composition_path_mode_for_task "${task}") target_mode=$(resolve_target_mode_for_task "${task}")"
 done

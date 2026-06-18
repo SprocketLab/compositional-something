@@ -76,9 +76,10 @@ append_optional_env "COMPOSED_EVAL_PER_BIT" "${COMPOSED_EVAL_PER_BIT}"
 wrap_cmd+=(bash "${ROOT_DIR}/launchers/self/run_figure2_recipe_aggressive.sh")
 
 self_print_prefixed_command_stdout "Submission command" "${wrap_cmd[@]}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Stdout log: ${stdout_log}"
-echo "[INFO] Stderr log: ${stderr_log}"
+self_print_context \
+  "Output root" "${OUT_ROOT}" \
+  "Stdout log" "${stdout_log}" \
+  "Stderr log" "${stderr_log}"
 
 if [[ -z "${SBATCH_PARTITION}" || -z "${SBATCH_GRES}" ]]; then
   case "${DEVICE_TARGET}" in
@@ -102,10 +103,11 @@ if [[ -z "${SBATCH_PARTITION}" || -z "${SBATCH_GRES}" ]]; then
   esac
 fi
 
-echo "[INFO] Resolved partition: ${SBATCH_PARTITION}"
-echo "[INFO] Resolved gres: ${SBATCH_GRES}"
+self_print_context \
+  "Resolved partition" "${SBATCH_PARTITION}" \
+  "Resolved gres" "${SBATCH_GRES}"
 if [[ -n "${SBATCH_CONSTRAINT}" ]]; then
-  echo "[INFO] Resolved constraint: ${SBATCH_CONSTRAINT}"
+  self_print_context "Resolved constraint" "${SBATCH_CONSTRAINT}"
 fi
 
 if self_parse_bool "${DRY_RUN}"; then

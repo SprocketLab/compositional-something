@@ -42,19 +42,18 @@ fi
 if self_parse_bool "${SKIP_RENDER}"; then
   cmd+=(--skip-render)
 fi
-if self_parse_bool "${DRY_RUN}"; then
-  cmd+=(--dry-run)
-fi
+self_add_dry_run_arg cmd "${DRY_RUN}"
 if [[ "$#" -gt 0 ]]; then
   cmd+=("$@")
 fi
 
-echo "[INFO] Root dir: ${ROOT_DIR}"
-echo "[INFO] Python: ${PYTHON_BIN}"
-echo "[INFO] Output root: ${OUT_ROOT}"
-echo "[INFO] Selection JSON: ${SELECTION_JSON}"
-echo "[INFO] Paper schedule env: ${PAPER_SCHEDULE_ENV}"
-echo "[INFO] Figure dir: ${FIGURE_DIR}"
+self_print_context \
+  "Root dir" "${ROOT_DIR}" \
+  "Python" "${PYTHON_BIN}" \
+  "Output root" "${OUT_ROOT}" \
+  "Selection JSON" "${SELECTION_JSON}" \
+  "Paper schedule env" "${PAPER_SCHEDULE_ENV}" \
+  "Figure dir" "${FIGURE_DIR}"
 self_print_command_stdout "${cmd[@]}"
 
 "${cmd[@]}"
