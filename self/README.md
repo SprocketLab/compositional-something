@@ -40,9 +40,11 @@ the supported public surface.
   manifest for default driver binding names, kept separate so driver
   `dir()`/`__all__` and top-level proxy setup do not import Torch/Transformers
   runtime modules.
-- `self/core/driver_compat_exports.py`: lazy compatibility export surface for
-  helpers and containers that older notebooks/tests imported through
-  `self.adaptive_candidate_training`.
+- `self/core/driver_compat_exports.py`: manifest-backed lazy compatibility
+  export surface for helpers and containers that older notebooks/tests
+  imported through `self.adaptive_candidate_training`. Importing or listing it
+  does not load the full task, training, Torch, or Transformers stack until a
+  concrete legacy attribute is requested.
 - `self/core/driver_compat_manifest.py`: lightweight manifest of the driver
   compatibility names, kept separate so the driver can expose `dir()`/`__all__`
   without importing the full legacy surface eagerly.

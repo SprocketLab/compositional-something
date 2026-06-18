@@ -4220,3 +4220,28 @@ Acceptance criteria for first pilot:
   tests/test_attempt_outcome_runtime.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`60 passed`, `7`
   existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:19:03 UTC
+
+- Converted `self/core/driver_compat_exports.py` from an eager import barrel to
+  a manifest-backed lazy resolver keyed by
+  `self/core/driver_compat_manifest.py`.
+- Preserved the legacy export names and old attribute/import behavior while
+  avoiding import-time loading of task adapters, training code, Torch, and
+  Transformers when code only imports, lists, or inspects the compatibility
+  module.
+- Added a missing-target guard so new names added to the compatibility
+  manifest must be wired to a canonical owner explicitly.
+- Extended `tests/test_driver_lazy_imports.py` to pin import-light listing of
+  `self.core.driver_compat_exports` in a fresh subprocess.
+- Verification: `python -m py_compile self/core/driver_compat_exports.py
+  tests/test_driver_lazy_imports.py`; base-Python smoke confirmed importing
+  and listing `self.core.driver_compat_exports` leaves task/training/Torch/
+  Transformers modules unloaded and that `ConfigProposal` still resolves to
+  `self.core.proposal_config_schema.ConfigProposal`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_driver_compat_lazy
+  tests/test_driver_lazy_imports.py tests/test_proposal_generation.py
+  tests/test_adaptive_proposals_and_sandbox.py tests/test_composition_pseudolabels.py
+  tests/test_proposal_grpo_traces.py tests/test_adaptive_candidate_training.py
+  tests/test_adaptive_self_improvement_controller.py -q` (`60 passed`, `7`
+  existing multiprocessing fork warnings).

@@ -49,6 +49,45 @@ def test_driver_facade_does_not_import_heavy_bindings_for_public_api_listing() -
     }
 
 
+def test_driver_compat_exports_are_lazy_for_listing() -> None:
+    script = textwrap.dedent(
+        """
+        import importlib
+        import json
+        import sys
+
+        exports = importlib.import_module("self.core.driver_compat_exports")
+        print(json.dumps({
+            "has_config_proposal": "ConfigProposal" in dir(exports),
+            "has_set_seed": "set_seed" in exports.__all__,
+            "addition_pipeline_loaded": "core.addition_pipeline" in sys.modules,
+            "tasks_loaded": "self.tasks" in sys.modules,
+            "training_loaded": "self.core.training" in sys.modules,
+            "torch_loaded": "torch" in sys.modules,
+            "transformers_loaded": "transformers" in sys.modules,
+        }, sort_keys=True))
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "addition_pipeline_loaded": False,
+        "has_config_proposal": True,
+        "has_set_seed": True,
+        "tasks_loaded": False,
+        "torch_loaded": False,
+        "training_loaded": False,
+        "transformers_loaded": False,
+    }
+
+
 def test_adaptive_runtime_contract_modules_do_not_import_training_stack() -> None:
     script = textwrap.dedent(
         """
