@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import math
 import random
 import sys
 from pathlib import Path
@@ -15,10 +14,8 @@ from self.core.task_protocols import JsonDict, SelfImprovementTask
 from self.tasks.bit_common import normalize_task_format_version
 from self.tasks.bit_parsing import (
     MULTIPLICATION_FORMATS,
-    format_multiplication_target,
     parse_multiplication_prediction,
 )
-from self.tasks.bit_pseudolabels import build_direct_pseudo_examples
 from self.tasks.multiplication_data import (
     MultiplicationExample,
     analyze_partial_products,
@@ -36,6 +33,7 @@ from self.tasks.multiplication_data import (
     random_int_with_exact_digits,
     split_value_into_blocks,
 )
+from self.tasks.multiplication_pseudolabels import derive_multiplication_round_targets
 from self.tasks.multiplication_splits import (
     prepare_multiplication_composed_eval,
     prepare_multiplication_composed_train,
@@ -219,110 +217,20 @@ class MultiplicationTask(SelfImprovementTask):
         args: Any,
         rng: random.Random,
     ) -> Tuple[List[MultiplicationExample], int, JsonDict]:
-        candidate_examples = [example for example in composed_examples if example.digits <= target_max_size]
-        if args.pseudo_label_mode == "direct":
-            return build_direct_pseudo_examples(
-                candidate_examples,
-                model=model,
-                tokenizer=tokenizer,
-                batch_size=batch_size,
-                decode_max_new_tokens=decode_max_new_tokens,
-                key_getter=self.key_for_example,
-                prediction_parser=self.prediction_parser,
-                clone_builder=self.clone_with_override,
-                mode="direct",
-            )
-        if args.pseudo_label_mode not in {"compose", "compose_corrupt"}:
-            return [], 0, {
-                "mode": args.pseudo_label_mode,
-                "candidate_total": len(candidate_examples),
-                "retained_total": 0,
-                "missing_total": 0,
-            }
-
-        component_examples: Dict[Tuple[int, int, int], MultiplicationExample] = {}
-        for example in candidate_examples:
-            payload = component_map.get(multiplication_key(example))
-            if payload is None:
-                continue
-            for partial in payload.get("partials", []):
-                component = MultiplicationExample(
-                    a=int(partial["a"]),
-                    b=int(partial["b"]),
-                    digits=args.block_size,
-                    result=int(partial["a"]) * int(partial["b"]),
-                    operand_width=args.block_size,
-                    format_version=normalize_task_format_version(args),
-                )
-                component_examples[multiplication_key(component)] = component
-
-        component_predictions = generate_prediction_map(
+        return derive_multiplication_round_targets(
             model=model,
             tokenizer=tokenizer,
-            examples=list(component_examples.values()),
+            composed_examples=composed_examples,
+            component_map=component_map,
+            target_max_size=target_max_size,
+            base_examples=base_examples,
             batch_size=batch_size,
-            max_new_tokens=decode_max_new_tokens,
-            key_getter=multiplication_key,
+            decode_max_new_tokens=decode_max_new_tokens,
+            args=args,
+            rng=rng,
             prediction_parser=self.prediction_parser,
+            generate_prediction_map_fn=generate_prediction_map,
         )
-
-        pseudo_examples: List[MultiplicationExample] = []
-        missing_total = 0
-        corrupted_component_total = 0
-        corrupted_example_total = 0
-
-        for example in candidate_examples:
-            payload = component_map.get(multiplication_key(example))
-            if payload is None:
-                missing_total += 1
-                continue
-            partial_predictions: List[Tuple[int, int]] = []
-            example_corrupted = False
-            missing = False
-            for partial in payload.get("partials", []):
-                component = MultiplicationExample(
-                    a=int(partial["a"]),
-                    b=int(partial["b"]),
-                    digits=args.block_size,
-                    result=int(partial["a"]) * int(partial["b"]),
-                    operand_width=args.block_size,
-                    format_version=normalize_task_format_version(args),
-                )
-                prediction = component_predictions.get(multiplication_key(component))
-                if prediction is None:
-                    missing = True
-                    break
-                numeric_prediction = int(prediction)
-                if args.pseudo_label_mode == "compose_corrupt" and rng.random() < args.corruption_rate:
-                    numeric_prediction += 1
-                    corrupted_component_total += 1
-                    example_corrupted = True
-                partial_predictions.append((numeric_prediction, int(partial["shift"])))
-            if missing:
-                missing_total += 1
-                continue
-            if example_corrupted:
-                corrupted_example_total += 1
-            composed_value = sum(value * (10**shift) for value, shift in partial_predictions)
-            pseudo_examples.append(
-                clone_multiplication_with_override(
-                    example,
-                    format_multiplication_target(composed_value, example.digits, example.format_version),
-                )
-            )
-
-        diagnostics: JsonDict = {
-            "mode": args.pseudo_label_mode,
-            "target_max_digits": int(target_max_size),
-            "candidate_total": len(candidate_examples),
-            "retained_total": len(pseudo_examples),
-            "missing_total": missing_total,
-            "retained_fraction": len(pseudo_examples) / len(candidate_examples) if candidate_examples else math.nan,
-            "corruption_rate": args.corruption_rate if args.pseudo_label_mode == "compose_corrupt" else 0.0,
-            "corrupted_component_total": corrupted_component_total,
-            "corrupted_example_total": corrupted_example_total,
-        }
-        return pseudo_examples, missing_total, diagnostics
 
     def build_task_metadata(self, args: Any, final_max_size: int) -> JsonDict:
         return {

@@ -3800,3 +3800,12 @@ Acceptance criteria for first pilot:
 - Added focused compatibility assertions so old and notebook-facing imports remain identical to the new owner module.
 - Updated `self/README.md` with the new adaptive trace artifact ownership boundary.
 - Verification: `python -m py_compile self/analysis/adaptive_trace_artifacts.py self/analysis/adaptive_artifacts.py self/analysis/artifacts.py tests/test_analysis_artifacts.py`; `python -m compileall -q self/analysis tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_trace_artifacts tests/test_analysis_artifacts.py tests/test_training_curve_notebook_utils.py -q` (`11 passed`); `git diff --check`.
+
+### Implementation Log: 2026-06-18 15:48:36 UTC
+
+- Split multiplication round-target pseudolabel derivation out of `self/tasks/multiplication.py` into `self/tasks/multiplication_pseudolabels.py`.
+- The new module owns multiplication direct, compose, and corrupt blocked-component pseudolabel derivation, component prediction collection, corruption accounting, and pseudolabel diagnostics.
+- Kept `MultiplicationTask.derive_round_targets(...)` as the task protocol entry point and continued injecting the compatibility-aware `generate_prediction_map` wrapper so old `self.self_improvement_tasks` monkeypatch paths still affect pseudolabel generation.
+- Added a focused ownership assertion in `tests/test_self_improvement_tasks.py`.
+- Updated `self/README.md` with the new multiplication pseudolabel ownership boundary.
+- Verification: `python -m py_compile self/tasks/multiplication_pseudolabels.py self/tasks/multiplication.py self/self_improvement_tasks.py tests/test_self_improvement_tasks.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_multiplication_pseudolabels tests/test_self_improvement_tasks.py tests/test_nonadaptive_pseudo.py tests/test_multiplication_rectangular.py tests/test_adaptive_candidate_training.py -q` (`96 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.

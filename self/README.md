@@ -346,11 +346,13 @@ the supported public surface.
   construction, guarded/refill pseudolabel construction, guard-slice
   partitioning, retained-count diagnostics, and the run-length boundary guard.
 - `self/tasks/multiplication.py`: multiplication task orchestration,
-  blocked-component pseudolabel derivation, metadata validation, and
-  `MultiplicationTask`.
+  metadata validation, and `MultiplicationTask`.
 - `self/tasks/multiplication_data.py`: multiplication example container, key
   encoding, seed/long dataset construction, blocked component payloads, slice
   naming, and override cloning.
+- `self/tasks/multiplication_pseudolabels.py`: multiplication direct,
+  compose, and corrupt blocked-component pseudolabel derivation plus
+  diagnostics.
 - `self/tasks/multiplication_splits.py`: multiplication initial/eval/composed
   split preparation and composed-eval overlap/carry slice partitioning.
 - `self/tasks/rectangular_partitions.py`: rectangular multiplication partition
