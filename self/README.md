@@ -569,7 +569,8 @@ the supported public surface.
   script helper for seed submission and shared env-wrapped command construction
   plus wrapped-job submission for fixed-binary and original-composition
   fullpack branches, with test coverage for dry-run and fake-Slurm submission
-  paths.
+  paths. Its default baseline lists live in
+  `launchers/self/config/addition_fixedwidth_mixed.env`.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and

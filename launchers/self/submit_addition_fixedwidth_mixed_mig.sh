@@ -6,6 +6,9 @@ source "${SCRIPT_DIR}/lib/self_common.sh"
 
 self_cd_repo_root
 
+ADDITION_MIXED_CONFIG="${ADDITION_MIXED_CONFIG:-${ROOT_DIR}/launchers/self/config/addition_fixedwidth_mixed.env}"
+self_source_config_file "${ADDITION_MIXED_CONFIG}" "addition fixed-width mixed config"
+
 TS="$(date +%Y%m%d_%H%M%S)"
 RUN_ROOT="${RUN_ROOT:-${ROOT_DIR}/artifacts/runs/addition_fixedwidth_mixed_${TS}}"
 SEED_OUT_ROOT="${RUN_ROOT}/seed"
@@ -27,14 +30,21 @@ DRY_RUN="${DRY_RUN:-0}"
 
 SEED_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_fixedwidth_mixed_seed_mig.sbatch"
 FULLPACK_LAUNCHER="${ROOT_DIR}/launchers/self/run_addition_fixedwidth_mixed_recipe_fullpack.sh"
-BASELINES=(short_only direct with_carry with_carry_filtered)
-ORIGINAL_COMPOSITION_BASELINES=(direct with_carry with_carry_filtered)
+read -r -a BASELINES <<< "${ADDITION_MIXED_BASELINES_RAW}"
+read -r -a ORIGINAL_COMPOSITION_BASELINES <<< "${ADDITION_MIXED_ORIGINAL_COMPOSITION_BASELINES_RAW}"
+if (( ${#BASELINES[@]} == 0 || ${#ORIGINAL_COMPOSITION_BASELINES[@]} == 0 )); then
+  echo "[ERROR] Addition fixed-width mixed baseline lists cannot be empty." >&2
+  exit 2
+fi
 
 self_print_context \
   "Run root" "${RUN_ROOT}" \
   "Seed output" "${SEED_OUT_ROOT}" \
   "Fullpack output" "${FULLPACK_OUT_ROOT}" \
   "Stable seed model" "${SEED_MODEL}" \
+  "Config" "${ADDITION_MIXED_CONFIG}" \
+  "Baselines" "${BASELINES[*]}" \
+  "Original-composition baselines" "${ORIGINAL_COMPOSITION_BASELINES[*]}" \
   "Addition sampling mode" "${ADDITION_SAMPLING_MODE}" \
   "Dry run" "${DRY_RUN}"
 

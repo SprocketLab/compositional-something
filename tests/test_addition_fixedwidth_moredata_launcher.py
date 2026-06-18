@@ -9,11 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_seed_mig.sbatch"
 FULLPACK = ROOT / "launchers" / "self" / "run_addition_fixedwidth_mixed_recipe_fullpack.sh"
 MIXED_SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_mixed_mig.sh"
+MIXED_CONFIG = ROOT / "launchers" / "self" / "config" / "addition_fixedwidth_mixed.env"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_addition_fixedwidth_moredata_mig.sh"
 
 
 def test_addition_fixedwidth_moredata_launchers_have_valid_bash_syntax():
-    for launcher in (SEED, FULLPACK, MIXED_SUBMITTER, SUBMITTER):
+    for launcher in (SEED, FULLPACK, MIXED_SUBMITTER, MIXED_CONFIG, SUBMITTER):
         assert launcher.exists()
         subprocess.run(["bash", "-n", str(launcher)], check=True)
 
@@ -146,6 +147,63 @@ def test_addition_fixedwidth_mixed_submitter_uses_shared_sbatch_wrapping(tmp_pat
     assert "--wrap" in sbatch_text
     assert "ADDITION_COMPOSITION_PATH_MODE=fixed_binary" in sbatch_text
     assert "ADDITION_COMPOSITION_PATH_MODE=random" in sbatch_text
+
+
+def test_addition_fixedwidth_mixed_submitter_can_source_custom_baseline_config(tmp_path: Path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sbatch_log = tmp_path / "sbatch.log"
+    sbatch_stub = fake_bin / "sbatch"
+    sbatch_stub.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%q ' \"$@\" >> \"$SBATCH_LOG\"\n"
+        "printf '\\n' >> \"$SBATCH_LOG\"\n"
+        "echo '54321;cluster'\n",
+        encoding="utf-8",
+    )
+    sbatch_stub.chmod(0o755)
+
+    config_path = tmp_path / "addition_mixed.env"
+    config_path.write_text(
+        "\n".join(
+            [
+                "ADDITION_MIXED_BASELINES_RAW='direct compose'",
+                "ADDITION_MIXED_ORIGINAL_COMPOSITION_BASELINES_RAW='with_carry'",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["SBATCH_LOG"] = str(sbatch_log)
+    env["RUN_ROOT"] = str(tmp_path / "mixed_submit_custom")
+    env["ADDITION_MIXED_CONFIG"] = str(config_path)
+
+    result = subprocess.run(
+        ["bash", str(MIXED_SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = result.stdout
+    manifest_text = (tmp_path / "mixed_submit_custom" / "submission_manifest.txt").read_text(encoding="utf-8")
+    sbatch_text = sbatch_log.read_text(encoding="utf-8")
+
+    assert "Loaded addition fixed-width mixed config" in stdout
+    assert "Baselines: direct compose" in stdout
+    assert "Original-composition baselines: with_carry" in stdout
+    assert stdout.count("Submitted baseline job 54321") == 2
+    assert stdout.count("Submitted original-composition baseline job 54321") == 1
+    assert "baselines=direct compose" in manifest_text
+    assert "original_composition_baselines=with_carry" in manifest_text
+    assert "BASELINE=direct" in sbatch_text
+    assert "BASELINE=compose" in sbatch_text
+    assert "BASELINE=with_carry" in sbatch_text
 
 
 def test_addition_fixedwidth_moredata_submitter_dry_run_emits_stage1_grid(tmp_path: Path):
