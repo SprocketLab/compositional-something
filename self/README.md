@@ -262,9 +262,12 @@ the supported public surface.
 - `self/tasks/rectangular_digits.py`: rectangular multiplication digit-order
   helpers plus reverse-CoT prompt, target, normalization, and final-answer
   parsing utilities for diagnostics.
+- `self/tasks/rectangular_data.py`: rectangular multiplication example
+  container, exact-digit sampling, sampled partition datasets, final-answer
+  parsing, prediction normalization, and key construction.
 - `self/tasks/rectangular_multiplication.py`: rectangular multiplication
-  example container, sampled partition datasets, supported component
-  construction, and composition helpers for rectangular experiments.
+  compatibility wrapper for sampled datasets plus supported component
+  construction and composition helpers for rectangular experiments.
 - `self/tasks/run_length.py`: run-length task orchestration, metadata
   validation, and `RunLengthTask`.
 - `self/tasks/run_length_data.py`: run-length example container, key
@@ -607,8 +610,10 @@ new implementation code:
   Multiplication example/data construction now lives in
   `self/tasks/multiplication_data.py`, rectangular partition helpers live in
   `self/tasks/rectangular_partitions.py`, rectangular digit-order/reverse-CoT
-  helpers live in `self/tasks/rectangular_digits.py`, while
-  `MultiplicationTask` remains the orchestration layer.
+  helpers live in `self/tasks/rectangular_digits.py`, and rectangular example,
+  parsing, prediction-normalization, and sampled-data helpers live in
+  `self/tasks/rectangular_data.py`, while `MultiplicationTask` remains the
+  orchestration layer.
 - `self/self_improvement_core.py` is now a compatibility facade. Continue
   migrating internal imports to canonical `self/core/*` modules when touching
   old top-level scripts, but preserve the facade for old imports and

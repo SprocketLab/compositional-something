@@ -3308,3 +3308,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_rectangular_digits.py` to pin direct helper behavior and old-path reexport compatibility.
 - Updated `self/README.md` with the new rectangular digit helper ownership boundary.
 - Verification: `python -m py_compile self/tasks/rectangular_digits.py self/tasks/rectangular_multiplication.py self/multiplication_rectangular.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_digits tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`33 passed`).
+
+### Implementation Log: 2026-06-18 10:17:20 UTC
+
+- Split rectangular multiplication example/data helpers out of `self/tasks/rectangular_multiplication.py` into `self/tasks/rectangular_data.py`.
+- The new module owns the rectangular example container, exact-digit integer sampling, sampled partition dataset construction, prediction parsing/normalization, key construction, and prediction-match checks.
+- Kept `self.tasks.rectangular_multiplication.build_sampled_rectangular_dataset(...)` as a thin compatibility wrapper that delegates to the new data helper while passing the old module's current `sample_int_with_exact_digits` binding. This preserves existing monkeypatch behavior through `self.multiplication_rectangular.sample_int_with_exact_digits`.
+- Added `tests/test_rectangular_data.py` to pin direct data-helper behavior, injected sampler support, and old-path reexport compatibility.
+- Updated `self/README.md` with the new rectangular data helper ownership boundary.
+- Verification: `python -m py_compile self/tasks/rectangular_data.py self/tasks/rectangular_multiplication.py self/tasks/rectangular_digits.py self/multiplication_rectangular.py tests/test_rectangular_data.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_data tests/test_rectangular_data.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`37 passed`).
