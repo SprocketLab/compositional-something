@@ -44,7 +44,9 @@ for baseline in "${BASELINES[@]}"; do
       "${job_name}" \
       "${log_stem}.out" \
       "${log_stem}.err" \
-      "ALL,BASELINE=${baseline},OUT_ROOT=${OUT_ROOT}" \
+      "$(self_sbatch_export_all \
+        "BASELINE=${baseline}" \
+        "OUT_ROOT=${OUT_ROOT}")" \
       "${JOB_SCRIPT}"
   )"
   echo "[INFO] Submitted baseline=${baseline} job_id=${job_id} out_dir=${out_dir}"

@@ -146,6 +146,15 @@ self_submit_sbatch_command() {
   fi
 }
 
+self_sbatch_export_all() {
+  local export_vars="ALL"
+  local env_pair
+  for env_pair in "$@"; do
+    export_vars+=",${env_pair}"
+  done
+  printf '%s' "${export_vars}"
+}
+
 self_submit_sbatch_script() {
   local dry_run_job_id="$1"
   local job_name="$2"

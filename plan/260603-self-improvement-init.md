@@ -4311,3 +4311,28 @@ Acceptance criteria for first pilot:
   tests/test_proposal_grpo_traces.py tests/test_adaptive_candidate_training.py
   tests/test_adaptive_self_improvement_controller.py -q` (`112 passed`, `7`
   existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-18 19:37:23 UTC
+
+- Added `self_sbatch_export_all(...)` to `launchers/self/lib/self_common.sh`
+  as a shared helper for building `sbatch --export ALL,NAME=value,...` payloads
+  from explicit `NAME=value` arguments.
+- Migrated representative submitters away from hand-built comma strings:
+  `submit_addition_fullpack_filtered_mig.sh`,
+  `submit_guarded_plain_output_bit_diagnostic_mig.sh`,
+  `submit_multiplication_rectangular_square_probe_mig.sh`, and
+  `submit_multiplication_rectangular_square_seed_resweep_mig.sh`.
+- Kept submission semantics unchanged: the helper produces the same
+  `ALL,...` export string passed into `self_submit_sbatch_script(...)`, while
+  making launcher matrices easier to inspect and edit.
+- Added direct helper coverage to `tests/test_self_common_launcher_helpers.py`.
+- Verification: `bash -n launchers/self/lib/self_common.sh
+  launchers/self/submit_addition_fullpack_filtered_mig.sh
+  launchers/self/submit_guarded_plain_output_bit_diagnostic_mig.sh
+  launchers/self/submit_multiplication_rectangular_square_probe_mig.sh
+  launchers/self/submit_multiplication_rectangular_square_seed_resweep_mig.sh`;
+  `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_export_helper
+  tests/test_self_common_launcher_helpers.py
+  tests/test_addition_fullpack_filtered_launcher.py
+  tests/test_multiplication_rectangular_square_launchers.py
+  tests/test_guarded_plain_output_bit_diagnostic_launchers.py -q` (`29 passed`).

@@ -713,7 +713,8 @@ the supported public surface.
   `launchers/self/run_self_improvement_qwen_no_growth.sbatch` now source the
   generic helper for repo-root/Python setup, boolean parsing, Slurm resource
   construction where applicable, shell-quoted repo-command wrapping,
-  wrapped-job submission, and dry-run/print-only command verification.
+  wrapped-job submission, structured `sbatch --export=ALL,...` construction,
+  and dry-run/print-only command verification.
   The boundary-eval and qwen-no-growth runners use the shared
   model-snapshot preflight. The
   alpha10 baseline-pack matrix lives in

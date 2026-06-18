@@ -76,6 +76,24 @@ def test_self_common_wraps_repo_command_with_pythonpath_and_quotes(tmp_path: Pat
     assert "path\\ with\\ spaces" in result.stdout
 
 
+def test_self_common_builds_sbatch_export_all_list():
+    script = (
+        "set -euo pipefail\n"
+        f"source {SELF_COMMON}\n"
+        "self_sbatch_export_all 'TASK=run_length' 'OUT_ROOT=/tmp/out' 'VALUE=two words'\n"
+    )
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout == "ALL,TASK=run_length,OUT_ROOT=/tmp/out,VALUE=two words"
+
+
 def test_self_common_updates_symlink_and_creates_parent(tmp_path: Path):
     target = tmp_path / "model target"
     link = tmp_path / "artifacts" / "models" / "seed_best"

@@ -41,7 +41,14 @@ for task in "${TASK_LIST[@]}"; do
       "${job_name}" \
       "${log_stem}.out" \
       "${log_stem}.err" \
-      "ALL,TASK=${task},OUT_ROOT=${OUT_ROOT},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SYMBOL_ALPHABET_SIZE=${SYMBOL_ALPHABET_SIZE},DRY_RUN=${DRY_RUN}" \
+      "$(self_sbatch_export_all \
+        "TASK=${task}" \
+        "OUT_ROOT=${OUT_ROOT}" \
+        "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+        "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+        "SEED=${SEED}" \
+        "SYMBOL_ALPHABET_SIZE=${SYMBOL_ALPHABET_SIZE}" \
+        "DRY_RUN=${DRY_RUN}")" \
       "${JOB_SCRIPT}"
   )"
   if self_parse_bool "${DRY_RUN}"; then

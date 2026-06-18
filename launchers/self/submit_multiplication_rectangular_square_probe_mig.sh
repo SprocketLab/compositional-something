@@ -36,7 +36,17 @@ seed_job_id="$(
     "mult-rect-square-seed" \
     "${seed_log_stem}.out" \
     "${seed_log_stem}.err" \
-    "ALL,OUT_ROOT=${SEED_OUT},TRAIN_PER_PARTITION=${SEED_TRAIN_PER_PARTITION},HELDOUT_PER_PARTITION=${SEED_HELDOUT_PER_PARTITION},MAX_STEPS=${SEED_MAX_STEPS},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=${SAVE_MODEL},SKIP_TRAIN_EVAL=${SEED_SKIP_TRAIN_EVAL},DRY_RUN=${DRY_RUN}" \
+    "$(self_sbatch_export_all \
+      "OUT_ROOT=${SEED_OUT}" \
+      "TRAIN_PER_PARTITION=${SEED_TRAIN_PER_PARTITION}" \
+      "HELDOUT_PER_PARTITION=${SEED_HELDOUT_PER_PARTITION}" \
+      "MAX_STEPS=${SEED_MAX_STEPS}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "SEED=${SEED}" \
+      "SAVE_MODEL=${SAVE_MODEL}" \
+      "SKIP_TRAIN_EVAL=${SEED_SKIP_TRAIN_EVAL}" \
+      "DRY_RUN=${DRY_RUN}")" \
     "${SEED_LAUNCHER}"
 )"
 echo "[INFO] seed_job_id=${seed_job_id} output=${SEED_OUT} log=${seed_log_stem}.out"
@@ -48,7 +58,17 @@ diag_job_id="$(
     "mult-rect-square-diag" \
     "${diag_log_stem}.out" \
     "${diag_log_stem}.err" \
-    "ALL,OUT_ROOT=${DIAG_OUT},SEED_MODEL=${SEED_OUT}/model,TRAIN_PER_PARTITION=${DIAG_TRAIN_PER_PARTITION},HELDOUT_PER_PARTITION=${DIAG_HELDOUT_PER_PARTITION},MAX_STEPS=${DIAG_MAX_STEPS},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=${SAVE_MODEL},DRY_RUN=${DRY_RUN}" \
+    "$(self_sbatch_export_all \
+      "OUT_ROOT=${DIAG_OUT}" \
+      "SEED_MODEL=${SEED_OUT}/model" \
+      "TRAIN_PER_PARTITION=${DIAG_TRAIN_PER_PARTITION}" \
+      "HELDOUT_PER_PARTITION=${DIAG_HELDOUT_PER_PARTITION}" \
+      "MAX_STEPS=${DIAG_MAX_STEPS}" \
+      "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+      "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+      "SEED=${SEED}" \
+      "SAVE_MODEL=${SAVE_MODEL}" \
+      "DRY_RUN=${DRY_RUN}")" \
     --dependency "afterok:${seed_job_id}" \
     "${DIAG_LAUNCHER}"
 )"

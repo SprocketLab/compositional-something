@@ -38,7 +38,18 @@ for train_count in "${TRAIN_COUNTS[@]}"; do
         "${job_name}" \
         "${log_stem}.out" \
         "${log_stem}.err" \
-        "ALL,OUT_ROOT=${out_dir},LR=${lr},TRAIN_PER_PARTITION=${train_count},MAX_STEPS=${MAX_STEPS},TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE},EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE},SEED=${SEED},SAVE_MODEL=1,HELDOUT_PER_PARTITION=${HELDOUT_PER_PARTITION},SKIP_TRAIN_EVAL=${SKIP_TRAIN_EVAL},DRY_RUN=${DRY_RUN}" \
+        "$(self_sbatch_export_all \
+          "OUT_ROOT=${out_dir}" \
+          "LR=${lr}" \
+          "TRAIN_PER_PARTITION=${train_count}" \
+          "MAX_STEPS=${MAX_STEPS}" \
+          "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE}" \
+          "EVAL_BATCH_SIZE=${EVAL_BATCH_SIZE}" \
+          "SEED=${SEED}" \
+          "SAVE_MODEL=1" \
+          "HELDOUT_PER_PARTITION=${HELDOUT_PER_PARTITION}" \
+          "SKIP_TRAIN_EVAL=${SKIP_TRAIN_EVAL}" \
+          "DRY_RUN=${DRY_RUN}")" \
         "${LAUNCHER}"
     )"
     if self_parse_bool "${DRY_RUN}"; then
