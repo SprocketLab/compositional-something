@@ -535,7 +535,9 @@ the supported public surface.
 - `launchers/self/run_addition_fullpack_filtered.sbatch` and
   `launchers/self/submit_addition_fullpack_filtered_mig.sh` use the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
-  dry-run command printing.
+  dry-run command printing. The submitter also uses the shared sbatch-script
+  submission helper for per-baseline Slurm metadata and explicit environment
+  export payloads.
 - `launchers/self/run_addition_their_recipe_diagnostic.sh` uses the generic
   helper for repo-root/Python setup, boolean parsing, context printing, and
   dry-run command printing before delegating to the addition recipe diagnostic

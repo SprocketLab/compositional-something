@@ -3692,3 +3692,11 @@ Acceptance criteria for first pilot:
 - Added `tests/test_attempt_candidate_runtime.py` to pin the new helper's call ordering and argument forwarding, including updated round-model accuracies into candidate training and outcome handling.
 - Updated `self/README.md` with the candidate-attempt runtime ownership boundary.
 - Verification: `python -m py_compile self/core/attempt_candidate_runtime.py self/core/attempt_loop_runtime.py tests/test_attempt_candidate_runtime.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_attempt_candidate tests/test_attempt_candidate_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_self_improvement_controller.py -q` (`42 passed`, `3` existing multiprocessing fork warnings); `git diff --check`.
+
+### Implementation Log: 2026-06-18 14:29:53 UTC
+
+- Continued Slurm launcher consolidation by moving `launchers/self/submit_addition_fullpack_filtered_mig.sh` onto `self_submit_sbatch_script(...)`.
+- The submitter now uses explicit per-baseline job names, stdout/stderr log paths, and `--export ALL,BASELINE=...,OUT_ROOT=...` payloads while preserving the five-baseline matrix and output-root layout.
+- Kept the existing dry-run baseline listing and added dry-run assertions for the shared helper's generated Slurm metadata/export command.
+- Updated `self/README.md` to document that the addition fullpack filtered submitter now uses the shared sbatch-script submission helper.
+- Verification: `bash -n launchers/self/lib/self_common.sh launchers/self/run_addition_fullpack_filtered.sbatch launchers/self/submit_addition_fullpack_filtered_mig.sh`; manual `DRY_RUN=1 OUT_ROOT=/tmp/addition_fullpack_test LOG_DIR=/tmp/logs bash launchers/self/submit_addition_fullpack_filtered_mig.sh` smoke check showed all five baselines and shared-helper sbatch commands; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_addition_fullpack_submit_helper tests/test_addition_fullpack_filtered_launcher.py tests/test_self_common_launcher_helpers.py -q` (`7 passed`); `git diff --check`.

@@ -88,6 +88,7 @@ def test_addition_fullpack_submit_wrapper_dry_run_lists_five_jobs(tmp_path):
     )
 
     stdout = result.stdout
+    combined = result.stdout + result.stderr
     assert stdout.count("[DRY_RUN] baseline=") == 5
     assert "baseline=short_only" in stdout
     assert "baseline=direct" in stdout
@@ -95,3 +96,8 @@ def test_addition_fullpack_submit_wrapper_dry_run_lists_five_jobs(tmp_path):
     assert "baseline=with_carry_filtered" in stdout
     assert "baseline=compose_corrupt" in stdout
     assert str(tmp_path / "addition_fullpack") in stdout
+    assert "--job-name addition-fullpack-short-only" in combined
+    assert "--output" in combined
+    assert "--error" in combined
+    assert r"--export ALL\,BASELINE=with_carry_filtered\,OUT_ROOT=" in combined
+    assert "dryrun-addition-fullpack-compose-corrupt" in stdout
