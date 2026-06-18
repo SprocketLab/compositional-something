@@ -259,8 +259,11 @@ the supported public surface.
 - `self/tasks/rectangular_partitions.py`: rectangular multiplication partition
   aliases, edge partition defaults, partition parsing/labels, partition-grid
   construction, and partition bucket IDs.
+- `self/tasks/rectangular_digits.py`: rectangular multiplication digit-order
+  helpers plus reverse-CoT prompt, target, normalization, and final-answer
+  parsing utilities for diagnostics.
 - `self/tasks/rectangular_multiplication.py`: rectangular multiplication
-  example formats, sampled partition datasets, supported component
+  example container, sampled partition datasets, supported component
   construction, and composition helpers for rectangular experiments.
 - `self/tasks/run_length.py`: run-length task orchestration, metadata
   validation, and `RunLengthTask`.
@@ -603,8 +606,9 @@ new implementation code:
   pseudolabel derivation into `self/tasks/run_length_pseudolabels.py`.
   Multiplication example/data construction now lives in
   `self/tasks/multiplication_data.py`, rectangular partition helpers live in
-  `self/tasks/rectangular_partitions.py`, while `MultiplicationTask` remains
-  the orchestration layer.
+  `self/tasks/rectangular_partitions.py`, rectangular digit-order/reverse-CoT
+  helpers live in `self/tasks/rectangular_digits.py`, while
+  `MultiplicationTask` remains the orchestration layer.
 - `self/self_improvement_core.py` is now a compatibility facade. Continue
   migrating internal imports to canonical `self/core/*` modules when touching
   old top-level scripts, but preserve the facade for old imports and

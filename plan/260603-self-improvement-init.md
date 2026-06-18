@@ -3299,3 +3299,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_rectangular_partitions.py` to pin direct helper behavior and old-path reexport compatibility.
 - Updated `self/README.md` to document the rectangular partition helper module.
 - Verification: `python -m py_compile self/tasks/rectangular_partitions.py self/tasks/rectangular_multiplication.py self/multiplication_rectangular.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_partitions tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`30 passed`).
+
+### Implementation Log: 2026-06-18 10:11:13 UTC
+
+- Split rectangular multiplication digit-order and reverse-CoT helpers out of `self/tasks/rectangular_multiplication.py` into `self/tasks/rectangular_digits.py`.
+- The new module owns least-significant-digit ordering, reverse digit text, reverse-CoT prompt/target formatting, trace normalization, final digit extraction, and final value parsing for rectangular diagnostics.
+- Preserved old `self.tasks.rectangular_multiplication` and top-level `self.multiplication_rectangular` imports by importing the helper names back into the existing module.
+- Added `tests/test_rectangular_digits.py` to pin direct helper behavior and old-path reexport compatibility.
+- Updated `self/README.md` with the new rectangular digit helper ownership boundary.
+- Verification: `python -m py_compile self/tasks/rectangular_digits.py self/tasks/rectangular_multiplication.py self/multiplication_rectangular.py tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_rectangular_digits tests/test_rectangular_digits.py tests/test_rectangular_partitions.py tests/test_multiplication_rectangular.py tests/test_multiplication_rectangular_tune.py -q` (`33 passed`).
