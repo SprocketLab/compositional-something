@@ -98,6 +98,9 @@ tests, notebooks, and older artifacts.
 - `self/core/nonadaptive_pseudo.py`: non-adaptive dynamic composed-pool
   refresh, next-round pseudo-label generation, pseudo-generation diagnostics,
   and per-round pseudo/composed artifact snapshots.
+- `self/core/nonadaptive_results.py`: non-adaptive round summary creation,
+  console summary dispatch, `metrics.json` writing, run-level summary-record
+  updates, and compatibility-injected summary/payload bindings.
 - `self/core/nonadaptive_schedule.py`: non-adaptive size-schedule arithmetic
   for legacy contiguous expansion and explicit frontier-based expansion.
 - `self/core/nonadaptive_state.py`: non-adaptive output/data artifact path

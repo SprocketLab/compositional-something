@@ -45,6 +45,7 @@ from self.core.nonadaptive_bootstrap import prepare_nonadaptive_bootstrap
 from self.core.nonadaptive_datasets import prepare_nonadaptive_datasets
 from self.core.nonadaptive_evaluation import evaluate_nonadaptive_round
 from self.core.nonadaptive_pseudo import prepare_nonadaptive_next_pseudo_round
+from self.core.nonadaptive_results import record_nonadaptive_round_summary
 from self.core.nonadaptive_setup import prepare_nonadaptive_run_setup
 from self.core.nonadaptive_state import (
     persist_nonadaptive_metadata,
@@ -282,10 +283,6 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
             write_debug_samples_fn=write_prediction_debug_samples,
             slice_metric_cls=SliceMetric,
         )
-        eval_accuracy = evaluation.eval_accuracy
-        per_size_accuracy = evaluation.per_size_accuracy
-        composed_eval_accuracy = evaluation.composed_eval_accuracy
-        composed_slice_metrics = evaluation.composed_slice_metrics
 
         next_pseudo_round = prepare_nonadaptive_next_pseudo_round(
             args=args,
@@ -321,28 +318,25 @@ def run_self_improvement(args: Any, task: SelfImprovementTask) -> None:
         pseudo_examples = next_pseudo_round.pseudo_examples
         pseudo_generation_stats = next_pseudo_round.pseudo_generation_stats
 
-        summary = RoundSummary(
-            index=round_idx,
+        record_nonadaptive_round_summary(
+            round_idx=round_idx,
             max_size=max_size,
             train_example_count=len(train_examples),
-            pseudo_example_count=pseudo_used_count,
-            eval_accuracy=eval_accuracy,
-            per_size_accuracy=per_size_accuracy,
-            output_dir=round_dir,
-            composed_eval_accuracy=composed_eval_accuracy,
-            composed_eval_slices=composed_slice_metrics,
+            pseudo_used_count=pseudo_used_count,
+            evaluation=evaluation,
             pseudo_generation_stats=pseudo_generation_stats,
+            round_dir=round_dir,
+            save_model_policy=save_model_policy,
+            save_model_this_round=save_model_this_round,
+            summary_records=summary_records,
+            results_path=results_path,
+            task=task,
+            round_summary_cls=RoundSummary,
+            summarize_round_fn=summarize_round,
+            summary_to_payload_fn=summary_to_payload,
+            write_summary_records_fn=write_summary_records,
+            json_module=json,
         )
-        summarize_round(summary, task)
-
-        metrics_payload = summary_to_payload(summary, task)
-        metrics_payload["save_model_policy"] = save_model_policy
-        metrics_payload["model_dir"] = str(round_dir) if save_model_this_round else None
-        with (round_dir / "metrics.json").open("w", encoding="utf-8") as handle:
-            json.dump(metrics_payload, handle, indent=2)
-
-        summary_records[round_idx] = metrics_payload
-        write_summary_records(summary_records, results_path)
 
         if stop_after_round is not None and round_idx >= stop_after_round:
             print(f"[INFO] Stop-after-round reached at round {round_idx}; exiting.", flush=True)

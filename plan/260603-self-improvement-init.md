@@ -2740,3 +2740,12 @@ Acceptance criteria for first pilot:
 - Added `tests/test_nonadaptive_pseudo.py` for final-round side-effect skipping, dynamic refresh plus target derivation, composed-pool/component-map snapshot paths, metadata persistence, decode-budget handoff, warning output, and `pseudo_label_mode=none` empty-stat behavior.
 - `self/core/nonadaptive_loop.py` is now `388` lines, down from `425`; `self/core/nonadaptive_pseudo.py` owns `135` lines of pseudo-label refresh/generation logic.
 - Verification: `python -m py_compile self/core/nonadaptive_loop.py self/core/nonadaptive_pseudo.py tests/test_nonadaptive_pseudo.py`; `PYTHONPATH=. conda run -n torch-env pytest tests/test_nonadaptive_pseudo.py tests/test_nonadaptive_evaluation.py tests/test_nonadaptive_training.py tests/test_nonadaptive_bootstrap.py tests/test_nonadaptive_datasets.py tests/test_nonadaptive_state.py tests/test_nonadaptive_setup.py tests/test_nonadaptive_schedule.py -q` (`27 passed`).
+
+### Implementation Log: 2026-06-18 03:56:06 UTC
+
+- Continued non-adaptive cleanup by extracting round-summary construction and persistence from `self/core/nonadaptive_loop.py` into `self/core/nonadaptive_results.py`.
+- The new helper owns `RoundSummary` construction, console summary dispatch, payload conversion, `save_model_policy` / `model_dir` annotation, per-round `metrics.json` writing, in-memory summary-record updates, and run-level `self_improvement_results.json` rewriting.
+- The loop still passes patchable `RoundSummary`, `summarize_round`, `summary_to_payload`, `write_summary_records`, and `json` bindings into the helper, preserving old `self.self_improvement_core` monkeypatch behavior.
+- Added `tests/test_nonadaptive_results.py` for real metrics/results artifact writing and injected summary/payload/write bindings.
+- `self/core/nonadaptive_loop.py` is now `382` lines, down from `388`; `self/core/nonadaptive_results.py` owns `62` lines of summary persistence logic.
+- Verification: `python -m py_compile self/core/nonadaptive_loop.py self/core/nonadaptive_results.py tests/test_nonadaptive_results.py`; `PYTHONPATH=. conda run -n torch-env pytest tests/test_nonadaptive_results.py tests/test_nonadaptive_pseudo.py tests/test_nonadaptive_evaluation.py tests/test_nonadaptive_training.py tests/test_nonadaptive_bootstrap.py tests/test_nonadaptive_datasets.py tests/test_nonadaptive_state.py tests/test_nonadaptive_setup.py tests/test_nonadaptive_schedule.py -q` (`29 passed`).
