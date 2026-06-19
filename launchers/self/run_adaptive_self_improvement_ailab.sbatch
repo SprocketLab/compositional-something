@@ -32,12 +32,12 @@ adaptive_print_torch_probe
 
 echo "[INFO] Compile check"
 "${PYTHON_BIN}" -m py_compile \
-  self/self_improvement_tasks.py \
+  self/tasks/run_length.py \
   self/legacy/run_length_bit_cli.py \
-  self/seed_fit_experiment.py \
-  self/adaptive/proposals/__init__.py \
-  self/adaptive/sandbox/program_sandbox.py \
-  self/adaptive_self_improvement.py
+  self/experiments/seed_fit_experiment.py \
+  self/adaptive/proposal.py \
+  self/adaptive/program_sandbox.py \
+  self/experiments/adaptive_self_improvement.py
 
 if [[ "${RUN_TESTS}" == "1" ]]; then
   echo "[INFO] Focused tests"

@@ -281,11 +281,11 @@ adaptive_print_torch_probe
 
 if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
   "${PYTHON_BIN}" -m py_compile \
-    self/adaptive/run/driver.py \
-    self/adaptive/proposals/__init__.py \
-    self/adaptive/sandbox/program_sandbox.py \
-    self/self_improvement_core.py \
-    self/self_improvement_tasks.py
+    self/adaptive/driver.py \
+    self/adaptive/proposal.py \
+    self/adaptive/program_sandbox.py \
+    self/core/composition.py \
+    self/core/models.py
 fi
 
 "${PYTHON_BIN}" -m self.adaptive.driver \

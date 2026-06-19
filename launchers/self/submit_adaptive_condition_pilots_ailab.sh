@@ -13,7 +13,7 @@ RUNNER="${RUNNER:-${ROOT_DIR}/launchers/self/run_adaptive_condition_ailab.sbatch
 PLAN_LOG_PATH="${PLAN_LOG_PATH:-${ROOT_DIR}/plan/260603-self-improvement-init.md}"
 DRY_RUN="${DRY_RUN:-0}"
 
-adaptive_set_sbatch_defaults "ailab" "gpu:h200:1" "4" "96G" "01:00:00"
+adaptive_set_sbatch_defaults "ailab" "gpu:h200:1" "4" "48G" "01:00:00"
 MIN_EXAMPLES_PER_SIZE="${MIN_EXAMPLES_PER_SIZE:-1}"
 MAX_EXAMPLES_PER_SIZE="${MAX_EXAMPLES_PER_SIZE:-128}"
 FRONTIER_POLICY="${FRONTIER_POLICY:-fixed}"

@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=96G
+#SBATCH --mem=48G
 #SBATCH --partition=ailab
 #SBATCH --gres=gpu:h200:1
 #SBATCH --time=01:00:00
@@ -71,9 +71,9 @@ adaptive_print_torch_probe
 if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
   echo "[INFO] Compile check"
   "${PYTHON_BIN}" -m py_compile \
-    self/adaptive/proposals/__init__.py \
-    self/adaptive/sandbox/program_sandbox.py \
-    self/adaptive_self_improvement.py
+    self/adaptive/proposal.py \
+    self/adaptive/program_sandbox.py \
+    self/experiments/adaptive_self_improvement.py
 fi
 
 echo "[INFO] Run adaptive proposal condition"
