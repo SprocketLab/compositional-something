@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive import candidate_workers as workers
-from self.adaptive.candidate_workers import CandidateWorkerRuntimeDeps
+from self.adaptive import candidate as workers
+from self.adaptive.candidate import CandidateWorkerRuntimeDeps
 
 
 def _deps() -> CandidateWorkerRuntimeDeps:

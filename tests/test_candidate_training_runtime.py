@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive import candidate_training as runtime
+from self.adaptive import candidate as runtime
 
 
 class _Task:

@@ -202,7 +202,7 @@ import math
 from typing import Any, Dict, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
-from self.adaptive.proposal_config_schema import extract_json_object
+from self.adaptive.proposal import extract_json_object
 
 
 JsonDict = Dict[str, Any]
@@ -656,8 +656,8 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
-from self.adaptive.proposal_io import build_trace_row, write_trace_jsonl
-from self.adaptive.proposal_prompts import PromptBundle
+from self.adaptive.proposal import build_trace_row, write_trace_jsonl
+from self.adaptive.proposal import PromptBundle
 
 
 JsonDict = Dict[str, Any]

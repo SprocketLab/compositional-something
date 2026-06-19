@@ -8,9 +8,9 @@ from self.adaptive import attempts
 from self.adaptive.attempts import AttemptOutcomeDeps, handle_attempt_outcome
 from self.core.data_io import save_examples, write_json
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposal_config_schema import ConfigProposal
-from self.adaptive.proposal_io import write_trace_jsonl
-from self.adaptive.proposal_prompts import PromptBundle
+from self.adaptive.proposal import ConfigProposal
+from self.adaptive.proposal import write_trace_jsonl
+from self.adaptive.proposal import PromptBundle
 
 
 @dataclass(frozen=True)

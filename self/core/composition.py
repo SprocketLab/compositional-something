@@ -186,7 +186,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from core.addition_pipeline import AdditionExample, build_composed_pseudo_map, example_key
 from self.core.models import ExecutableProposal
-from self.adaptive.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal import ConfigProposal
 from self.tasks.bit import (
     normalize_bit_target_mode,
 )
@@ -431,7 +431,7 @@ from core.addition_pipeline import (
     has_component_boundary_carry,
 )
 from self.core.models import ExactPairDataset
-from self.adaptive.proposal_config_schema import ConfigProposal
+from self.adaptive.proposal import ConfigProposal
 from self.tasks.run_length import (
     RunLengthExample,
     bucket_run_length_by_bits,

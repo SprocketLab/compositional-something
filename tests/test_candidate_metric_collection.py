@@ -4,12 +4,12 @@ import math
 from pathlib import Path
 
 from self.core import worker_io
-from self.adaptive.candidate_dispatch import (
+from self.adaptive.candidate import (
     candidate_failure_metrics,
     collect_candidate_array_metrics,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals import ConfigProposal
+from self.adaptive.proposal import ConfigProposal
 
 
 def _work_item(index: int = 0) -> CandidateWorkItem:

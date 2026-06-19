@@ -20,13 +20,13 @@ part of the supported surface.
 ## Implementation Map
 
 - `self/adaptive/`: flat adaptive implementation modules. Use `driver.py` for
-  the CLI, `args.py` for argument parsing, `run_*.py` plus `*_dispatch.py` for
-  orchestration/dispatch, `attempts.py` for attempt-loop behavior,
-  `candidate_*.py` for candidate data/training/worker execution,
-  `proposal_*.py` plus `proposals.py` for proposal schemas/prompts/validation
-  and GRPO, `traces.py` for proposal and outcome traces, `frontier.py` for
-  frontier helpers, `controller.py` for controller workers, and
-  `program_sandbox.py` for generated-program checks.
+  the CLI facade and dependency wiring, `args.py` for argument parsing,
+  `run.py` for run setup/dispatch/orchestration/finalization, `attempts.py`
+  for attempt-loop behavior, `candidate.py` for candidate data/training/worker
+  execution, `proposal.py` for proposal schemas/prompts/validation/runtime/GRPO,
+  `traces.py` for proposal and outcome traces, `frontier.py` for frontier
+  helpers, `controller.py` for controller workers, `program_sandbox.py` for
+  generated-program checks, and `phases.py` for lightweight phase constants.
 - `self/nonadaptive/`: nonadaptive setup, lifecycle, per-round runtime,
   pseudolabel generation, results, and the public `nonadaptive_loop` facade.
 - `self/core/`: shared utilities only: composition, data/model IO, evaluation,
@@ -61,6 +61,9 @@ python -m self.adaptive.driver --help
 - Do not add new top-level `self/*.py` wrappers for implementation modules.
 - Do not add adaptive subpackages; keep `self/adaptive` flat unless there is a
   strong reason to reintroduce a directory.
+- Do not reintroduce adaptive prefix-split files such as `candidate_*`,
+  `proposal_*`, `run_*`, or `driver_*`; add small helpers to the owning module
+  unless there is a clear new subsystem boundary.
 - Prefer task-owned or subsystem-owned modules over prefix-split helper files.
 - Keep compatibility only when a tracked launcher or current notebook needs it;
   otherwise migrate the caller to the canonical module.

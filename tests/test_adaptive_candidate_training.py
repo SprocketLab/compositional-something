@@ -8,17 +8,17 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from core.addition_pipeline import AdditionExample, compose_examples, example_key, has_component_boundary_carry
-from self.adaptive import candidate_dispatch
-from self.adaptive import candidate_training
-from self.adaptive.proposal_config_validation import validate_config_rows
-from self.adaptive.proposal_grpo_traces import (
+from self.adaptive import candidate as candidate_dispatch
+from self.adaptive import candidate as candidate_training
+from self.adaptive.proposal import validate_config_rows
+from self.adaptive.proposal import (
     build_proposal_grpo_traces,
     proposal_grpo_advantages,
     proposal_grpo_reward,
 )
-from self.adaptive.proposal_prompts import choose_default_program_pair
-from self.adaptive.proposal_runtime import validate_proposal_rows
-from self.adaptive import driver_default_bindings, driver_wiring
+from self.adaptive.proposal import choose_default_program_pair
+from self.adaptive.proposal import validate_proposal_rows
+from self.adaptive import driver as adaptive_driver
 from self.adaptive import traces as adaptive_traces
 from self.core import composition
 from self.core.data_io import save_examples
@@ -30,7 +30,7 @@ from self.core.models import (
     candidate_metrics_from_json,
 )
 from self.core.task_protocols import task_for_name
-from self.adaptive.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposal import ConfigProposal, PromptBundle
 from self.tasks import (
     RUN_LENGTH_TARGET_RUN_STATE,
     RunLengthExample,
@@ -49,8 +49,10 @@ def _make_loop_facade() -> SimpleNamespace:
     """
 
     loop = SimpleNamespace()
-    for name in driver_default_bindings.__all__:
-        setattr(loop, name, getattr(driver_default_bindings, name))
+    driver_bindings = adaptive_driver._default_bindings()
+    driver_wiring = adaptive_driver._driver_wiring()
+    for name in adaptive_driver.DEFAULT_BINDING_NAMES:
+        setattr(loop, name, getattr(driver_bindings, name))
 
     loop.build_exact_pair_addition_dataset = composition.build_exact_pair_addition_dataset
     loop.build_exact_pair_run_length_dataset = composition.build_exact_pair_run_length_dataset

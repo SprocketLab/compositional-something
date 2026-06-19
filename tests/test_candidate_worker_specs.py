@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from self.adaptive import candidate_workers as workers
-from self.adaptive.proposals import PromptBundle
+from self.adaptive import candidate as workers
+from self.adaptive.proposal import PromptBundle
 
 
 class _Task:

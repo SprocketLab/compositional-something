@@ -1,19 +1,18 @@
 import subprocess
 import sys
 
-from self.adaptive.driver_wiring import AdaptiveRunDeps
-from self.adaptive.run_orchestration import AdaptiveRunDeps as OrchestrationAdaptiveRunDeps
+from self.adaptive.driver import AdaptiveRunDeps
 
 
-def test_adaptive_run_deps_shared_between_driver_and_orchestration() -> None:
-    assert OrchestrationAdaptiveRunDeps is AdaptiveRunDeps
+def test_adaptive_run_deps_owned_by_driver_facade() -> None:
+    assert AdaptiveRunDeps.__module__ == "self.adaptive.driver"
 
 
-def test_driver_wiring_import_does_not_load_orchestration_stack() -> None:
+def test_driver_import_does_not_load_orchestration_stack() -> None:
     code = (
         "import sys\n"
-        "import self.adaptive.driver_wiring\n"
-        "print('self.adaptive.run_orchestration' in sys.modules)\n"
+        "import self.adaptive.driver\n"
+        "print('self.adaptive.run' in sys.modules)\n"
         "print('torch' in sys.modules)\n"
         "print('transformers' in sys.modules)\n"
     )

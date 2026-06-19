@@ -5,9 +5,9 @@ from typing import Any, Sequence
 from self.adaptive.attempts import CandidateAttemptDeps, run_candidate_attempt
 from self.adaptive.attempts import AttemptOutcomeResult
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposal_config_schema import ConfigProposal
-from self.adaptive.proposal_prompts import PromptBundle
-from self.adaptive.round_model_dispatch import RoundModelDispatchResult
+from self.adaptive.proposal import ConfigProposal
+from self.adaptive.proposal import PromptBundle
+from self.adaptive.run import RoundModelDispatchResult
 
 
 class _CheckpointManager:

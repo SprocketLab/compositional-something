@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from self.core import worker_io
-from self.adaptive.candidate_workers import (
+from self.adaptive.candidate import (
     candidate_payload_from_work_item,
     candidate_payload_to_work_item,
     work_item_from_worker_payload,
@@ -11,7 +11,7 @@ from self.adaptive.candidate_workers import (
 )
 from self.core.data_io import save_examples
 from self.core.models import CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals import ConfigProposal
+from self.adaptive.proposal import ConfigProposal
 
 
 class _Task:

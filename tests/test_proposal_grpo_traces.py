@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from self.adaptive import proposal_grpo, proposal_grpo_traces
+from self.adaptive import proposal as proposal_grpo, proposal as proposal_grpo_traces
 
 
 def test_proposal_grpo_trace_owner_reexports() -> None:

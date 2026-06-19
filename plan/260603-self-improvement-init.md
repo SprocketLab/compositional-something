@@ -4734,3 +4734,25 @@ Acceptance criteria for first pilot:
 - Verification so far: deleted adaptive subpackage grep is clean; focused
   adaptive suite passed (`108 passed`, with existing multiprocessing fork
   warnings).
+
+### Implementation Log: 2026-06-19 00:07 UTC
+
+- Created and pushed checkpoint tag `pre-adaptive-prefix-merge-20260618-195044`
+  at commit `312ec63` before merging the remaining same-prefix adaptive files.
+- Merged adaptive prefix groups into owning modules with no shim files:
+  `candidate_*.py` into `self/adaptive/candidate.py`, `proposal_*.py` plus
+  `proposals.py` into `self/adaptive/proposal.py`, `run_*.py` plus seed/round
+  dispatch into `self/adaptive/run.py`, and `driver_wiring.py`,
+  `driver_default_bindings.py`, and `entrypoint.py` into
+  `self/adaptive/driver.py`.
+- Preserved the lightweight import contract after the merge: importing
+  `self.adaptive.driver`, `self.adaptive.proposal`, or `self.adaptive.run`
+  does not load `torch` or `transformers`; training/generation imports now
+  happen inside the runtime functions that need them.
+- Current adaptive layout is 12 Python files:
+  `args.py`, `attempts.py`, `candidate.py`, `controller.py`, `driver.py`,
+  `frontier.py`, `phases.py`, `program_sandbox.py`, `proposal.py`, `run.py`,
+  `traces.py`, and `__init__.py`. Current `self/` Python file count is 95.
+- Verification so far: `compileall -q self/adaptive tests`, import smoke, CLI
+  help smoke, and focused adaptive suite (`108 passed`, with existing
+  multiprocessing fork warnings).

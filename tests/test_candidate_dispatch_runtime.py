@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive import candidate_dispatch as dispatch, candidate_workers as workers
+from self.adaptive import candidate as dispatch, candidate as workers
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
-from self.adaptive.proposals import ConfigProposal, PromptBundle
+from self.adaptive.proposal import ConfigProposal, PromptBundle
 
 
 def _work_item(index: int) -> CandidateWorkItem:
@@ -170,7 +170,7 @@ def test_local_parallel_dispatch_sets_subprocess_binding_and_delegates(
 
     monkeypatch.setattr(
         workers,
-        "train_candidates_local_parallel",
+        "_worker_train_candidates_local_parallel",
         fake_train_candidates_local_parallel,
     )
 
@@ -208,7 +208,7 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
 
     monkeypatch.setattr(
         workers,
-        "train_candidates_slurm_array",
+        "_worker_train_candidates_slurm_array",
         fake_train_candidates_slurm_array,
     )
 
@@ -237,10 +237,10 @@ def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, mon
 
 
 def test_candidate_dispatch_helpers_live_in_merged_module():
-    assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidate_dispatch"
-    assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidate_dispatch"
-    assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidate_dispatch"
-    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidate_dispatch"
+    assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidate"
+    assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidate"
+    assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidate"
+    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidate"
 
 
 def test_build_candidate_dispatch_deps_reads_driver_bindings():

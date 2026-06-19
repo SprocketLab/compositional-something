@@ -5,14 +5,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from self.adaptive import attempts
-from self.adaptive import (
-    proposal_executable_validation,
-    proposal_generation,
-    proposal_prompts,
-    proposal_runtime,
-)
-from self.adaptive import driver_default_bindings
-from self.adaptive.proposals import PromptBundle
+from self.adaptive import driver as adaptive_driver
+from self.adaptive import proposal as proposal_executable_validation
+from self.adaptive import proposal as proposal_generation
+from self.adaptive import proposal as proposal_prompts
+from self.adaptive import proposal as proposal_runtime
+from self.adaptive.proposal import PromptBundle
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -80,5 +78,5 @@ def test_proposal_implementation_imports_use_canonical_owners():
     assert proposal_runtime.choose_default_program_pair is proposal_prompts.choose_default_program_pair
     assert attempts.choose_default_program_pair is proposal_prompts.choose_default_program_pair
     assert attempts.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
-    assert driver_default_bindings.choose_default_program_pair is proposal_prompts.choose_default_program_pair
-    assert driver_default_bindings.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
+    assert adaptive_driver.choose_default_program_pair is proposal_prompts.choose_default_program_pair
+    assert adaptive_driver.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
