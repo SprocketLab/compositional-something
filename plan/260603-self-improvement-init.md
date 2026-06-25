@@ -6650,3 +6650,256 @@ Acceptance criteria for first pilot:
   - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_synthetic_proposal_sft.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_attempt_outcome_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_synthetic_proposal_sft.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_args_normalization.py -q`
+
+### Result Note: 2026-06-25 Synthetic SFT Forgetting Check
+
+- Compared post-seed synthetic SFT and joint seed-mix synthetic SFT on the
+  original seed/source regimes.
+- Addition source digits `3-7` did not show meaningful forgetting:
+  source average stayed around `0.948-0.954` versus seed-only `0.950`.
+- Run-length source-regime forgetting was not well measured because held-out
+  source eval only contains size `16` after finite strings for sizes `8-15`
+  are exhausted by seed training. On size `16`, completed runs stayed at
+  `0.99-1.00`.
+- Main observed issue is not direct source-regime forgetting. Instead, synthetic
+  proposal training hurts full evaluation average, with larger drops as the
+  synthetic amount increases; seed-mix is worse than post-seed SFT on full avg.
+- Interpretation: synthetic traces appear to interfere with broader task
+  behavior/generalization, even when the seed/source slices remain mostly
+  intact. Future checks should add a separate diagnostic source-regime eval for
+  run-length that does not exclude all finite source strings.
+- Storage cleanup: seed-mix model checkpoints for completed runs were deleted
+  after this note; JSON/JSONL metrics, summaries, logs, and manifests were kept.
+  The run-length `seedmix-syn8192` job was still running at logging time, so its
+  checkpoint was not deleted here.
+
+### Implementation Log: 2026-06-25 04:53:21 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn2048`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `2048`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 06:46:49 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn4096`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `4096`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 06:57:17 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn8192`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `8192`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 06:59:28 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn2048`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `2048`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 07:14:25 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn4096`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `4096`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 07:20:33 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_proposal_sft_seed_only_keepfinal_20260625_000820/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn8192`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `True`; examples: `8192`.
+- Synthetic proposal seed mix: `False`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 10:48:04 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_seed_mix_keepfinal_20260625_001942/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn2048`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `False`; examples: `2048`.
+- Synthetic proposal seed mix: `True`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 10:57:10 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_seed_mix_keepfinal_20260625_001942/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn4096`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `False`; examples: `4096`.
+- Synthetic proposal seed mix: `True`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 11:09:53 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_seed_mix_keepfinal_20260625_001942/addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn8192`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `False`; examples: `8192`.
+- Synthetic proposal seed mix: `True`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 11:17:11 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_seed_mix_keepfinal_20260625_001942/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn2048`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `False`; examples: `2048`.
+- Synthetic proposal seed mix: `True`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 11:45:13 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/synthetic_seed_mix_keepfinal_20260625_001942/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn4096`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Synthetic proposal SFT: `False`; examples: `4096`.
+- Synthetic proposal seed mix: `True`.
+- Keep final model checkpoint: `True`.
+- Keep all proposal-GRPO checkpoints: `False`.
