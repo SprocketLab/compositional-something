@@ -6673,6 +6673,37 @@ Acceptance criteria for first pilot:
   The run-length `seedmix-syn8192` job was still running at logging time, so its
   checkpoint was not deleted here.
 
+### Implementation/Submission Log: 2026-06-25 Prepared Post-Synthetic 25-Attempt Runs
+
+- Added prepared-start adaptive runs with `--prepared-start-run-dir`.
+- Prepared-start mode loads prior `data/*.jsonl`, `summary.json`, and
+  `adaptive_candidate_training_results.json`, skips seed training, skips
+  synthetic SFT, and starts attempt 1 from the prior post-synthetic checkpoint.
+- Added `launchers/self/submit_adaptive_prepared_start_ailab.sh` for explicit
+  prepared checkpoint sweeps.
+- Smoke checked one zero-attempt prepared-start run locally in `/tmp`; it loaded
+  the prior post-synthetic checkpoint and wrote a normal round-0 summary.
+- Submitted six 25-attempt ailab jobs from post-seed synthetic checkpoints:
+  `{addition, run_length} x {2048, 4096, 8192}` synthetic examples.
+- Settings: `MAX_ATTEMPT_ROUNDS=25`, `NO_SELECTION_PATIENCE=25`,
+  `SBATCH_TIME=02:59:00`, `KEEP_FINAL_MODEL_CHECKPOINT=0`.
+- Manifest:
+  `artifacts/runs/postsynthetic_prepared_25a_20260625_085613/submission_manifest.json`.
+- Jobs:
+  - addition syn2048: `10250178`
+  - addition syn4096: `10250179`
+  - addition syn8192: `10250180`
+  - run_length syn2048: `10250181`
+  - run_length syn4096: `10250182`
+  - run_length syn8192: `10250183`
+- Initial monitor result: all six jobs were pending on `ailab`; no runtime logs
+  had been created yet.
+- Verification:
+  - `python -m py_compile self/adaptive/args.py self/adaptive/run.py self/adaptive/driver.py`
+  - `bash -n launchers/self/run_adaptive_candidate_training_ailab.sbatch launchers/self/submit_adaptive_prepared_start_ailab.sh launchers/self/submit_adaptive_candidate_training_ailab.sh`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_synthetic_proposal_sft.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py -q`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_attempt_outcome_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_synthetic_proposal_sft.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_args_normalization.py -q`
+
 ### Implementation Log: 2026-06-25 04:53:21 UTC
 
 - Implemented/running adaptive candidate-training loop.
