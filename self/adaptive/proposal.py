@@ -2433,6 +2433,108 @@ def generate_synthetic_proposal_sft_rows(
     return rows
 
 
+def build_synthetic_proposal_seed_mix(
+    *,
+    args: argparse.Namespace,
+    output_dir: Path,
+    source_examples: Sequence[Any],
+    source_sizes: Sequence[int],
+    current_per_size_accuracy: Mapping[int, float] | None = None,
+    current_avg_accuracy: float | None = None,
+    init_avg_accuracy: float | None = None,
+    seed: int,
+) -> Tuple[List[Any], JsonDict]:
+    """Append synthetic proposal traces to seed examples for joint seed training."""
+
+    from self.adaptive.traces import ProposalTraceExample
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    requested_examples = int(getattr(args, "synthetic_proposal_sft_examples", 0))
+    enabled = bool(getattr(args, "synthetic_proposal_sft_seed_mix", False)) and requested_examples > 0
+    task_name = str(getattr(args, "task", ""))
+    base_examples = list(source_examples)
+    metrics: JsonDict = {
+        "enabled": enabled,
+        "skipped": True,
+        "skip_reason": None,
+        "requested_examples": requested_examples,
+        "generated_examples": 0,
+        "task_examples": len(base_examples),
+        "proposal_examples": 0,
+        "mixed_examples": len(base_examples),
+        "top_k": int(getattr(args, "synthetic_proposal_sft_top_k", 4)),
+        "temperature": float(getattr(args, "synthetic_proposal_sft_temperature", 0.7)),
+        "mode": "seed_mix_joint_from_base",
+    }
+    if not enabled:
+        metrics["skip_reason"] = "disabled"
+        write_json(output_dir / "synthetic_seed_mix_metrics.json", metrics)
+        return base_examples, metrics
+    if getattr(args, "condition", "config") != "config":
+        metrics["skip_reason"] = "non_config_condition"
+        write_json(output_dir / "synthetic_seed_mix_metrics.json", metrics)
+        return base_examples, metrics
+
+    current_avg = (
+        float(current_avg_accuracy)
+        if current_avg_accuracy is not None and math.isfinite(float(current_avg_accuracy))
+        else 0.5
+    )
+    init_avg = (
+        float(init_avg_accuracy)
+        if init_avg_accuracy is not None and math.isfinite(float(init_avg_accuracy))
+        else current_avg
+    )
+    rows = generate_synthetic_proposal_sft_rows(
+        args=args,
+        task_name=task_name,
+        source_sizes=source_sizes,
+        current_per_size_accuracy=current_per_size_accuracy or {},
+        current_avg_accuracy=current_avg,
+        init_avg_accuracy=init_avg,
+        count=requested_examples,
+        seed=seed,
+    )
+    write_trace_jsonl(output_dir / "synthetic_proposal_sft_examples.jsonl", rows)
+    metrics["generated_examples"] = len(rows)
+    if not rows:
+        metrics["skip_reason"] = "no_examples"
+        write_json(output_dir / "synthetic_seed_mix_metrics.json", metrics)
+        return base_examples, metrics
+
+    proposal_examples: List[ProposalTraceExample] = []
+    for index, row in enumerate(rows):
+        metadata = dict(row.get("metadata") or {})
+        metadata["synthetic_seed_mix"] = True
+        metadata["synthetic_example_index"] = index
+        proposal_examples.append(
+            ProposalTraceExample(
+                prompt_text=str(row["prompt"]),
+                completion=str(row["completion"]),
+                task=task_name,
+                condition=str(getattr(args, "condition", "config")),
+                round_index=0,
+                reward=float(metadata.get("score", 0.0)),
+                metadata=metadata,
+            )
+        )
+    mixed_examples: List[Any] = base_examples + proposal_examples
+    metrics.update(
+        {
+            "skipped": False,
+            "skip_reason": None,
+            "proposal_examples": len(proposal_examples),
+            "mixed_examples": len(mixed_examples),
+        }
+    )
+    write_trace_jsonl(
+        output_dir / "synthetic_seed_mix_trace_examples.jsonl",
+        [example.to_json_dict() for example in proposal_examples],
+    )
+    write_json(output_dir / "synthetic_seed_mix_metrics.json", metrics)
+    return mixed_examples, metrics
+
+
 def apply_synthetic_proposal_sft(
     *,
     args: argparse.Namespace,

@@ -44,6 +44,7 @@ PROPOSAL_TOP_P="${PROPOSAL_TOP_P:-0.95}"
 FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
 PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
 SYNTHETIC_PROPOSAL_SFT="${SYNTHETIC_PROPOSAL_SFT:-0}"
+SYNTHETIC_PROPOSAL_SFT_SEED_MIX="${SYNTHETIC_PROPOSAL_SFT_SEED_MIX:-0}"
 SYNTHETIC_PROPOSAL_SFT_EXAMPLES="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES:-0}"
 SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS="${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS:-1}"
 SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE="${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE:-1e-6}"
@@ -174,6 +175,27 @@ case "${FORCE_UNIQUE_PROPOSALS}" in
     ;;
 esac
 
+case "${SYNTHETIC_PROPOSAL_SFT}" in
+  0|1) ;;
+  *)
+    echo "[ERROR] SYNTHETIC_PROPOSAL_SFT must be 0 or 1, got ${SYNTHETIC_PROPOSAL_SFT}" >&2
+    exit 2
+    ;;
+esac
+
+case "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" in
+  0|1) ;;
+  *)
+    echo "[ERROR] SYNTHETIC_PROPOSAL_SFT_SEED_MIX must be 0 or 1, got ${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" >&2
+    exit 2
+    ;;
+esac
+
+if [[ "${SYNTHETIC_PROPOSAL_SFT}" == "1" && "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" == "1" ]]; then
+  echo "[ERROR] SYNTHETIC_PROPOSAL_SFT and SYNTHETIC_PROPOSAL_SFT_SEED_MIX are mutually exclusive." >&2
+  exit 2
+fi
+
 case "${PROPOSAL_GRPO_ZERO_VARIANCE}" in
   fixed_baseline|skip) ;;
   *)
@@ -255,6 +277,9 @@ fi
 if [[ "${SYNTHETIC_PROPOSAL_SFT}" == "1" ]]; then
   OPTIONAL_ARGS+=(--synthetic-proposal-sft)
 fi
+if [[ "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--synthetic-proposal-sft-seed-mix)
+fi
 if [[ "${PROPOSAL_PROMPT_ACTION_HISTORY}" == "1" ]]; then
   OPTIONAL_ARGS+=(--proposal-prompt-action-history)
 else
@@ -285,6 +310,7 @@ echo "[INFO] Proposal model: ${PROPOSAL_MODEL_NAME}"
 echo "[INFO] Treat seed as round zero: ${TREAT_SEED_AS_ROUND_ZERO}"
 echo "[INFO] Proposal sampling temp/top_p/force-unique/max-draws/batch-size: ${PROPOSAL_TEMPERATURE}/${PROPOSAL_TOP_P}/${FORCE_UNIQUE_PROPOSALS}/${PROPOSAL_UNIQUE_MAX_DRAWS}/${PROPOSAL_SAMPLING_BATCH_SIZE}"
 echo "[INFO] Synthetic proposal SFT enabled/examples/epochs/lr/top-k/temp: ${SYNTHETIC_PROPOSAL_SFT}/${SYNTHETIC_PROPOSAL_SFT_EXAMPLES}/${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}/${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}/${SYNTHETIC_PROPOSAL_SFT_TOP_K}/${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE}"
+echo "[INFO] Synthetic proposal seed mix: ${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}"
 echo "[INFO] Attempts/candidates: ${MAX_ATTEMPT_ROUNDS}/${NUM_CANDIDATES}"
 echo "[INFO] Max selected candidates: ${MAX_SELECTED_ROUNDS}"
 echo "[INFO] Max attempts / no-selection patience: ${MAX_ATTEMPT_ROUNDS}/${NO_SELECTION_PATIENCE}"

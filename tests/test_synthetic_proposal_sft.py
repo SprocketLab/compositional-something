@@ -20,6 +20,7 @@ def _args(**overrides):
         frontier_max_size=14,
         source_admission_target_accuracy_threshold=0.8,
         synthetic_proposal_sft=False,
+        synthetic_proposal_sft_seed_mix=False,
         synthetic_proposal_sft_examples=0,
         synthetic_proposal_sft_num_epochs=1,
         synthetic_proposal_sft_learning_rate=1e-6,
@@ -82,6 +83,30 @@ def test_synthetic_action_score_prefers_reliable_sources_and_weak_target() -> No
     assert reliable_weak["score"] > saturated_target["score"]
 
 
+def test_synthetic_seed_mix_builds_prompt_target_examples(tmp_path: Path) -> None:
+    args = _args(synthetic_proposal_sft_seed_mix=True, synthetic_proposal_sft_examples=12)
+
+    mixed, metrics = adaptive_proposal.build_synthetic_proposal_seed_mix(
+        args=args,
+        output_dir=tmp_path / "mix",
+        source_examples=["task-a", "task-b"],
+        source_sizes={3, 4, 5, 6, 7},
+        seed=99,
+    )
+
+    assert metrics["skipped"] is False
+    assert metrics["mode"] == "seed_mix_joint_from_base"
+    assert metrics["task_examples"] == 2
+    assert metrics["proposal_examples"] == 12
+    assert len(mixed) == 14
+    proposal_example = mixed[-1]
+    assert proposal_example.prompt()
+    assert "\"left\":" in proposal_example.target()
+    assert proposal_example.size_for_batching() == 0
+    assert (tmp_path / "mix" / "synthetic_proposal_sft_examples.jsonl").exists()
+    assert (tmp_path / "mix" / "synthetic_seed_mix_metrics.json").exists()
+
+
 def test_seed_dispatch_uses_synthetic_checkpoint_and_post_sft_eval(tmp_path: Path) -> None:
     calls = []
 
@@ -118,6 +143,9 @@ def test_seed_dispatch_uses_synthetic_checkpoint_and_post_sft_eval(tmp_path: Pat
             run_controller_worker_slurm=lambda **_: {},
             float_or_nan=float,
             run_seed_phase=run_seed_phase,
+            build_synthetic_proposal_seed_mix=lambda **_: (_ for _ in ()).throw(
+                AssertionError("seed mix should not run in post-seed SFT mode")
+            ),
             apply_synthetic_proposal_sft=apply_synthetic_proposal_sft,
         ),
     )
@@ -128,6 +156,60 @@ def test_seed_dispatch_uses_synthetic_checkpoint_and_post_sft_eval(tmp_path: Pat
     assert result.current_per_size_accuracy == {3: 0.88, 4: 0.79, 8: 0.25}
     assert result.summary_records[0]["current_checkpoint"] == "synthetic-model"
     assert result.summary_records[0]["synthetic_proposal_sft"]["model_dir"] == "synthetic-model"
+
+
+def test_seed_dispatch_mixes_synthetic_examples_into_seed_training(tmp_path: Path) -> None:
+    calls = []
+    task_examples = ["task-0", "task-1"]
+    mixed_examples = task_examples + ["proposal-0", "proposal-1", "proposal-2"]
+
+    def build_synthetic_proposal_seed_mix(**kwargs):
+        calls.append(("seed_mix", kwargs))
+        assert kwargs["output_dir"] == tmp_path / "run" / "round_00" / "synthetic_seed_mix"
+        assert kwargs["source_examples"] == task_examples
+        return mixed_examples, {
+            "skipped": False,
+            "mode": "seed_mix_joint_from_base",
+            "task_examples": 2,
+            "proposal_examples": 3,
+            "mixed_examples": 5,
+        }
+
+    def run_seed_phase(**kwargs):
+        calls.append(("seed", kwargs))
+        assert kwargs["source_examples"] == mixed_examples
+        return SimpleNamespace(
+            current_checkpoint="seed-mix-model",
+            current_final_accuracy=0.51,
+            current_per_size_accuracy={3: 0.9},
+            init_final_accuracy=0.51,
+        )
+
+    def apply_synthetic_proposal_sft(**kwargs):
+        raise AssertionError("post-seed synthetic SFT should not run in seed-mix mode")
+
+    result = adaptive_run.run_seed_dispatch(
+        args=_args(synthetic_proposal_sft_seed_mix=True, synthetic_proposal_sft_examples=3),
+        task=object(),
+        config=object(),
+        source_examples=task_examples,
+        eval_examples=[],
+        output_dir=tmp_path / "run",
+        data_dir=tmp_path / "run" / "data",
+        source_sizes={3, 4},
+        deps=adaptive_run.SeedDispatchDeps(
+            run_controller_worker_slurm=lambda **_: {},
+            float_or_nan=float,
+            run_seed_phase=run_seed_phase,
+            build_synthetic_proposal_seed_mix=build_synthetic_proposal_seed_mix,
+            apply_synthetic_proposal_sft=apply_synthetic_proposal_sft,
+        ),
+    )
+
+    assert [call[0] for call in calls] == ["seed_mix", "seed"]
+    assert result.current_checkpoint == "seed-mix-model"
+    assert result.summary_records[0]["synthetic_proposal_sft_seed_mix"]["proposal_examples"] == 3
+    assert "synthetic_proposal_sft" not in result.summary_records[0]
 
 
 def test_seed_dispatch_skips_synthetic_when_amount_is_zero(tmp_path: Path) -> None:
@@ -155,6 +237,9 @@ def test_seed_dispatch_skips_synthetic_when_amount_is_zero(tmp_path: Path) -> No
             run_controller_worker_slurm=lambda **_: {},
             float_or_nan=float,
             run_seed_phase=run_seed_phase,
+            build_synthetic_proposal_seed_mix=lambda **_: (_ for _ in ()).throw(
+                AssertionError("seed mix should not run when disabled")
+            ),
             apply_synthetic_proposal_sft=apply_synthetic_proposal_sft,
         ),
     )

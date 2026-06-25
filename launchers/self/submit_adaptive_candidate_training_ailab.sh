@@ -28,6 +28,7 @@ FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
 PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
 SYNTHETIC_PROPOSAL_SFT_EXAMPLES="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES:-0}"
 SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST:-${SYNTHETIC_PROPOSAL_SFT_EXAMPLES}}"
+SYNTHETIC_PROPOSAL_SFT_SEED_MIX="${SYNTHETIC_PROPOSAL_SFT_SEED_MIX:-0}"
 SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS="${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS:-1}"
 SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE="${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE:-1e-6}"
 SYNTHETIC_PROPOSAL_SFT_TOP_K="${SYNTHETIC_PROPOSAL_SFT_TOP_K:-4}"
@@ -56,6 +57,7 @@ PROPOSAL_GRPO_NOVELTY_BONUS_BETA="${PROPOSAL_GRPO_NOVELTY_BONUS_BETA:-0.05}"
 SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD="${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD:-0.80}"
 PROPOSAL_UPDATE_MICROBATCH_SIZE="${PROPOSAL_UPDATE_MICROBATCH_SIZE:-8}"
 PROPOSAL_SAMPLING_BATCH_SIZE="${PROPOSAL_SAMPLING_BATCH_SIZE:-8}"
+KEEP_FINAL_MODEL_CHECKPOINT="${KEEP_FINAL_MODEL_CHECKPOINT:-0}"
 adaptive_resolve_python
 
 mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
@@ -85,7 +87,9 @@ submit_cell() {
   local sweep_slug="lr-${lr_slug}"
   local synthetic_slug="syn${synthetic_examples}"
   local synthetic_enabled="0"
-  if [[ "${synthetic_examples}" != "0" ]]; then
+  if [[ "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" == "1" ]]; then
+    synthetic_slug="seedmix-syn${synthetic_examples}"
+  elif [[ "${synthetic_examples}" != "0" ]]; then
     synthetic_enabled="1"
   fi
   local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-${synthetic_slug}"
@@ -125,6 +129,7 @@ submit_cell() {
       "FORCE_UNIQUE_PROPOSALS=${FORCE_UNIQUE_PROPOSALS}" \
       "PROPOSAL_UNIQUE_MAX_DRAWS=${PROPOSAL_UNIQUE_MAX_DRAWS}" \
       "SYNTHETIC_PROPOSAL_SFT=${synthetic_enabled}" \
+      "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" \
       "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=${synthetic_examples}" \
       "SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS=${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}" \
       "SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE=${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}" \
@@ -137,14 +142,15 @@ submit_cell() {
       "PROPOSAL_OBSERVATION_LOSS_WEIGHT=${PROPOSAL_OBSERVATION_LOSS_WEIGHT}" \
       "PROPOSAL_FORMAT_LOSS_WEIGHT=${PROPOSAL_FORMAT_LOSS_WEIGHT}" \
       "PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES=${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES}" \
-	      "PROPOSAL_GRPO_DEDUPLICATE_ACTIONS=${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS}" \
-	      "PROPOSAL_GRPO_SPAN=${PROPOSAL_GRPO_SPAN}" \
-	      "PROPOSAL_GRPO_LEARNING_RATE=${proposal_lr}" \
-	      "PROPOSAL_GRPO_KL_COEF=${PROPOSAL_GRPO_KL_COEF}" \
-	      "PROPOSAL_GRPO_NOVELTY_BONUS_BETA=${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}" \
+      "PROPOSAL_GRPO_DEDUPLICATE_ACTIONS=${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS}" \
+      "PROPOSAL_GRPO_SPAN=${PROPOSAL_GRPO_SPAN}" \
+      "PROPOSAL_GRPO_LEARNING_RATE=${proposal_lr}" \
+      "PROPOSAL_GRPO_KL_COEF=${PROPOSAL_GRPO_KL_COEF}" \
+      "PROPOSAL_GRPO_NOVELTY_BONUS_BETA=${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}" \
       "SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD=${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}" \
       "PROPOSAL_UPDATE_MICROBATCH_SIZE=${PROPOSAL_UPDATE_MICROBATCH_SIZE}" \
       "PROPOSAL_SAMPLING_BATCH_SIZE=${PROPOSAL_SAMPLING_BATCH_SIZE}" \
+      "KEEP_FINAL_MODEL_CHECKPOINT=${KEEP_FINAL_MODEL_CHECKPOINT}" \
       "ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}")" \
     "${sbatch_resources[@]}" \
     "${SBATCH_SCRIPT}"
@@ -166,6 +172,9 @@ for task in ${TASKS}; do
                 lr_slug="${lr_slug//-/m}"
                 sweep_slug="lr-${lr_slug}"
                 synthetic_slug="syn${synthetic_examples}"
+                if [[ "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" == "1" ]]; then
+                  synthetic_slug="seedmix-syn${synthetic_examples}"
+                fi
                 job_id="$(submit_cell "${task}" "${condition}" "${outcome_mode}" "${reward_mode}" "${zero_variance}" "${num_candidates}" "${proposal_lr}" "${synthetic_examples}")"
                 MANIFEST_ARGS+=(
                   "${task}"
@@ -177,6 +186,7 @@ for task in ${TASKS}; do
                   "${proposal_lr}"
                   "${PROPOSAL_GRPO_KL_COEF}"
                   "${synthetic_examples}"
+                  "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}"
                   "${job_id}"
                   "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-${synthetic_slug}"
                 )
@@ -202,6 +212,7 @@ MANIFEST="${OUT_ROOT}/submission_manifest.json"
   --proposal-grpo-learning-rates "${PROPOSAL_GRPO_LEARNING_RATES}" \
   --proposal-grpo-kl-coef "${PROPOSAL_GRPO_KL_COEF}" \
   --synthetic-proposal-sft-examples-list "${SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST}" \
+  --synthetic-proposal-sft-seed-mix "${SYNTHETIC_PROPOSAL_SFT_SEED_MIX}" \
   --synthetic-proposal-sft-num-epochs "${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}" \
   --synthetic-proposal-sft-learning-rate "${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}" \
   --synthetic-proposal-sft-top-k "${SYNTHETIC_PROPOSAL_SFT_TOP_K}" \

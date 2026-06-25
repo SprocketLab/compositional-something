@@ -37,6 +37,7 @@ DEFAULT_BINDING_NAMES = (
     "append_plan_log",
     "apply_proposal_grpo_update",
     "apply_synthetic_proposal_sft",
+    "build_synthetic_proposal_seed_mix",
     "build_attempt_prompt",
     "build_candidate_work_items",
     "build_parser",
@@ -111,6 +112,7 @@ def _ensure_default_bindings() -> Any:
         _rows_for_round,
         apply_proposal_grpo_update,
         apply_synthetic_proposal_sft,
+        build_synthetic_proposal_seed_mix,
         load_fixture_proposals,
         render_config_prompt,
         validate_proposal_rows,
@@ -156,6 +158,7 @@ def _ensure_default_bindings() -> Any:
             "append_plan_log": append_plan_log,
             "apply_proposal_grpo_update": apply_proposal_grpo_update,
             "apply_synthetic_proposal_sft": apply_synthetic_proposal_sft,
+            "build_synthetic_proposal_seed_mix": build_synthetic_proposal_seed_mix,
             "build_attempt_prompt": build_attempt_prompt,
             "build_candidate_work_items": build_candidate_work_items,
             "build_parser": build_parser,
@@ -247,6 +250,7 @@ class AdaptiveRunDeps:
     run_controller_worker_slurm: Any
     float_or_nan: Any
     run_seed_phase: Any
+    build_synthetic_proposal_seed_mix: Any
     apply_synthetic_proposal_sft: Any
     build_attempt_prompt: Any
     run_dry_attempt: Any
@@ -492,6 +496,7 @@ def adaptive_run_deps(bindings: Any) -> AdaptiveRunDeps:
         run_controller_worker_slurm=bindings._run_controller_worker_slurm,
         float_or_nan=bindings._float_or_nan,
         run_seed_phase=bindings.run_seed_phase,
+        build_synthetic_proposal_seed_mix=bindings.build_synthetic_proposal_seed_mix,
         apply_synthetic_proposal_sft=bindings.apply_synthetic_proposal_sft,
         build_attempt_prompt=bindings.build_attempt_prompt,
         run_dry_attempt=bindings.run_dry_attempt,

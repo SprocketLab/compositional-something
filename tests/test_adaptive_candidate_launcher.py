@@ -57,6 +57,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "Proposal sampling temp/top_p/force-unique/max-draws/batch-size: 0.9/0.95/1/0/8" in stdout
     assert "Proposal prompt action history/max items: 1/5" in stdout
     assert "Synthetic proposal SFT enabled/examples/epochs/lr/top-k/temp: 0/0/1/1e-6/4/0.7" in stdout
+    assert "Synthetic proposal seed mix: 0" in stdout
     assert "Attempts/candidates: 100/8" in stdout
     assert "Max selected candidates: 0" in stdout
     assert "Train epochs/candidate max steps/seed max steps: 1/100/0" in stdout
@@ -81,6 +82,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "--force-unique-proposals" in stdout
     assert "--proposal-unique-max-draws 0" in stdout
     assert not re.search(r"(^|\s)--synthetic-proposal-sft(\s|$)", stdout)
+    assert "--synthetic-proposal-sft-seed-mix" not in stdout
     assert "--synthetic-proposal-sft-examples 0" in stdout
     assert "--synthetic-proposal-sft-num-epochs 1" in stdout
     assert "--synthetic-proposal-sft-learning-rate 1e-6" in stdout
@@ -142,6 +144,7 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert manifest["proposal_grpo_learning_rates"] == ["1e-6"]
     assert manifest["proposal_grpo_kl_coef"] == "0.01"
     assert manifest["synthetic_proposal_sft_examples_list"] == [0]
+    assert manifest["synthetic_proposal_sft_seed_mix"] is False
     assert len(manifest["jobs"]) == 8
     assert (
         manifest["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-syn0"][
@@ -172,6 +175,7 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert "FORCE_UNIQUE_PROPOSALS=1" in combined
     assert "PROPOSAL_UNIQUE_MAX_DRAWS=0" in combined
     assert "SYNTHETIC_PROPOSAL_SFT=0" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=0" in combined
     assert "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=0" in combined
     assert "SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS=1" in combined
     assert "SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE=1e-6" in combined
@@ -232,6 +236,7 @@ def test_adaptive_candidate_submitter_dry_run_expands_lr_sweep(tmp_path: Path):
     assert manifest["proposal_grpo_learning_rates"] == ["1e-6", "3e-6", "5e-6"]
     assert manifest["proposal_grpo_kl_coef"] == "0"
     assert manifest["synthetic_proposal_sft_examples_list"] == [0]
+    assert manifest["synthetic_proposal_sft_seed_mix"] is False
     assert len(manifest["jobs"]) == 6
 
     key = "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5e-6-syn0"
@@ -282,6 +287,7 @@ def test_adaptive_candidate_submitter_dry_run_expands_synthetic_sft_sweep(tmp_pa
 
     manifest = json.loads((out_root / "submission_manifest.json").read_text(encoding="utf-8"))
     assert manifest["synthetic_proposal_sft_examples_list"] == [0, 2048, 4096, 8192]
+    assert manifest["synthetic_proposal_sft_seed_mix"] is False
     assert len(manifest["jobs"]) == 8
     assert "addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1e-6-syn8192" in manifest["jobs"]
     assert "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1e-6-syn2048" in manifest["jobs"]
@@ -289,5 +295,62 @@ def test_adaptive_candidate_submitter_dry_run_expands_synthetic_sft_sweep(tmp_pa
     combined = result.stdout + result.stderr
     assert "SYNTHETIC_PROPOSAL_SFT=0" in combined
     assert "SYNTHETIC_PROPOSAL_SFT=1" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=0" in combined
     assert "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=8192" in combined
     assert "adaptive-cand-run-length-config-numeric-n8-outcome-skip-lr-1em6-syn4096" in combined
+
+
+def test_adaptive_candidate_submitter_dry_run_expands_synthetic_seed_mix_sweep(tmp_path: Path):
+    out_root = tmp_path / "adaptive_candidate_synthetic_seed_mix_sweep"
+    env = os.environ.copy()
+    env.update(
+        {
+            "DRY_RUN": "1",
+            "OUT_ROOT": str(out_root),
+            "LOG_DIR": str(tmp_path / "logs"),
+            "PYTHON_BIN": sys.executable,
+            "TASKS": "addition run_length",
+            "CONDITIONS": "config",
+            "OUTCOME_TRACE_TARGET_MODES": "numeric",
+            "PROPOSAL_GRPO_REWARD_MODES": "outcome",
+            "PROPOSAL_GRPO_ZERO_VARIANCE_MODES": "skip",
+            "NUM_CANDIDATES_LIST": "8",
+            "SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST": "2048 4096 8192",
+            "SYNTHETIC_PROPOSAL_SFT_SEED_MIX": "1",
+            "MAX_ATTEMPT_ROUNDS": "0",
+            "NO_SELECTION_PATIENCE": "1",
+            "KEEP_FINAL_MODEL_CHECKPOINT": "1",
+            "SBATCH_TIME": "02:59:00",
+            "ADAPTIVE_CONFIG_FILES": str(BASE_CONFIG),
+        }
+    )
+
+    result = subprocess.run(
+        ["bash", str(SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    manifest = json.loads((out_root / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["synthetic_proposal_sft_examples_list"] == [2048, 4096, 8192]
+    assert manifest["synthetic_proposal_sft_seed_mix"] is True
+    assert len(manifest["jobs"]) == 6
+    key = "addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1e-6-seedmix-syn2048"
+    assert key in manifest["jobs"]
+    assert manifest["jobs"][key]["synthetic_proposal_sft_seed_mix"] is True
+    assert manifest["jobs"][key]["output_dir"] == str(
+        out_root / "addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-seedmix-syn2048"
+    )
+
+    combined = result.stdout + result.stderr
+    assert "--time 02:59:00" in combined
+    assert "MAX_ATTEMPT_ROUNDS=0" in combined
+    assert "NO_SELECTION_PATIENCE=1" in combined
+    assert "KEEP_FINAL_MODEL_CHECKPOINT=1" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT=0" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=1" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=8192" in combined
+    assert "adaptive-cand-run-length-config-numeric-n8-outcome-skip-lr-1em6-seedmix-syn4096" in combined

@@ -249,8 +249,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--synthetic-proposal-sft",
         action="store_true",
         help=(
-            "Run a seed-only synthetic acquisition SFT stage before the first adaptive "
+            "Run a post-seed synthetic acquisition SFT stage before the first adaptive "
             "proposal. Disabled by default so online GRPO baselines are unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-seed-mix",
+        action="store_true",
+        help=(
+            "Mix synthetic proposal SFT traces into the initial seed-training data and train "
+            "one joint seed checkpoint from the base model. Mutually exclusive with the "
+            "post-seed --synthetic-proposal-sft stage."
         ),
     )
     parser.add_argument(
@@ -550,8 +559,12 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("synthetic_proposal_sft_top_k must be positive.")
     if args.synthetic_proposal_sft_temperature <= 0.0:
         raise ValueError("synthetic_proposal_sft_temperature must be positive.")
+    if args.synthetic_proposal_sft and args.synthetic_proposal_sft_seed_mix:
+        raise ValueError("synthetic_proposal_sft and synthetic_proposal_sft_seed_mix are mutually exclusive.")
     if args.synthetic_proposal_sft and args.controller_execution_mode == "slurm":
         raise ValueError("synthetic_proposal_sft currently requires controller_execution_mode=local.")
+    if args.synthetic_proposal_sft_seed_mix and args.controller_execution_mode == "slurm":
+        raise ValueError("synthetic_proposal_sft_seed_mix currently requires controller_execution_mode=local.")
     if args.outcome_trace_replay_ratio < 0.0:
         raise ValueError("outcome_trace_replay_ratio must be non-negative.")
     if args.outcome_trace_replay_max_examples < 0:

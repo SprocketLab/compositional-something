@@ -33,6 +33,7 @@ def build_adaptive_candidate_submission_manifest(
     proposal_grpo_learning_rates: str,
     proposal_grpo_kl_coef: str,
     synthetic_proposal_sft_examples_list: str,
+    synthetic_proposal_sft_seed_mix: str,
     synthetic_proposal_sft_num_epochs: str,
     synthetic_proposal_sft_learning_rate: str,
     synthetic_proposal_sft_top_k: str,
@@ -40,11 +41,11 @@ def build_adaptive_candidate_submission_manifest(
     adaptive_config_files: str,
     job_fields: Sequence[str],
 ) -> JsonDict:
-    if len(job_fields) % 11 != 0:
-        raise ValueError("adaptive candidate job_fields must be groups of 11 values.")
+    if len(job_fields) % 12 != 0:
+        raise ValueError("adaptive candidate job_fields must be groups of 12 values.")
 
     jobs: JsonDict = {}
-    for index in range(0, len(job_fields), 11):
+    for index in range(0, len(job_fields), 12):
         (
             task,
             condition,
@@ -55,15 +56,21 @@ def build_adaptive_candidate_submission_manifest(
             proposal_lr,
             proposal_kl,
             synthetic_examples,
+            synthetic_seed_mix,
             job_id,
             output_dir,
         ) = job_fields[
-            index : index + 11
+            index : index + 12
         ]
+        synthetic_suffix = (
+            f"seedmix-syn{synthetic_examples}"
+            if str(synthetic_seed_mix) == "1"
+            else f"syn{synthetic_examples}"
+        )
         jobs[
             (
                 f"{task}-{condition}-{outcome_mode}-n{num_candidates}-reward-{reward_mode}"
-                f"-grpo-{zero_variance}-lr-{proposal_lr}-syn{synthetic_examples}"
+                f"-grpo-{zero_variance}-lr-{proposal_lr}-{synthetic_suffix}"
             )
         ] = {
             "task": task,
@@ -75,6 +82,7 @@ def build_adaptive_candidate_submission_manifest(
             "proposal_grpo_learning_rate": proposal_lr,
             "proposal_grpo_kl_coef": proposal_kl,
             "synthetic_proposal_sft_examples": int(synthetic_examples),
+            "synthetic_proposal_sft_seed_mix": str(synthetic_seed_mix) == "1",
             "job_id": job_id,
             "output_dir": output_dir,
             "status": "submitted",
@@ -93,6 +101,7 @@ def build_adaptive_candidate_submission_manifest(
         "proposal_grpo_learning_rates": _split_words(proposal_grpo_learning_rates),
         "proposal_grpo_kl_coef": proposal_grpo_kl_coef,
         "synthetic_proposal_sft_examples_list": _split_int_words(synthetic_proposal_sft_examples_list),
+        "synthetic_proposal_sft_seed_mix": str(synthetic_proposal_sft_seed_mix) == "1",
         "synthetic_proposal_sft_num_epochs": int(synthetic_proposal_sft_num_epochs),
         "synthetic_proposal_sft_learning_rate": synthetic_proposal_sft_learning_rate,
         "synthetic_proposal_sft_top_k": int(synthetic_proposal_sft_top_k),
@@ -125,6 +134,7 @@ def _build_parser() -> argparse.ArgumentParser:
     candidate.add_argument("--proposal-grpo-learning-rates", required=True)
     candidate.add_argument("--proposal-grpo-kl-coef", required=True)
     candidate.add_argument("--synthetic-proposal-sft-examples-list", default="0")
+    candidate.add_argument("--synthetic-proposal-sft-seed-mix", default="0")
     candidate.add_argument("--synthetic-proposal-sft-num-epochs", default="1")
     candidate.add_argument("--synthetic-proposal-sft-learning-rate", default="1e-6")
     candidate.add_argument("--synthetic-proposal-sft-top-k", default="4")
@@ -152,6 +162,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             proposal_grpo_learning_rates=args.proposal_grpo_learning_rates,
             proposal_grpo_kl_coef=args.proposal_grpo_kl_coef,
             synthetic_proposal_sft_examples_list=args.synthetic_proposal_sft_examples_list,
+            synthetic_proposal_sft_seed_mix=args.synthetic_proposal_sft_seed_mix,
             synthetic_proposal_sft_num_epochs=args.synthetic_proposal_sft_num_epochs,
             synthetic_proposal_sft_learning_rate=args.synthetic_proposal_sft_learning_rate,
             synthetic_proposal_sft_top_k=args.synthetic_proposal_sft_top_k,

@@ -334,6 +334,7 @@ def finalize_adaptive_run(
                 "Synthetic proposal SFT: "
                 f"`{args.synthetic_proposal_sft}`; examples: `{args.synthetic_proposal_sft_examples}`."
             ),
+            f"Synthetic proposal seed mix: `{args.synthetic_proposal_sft_seed_mix}`.",
             f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
             f"Keep all proposal-GRPO checkpoints: `{args.keep_all_proposal_grpo_checkpoints}`.",
         ],
@@ -379,6 +380,7 @@ def finalize_adaptive_run(
         "proposal_format_loss_weight": args.proposal_format_loss_weight,
         "proposal_format_replay_max_examples": args.proposal_format_replay_max_examples,
         "synthetic_proposal_sft": args.synthetic_proposal_sft,
+        "synthetic_proposal_sft_seed_mix": args.synthetic_proposal_sft_seed_mix,
         "synthetic_proposal_sft_examples": args.synthetic_proposal_sft_examples,
         "synthetic_proposal_sft_num_epochs": args.synthetic_proposal_sft_num_epochs,
         "synthetic_proposal_sft_learning_rate": args.synthetic_proposal_sft_learning_rate,
@@ -418,6 +420,7 @@ class SeedDispatchDeps:
     run_controller_worker_slurm: Callable[..., Mapping[str, Any]]
     float_or_nan: Callable[[Any], float]
     run_seed_phase: Callable[..., Any]
+    build_synthetic_proposal_seed_mix: Callable[..., tuple[list[Any], JsonDict]]
     apply_synthetic_proposal_sft: Callable[..., tuple[str, JsonDict]]
 
 
@@ -442,6 +445,22 @@ def run_seed_dispatch(
     source_sizes: set[int],
     deps: SeedDispatchDeps,
 ) -> SeedDispatchResult:
+    synthetic_seed_mix_metrics = None
+    seed_source_examples = list(source_examples)
+    if (
+        not args.dry_run_data_only
+        and args.controller_execution_mode == "local"
+        and bool(getattr(args, "synthetic_proposal_sft_seed_mix", False))
+        and int(getattr(args, "synthetic_proposal_sft_examples", 0)) > 0
+    ):
+        seed_source_examples, synthetic_seed_mix_metrics = deps.build_synthetic_proposal_seed_mix(
+            args=args,
+            output_dir=output_dir / "round_00" / "synthetic_seed_mix",
+            source_examples=source_examples,
+            source_sizes=source_sizes,
+            seed=args.seed + 3571,
+        )
+
     if args.dry_run_data_only:
         print("[INFO] dry_run_data_only enabled; skipping seed/candidate model work.", flush=True)
         current_checkpoint = args.model_name
@@ -473,7 +492,7 @@ def run_seed_dispatch(
             args=args,
             task=task,
             config=config,
-            source_examples=source_examples,
+            source_examples=seed_source_examples,
             eval_examples=eval_examples,
             output_dir=output_dir,
             seed=args.seed,
@@ -487,6 +506,7 @@ def run_seed_dispatch(
     if (
         not args.dry_run_data_only
         and bool(getattr(args, "synthetic_proposal_sft", False))
+        and not bool(getattr(args, "synthetic_proposal_sft_seed_mix", False))
         and int(getattr(args, "synthetic_proposal_sft_examples", 0)) > 0
     ):
         next_checkpoint, synthetic_metrics = deps.apply_synthetic_proposal_sft(
@@ -522,6 +542,7 @@ def run_seed_dispatch(
             current_per_size_accuracy=current_per_size_accuracy,
             init_final_accuracy=init_final_accuracy,
             synthetic_proposal_sft=synthetic_metrics,
+            synthetic_proposal_sft_seed_mix=synthetic_seed_mix_metrics,
         ),
     )
 
@@ -534,6 +555,7 @@ def build_initial_summary_records(
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
     synthetic_proposal_sft: Mapping[str, Any] | None = None,
+    synthetic_proposal_sft_seed_mix: Mapping[str, Any] | None = None,
 ) -> list[JsonDict]:
     record: JsonDict = {
         "round": 0,
@@ -546,6 +568,8 @@ def build_initial_summary_records(
     }
     if synthetic_proposal_sft is not None:
         record["synthetic_proposal_sft"] = dict(synthetic_proposal_sft)
+    if synthetic_proposal_sft_seed_mix is not None:
+        record["synthetic_proposal_sft_seed_mix"] = dict(synthetic_proposal_sft_seed_mix)
     return [record]
 
 
@@ -786,6 +810,7 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
             run_controller_worker_slurm=deps.run_controller_worker_slurm,
             float_or_nan=deps.float_or_nan,
             run_seed_phase=deps.run_seed_phase,
+            build_synthetic_proposal_seed_mix=deps.build_synthetic_proposal_seed_mix,
             apply_synthetic_proposal_sft=deps.apply_synthetic_proposal_sft,
         ),
     )

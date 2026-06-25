@@ -6618,3 +6618,35 @@ Acceptance criteria for first pilot:
   - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_synthetic_proposal_sft.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_attempt_outcome_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_synthetic_proposal_sft.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_args_normalization.py -q`
+
+### Implementation Log: 2026-06-25 Synthetic Seed-Mix SFT
+
+- Added a second synthetic-proposal baseline:
+  `--synthetic-proposal-sft-seed-mix`.
+- This mode is distinct from the post-seed synthetic SFT pass:
+  it generates synthetic proposal traces before seed training, appends them to
+  the ordinary initial task examples, and trains one joint seed checkpoint from
+  the base model.
+- The mode is mutually exclusive with `--synthetic-proposal-sft`, and is local
+  controller only for now because the mixed seed dataset contains both task
+  examples and proposal-trace examples.
+- Synthetic seed-mix artifacts are written under
+  `round_00/synthetic_seed_mix/`:
+  `synthetic_proposal_sft_examples.jsonl`,
+  `synthetic_seed_mix_trace_examples.jsonl`, and
+  `synthetic_seed_mix_metrics.json`.
+- Launcher support:
+  - `SYNTHETIC_PROPOSAL_SFT_SEED_MIX=1` enables joint seed-mix mode.
+  - The submitter forces post-seed `SYNTHETIC_PROPOSAL_SFT=0` in this mode.
+  - Job keys and output dirs use `seedmix-syn{N}` suffixes.
+  - `KEEP_FINAL_MODEL_CHECKPOINT` is now exported by the submitter, which is
+    required for seed-checkpoint inspection jobs.
+- Planned seed-mix checkpoint-only sweep:
+  `{addition, run_length} x {2048, 4096, 8192}` synthetic examples,
+  `MAX_ATTEMPT_ROUNDS=0`, `NO_SELECTION_PATIENCE=1`,
+  `KEEP_FINAL_MODEL_CHECKPOINT=1`, `SBATCH_TIME=02:59:00`.
+- Verification:
+  - `python -m py_compile self/adaptive/proposal.py self/adaptive/args.py self/adaptive/run.py self/adaptive/driver.py self/launcher_manifests.py`
+  - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_synthetic_proposal_sft.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_attempt_outcome_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_synthetic_proposal_sft.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_args_normalization.py -q`
