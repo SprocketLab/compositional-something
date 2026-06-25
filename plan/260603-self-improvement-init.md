@@ -6572,3 +6572,19 @@ Acceptance criteria for first pilot:
   - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_args_normalization.py tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py tests/test_candidate_training_mix.py tests/test_candidate_training_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_candidate_metric_collection.py tests/test_candidate_rewards.py tests/test_experience_trace_models.py tests/test_adaptive_proposals_and_sandbox.py tests/test_proposal_generation.py tests/test_adaptive_candidate_training.py`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests` (`448 passed`)
+
+### Submission Log: 2026-06-25 03:34:51 UTC
+
+- Fixed stale config launcher arguments after the config-only cleanup:
+  removed program-only CLI flags from the ailab candidate-training
+  launcher and committed the fix as `3f7ea51`.
+- Submitted 100-attempt, 24-hour ailab adaptive config jobs with the current
+  best setup (`history=on`, novelty beta `0.05`, proposal GRPO LR `1e-6`,
+  `n=8`, local packed candidate training).
+- Manifest:
+  `artifacts/runs/adaptive_candidate_training_ailab_20260624_233324/submission_manifest.json`.
+- Jobs:
+  - addition: `10231602`
+  - run_length: `10231603`
+- Initial monitor result: both jobs were pending on `ailab` with reason
+  `Priority`; no runtime logs had been created yet.
