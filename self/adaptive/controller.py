@@ -332,11 +332,6 @@ def run_proposal_grpo_controller_worker_from_spec(
     next_checkpoint, metrics = deps.apply_proposal_grpo_update(
         args=args,
         source_checkpoint=str(payload["source_checkpoint"]),
-        proposal_kl_reference_checkpoint=(
-            str(payload["proposal_kl_reference_checkpoint"])
-            if payload.get("proposal_kl_reference_checkpoint")
-            else None
-        ),
         output_dir=Path(payload["proposal_grpo_dir"]),
         prompt=prompt,
         proposal_results=deps.load_json(Path(payload["proposal_results_path"])),

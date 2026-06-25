@@ -12,7 +12,6 @@ from core.addition_pipeline import (
 )
 from self.adaptive.proposal import PROPOSAL_OUTPUT_SCHEMAS
 from self.adaptive.proposal import (
-    PROPOSAL_GRPO_OBJECTIVES,
     PROPOSAL_GRPO_SPAN_MODES,
     PROPOSAL_GRPO_REWARD_MODES,
     PROPOSAL_GRPO_ZERO_VARIANCE_MODES,
@@ -52,10 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--proposal-prompt-action-history",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help=(
             "Include a compact summary of recently selected actions in config proposal prompts. "
-            "Default is off so history exposure can be ablated cleanly."
+            "Default is on because it was the strongest broad setting in the 1.7B history/novelty sweep."
         ),
     )
     parser.add_argument(
@@ -516,36 +515,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Learning rate for the lightweight proposal-validity GRPO update.",
     )
     parser.add_argument(
-        "--proposal-grpo-objective",
-        choices=PROPOSAL_GRPO_OBJECTIVES,
-        default="grpo",
-        help=(
-            "Proposal policy objective. 'grpo' keeps current std-normalized advantages "
-            "and mean-logprob length normalization; 'dr_grpo' uses reward-minus-mean "
-            "advantages and summed policy logprobs."
-        ),
-    )
-    parser.add_argument(
         "--proposal-grpo-kl-coef",
         type=float,
         default=0.01,
         help="Coefficient for the sampled-token KL proxy against cached pre-update logprobs.",
-    )
-    parser.add_argument(
-        "--proposal-grpo-anchor-kl-coef",
-        type=float,
-        default=0.01,
-        help=(
-            "Coefficient for a sampled-token KL proxy against a frozen proposal reference. "
-            "With the default adaptive_init reference, this anchors proposal updates to the "
-            "seed/adaptive-loop initial checkpoint."
-        ),
-    )
-    parser.add_argument(
-        "--proposal-grpo-anchor-kl-reference",
-        choices=("none", "adaptive_init"),
-        default="adaptive_init",
-        help="Frozen reference checkpoint used for proposal anchor KL.",
     )
     parser.add_argument(
         "--proposal-grpo-grad-clip",
@@ -703,8 +676,6 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("proposal_grpo_learning_rate must be positive.")
     if args.proposal_grpo_kl_coef < 0.0:
         raise ValueError("proposal_grpo_kl_coef must be non-negative.")
-    if args.proposal_grpo_anchor_kl_coef < 0.0:
-        raise ValueError("proposal_grpo_anchor_kl_coef must be non-negative.")
     if args.proposal_grpo_grad_clip <= 0.0:
         raise ValueError("proposal_grpo_grad_clip must be positive.")
     if args.proposal_grpo_outcome_scale <= 0.0:

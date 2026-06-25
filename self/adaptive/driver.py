@@ -469,7 +469,6 @@ def apply_or_dispatch_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
@@ -484,7 +483,6 @@ def apply_or_dispatch_proposal_grpo_update(
     return apply_or_dispatch_proposal_grpo_update_impl(
         args=args,
         source_checkpoint=source_checkpoint,
-        proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
         output_dir=output_dir,
         prompt=prompt,
         proposal_results=proposal_results,

@@ -23,10 +23,8 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         proposal_grpo_zero_variance_modes="fixed_baseline skip",
         candidate_eval_backends="transformers vllm",
         num_candidates_list="8 16",
-        proposal_grpo_objective="dr_grpo",
         proposal_grpo_learning_rates="1e-6 3e-6",
-        proposal_grpo_kl_coef="0",
-        proposal_grpo_anchor_kl_coefs="0 0.01",
+        proposal_grpo_kl_coef="0.01",
         adaptive_config_files="/tmp/base.env",
         job_fields=[
             "addition",
@@ -36,12 +34,10 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
             "fixed_baseline",
             "transformers",
             "8",
-            "dr_grpo",
             "1e-6",
-            "0",
             "0.01",
             "123",
-            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-eval-transformers",
             "run_length",
             "config",
             "textual",
@@ -49,12 +45,10 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
             "skip",
             "vllm",
             "16",
-            "dr_grpo",
             "3e-6",
-            "0",
-            "0",
+            "0.01",
             "124",
-            "/tmp/run/run_length-config-textual-n16-reward-rank-grpo-skip-obj-dr-grpo-lr-3em6-akl-0-eval-vllm",
+            "/tmp/run/run_length-config-textual-n16-reward-rank-grpo-skip-lr-3em6-eval-vllm",
         ],
     )
 
@@ -68,12 +62,10 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
     assert payload["proposal_grpo_zero_variance_modes"] == ["fixed_baseline", "skip"]
     assert payload["candidate_eval_backends"] == ["transformers", "vllm"]
     assert payload["num_candidates_list"] == [8, 16]
-    assert payload["proposal_grpo_objective"] == "dr_grpo"
     assert payload["proposal_grpo_learning_rates"] == ["1e-6", "3e-6"]
-    assert payload["proposal_grpo_kl_coef"] == "0"
-    assert payload["proposal_grpo_anchor_kl_coefs"] == ["0", "0.01"]
+    assert payload["proposal_grpo_kl_coef"] == "0.01"
     assert payload["adaptive_config_files"] == "/tmp/base.env"
-    assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-obj-dr_grpo-lr-1e-6-akl-0.01-eval-transformers"] == {
+    assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-eval-transformers"] == {
         "task": "addition",
         "condition": "config",
         "outcome_trace_target_mode": "numeric",
@@ -81,24 +73,22 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         "proposal_grpo_zero_variance": "fixed_baseline",
         "candidate_eval_backend": "transformers",
         "num_candidates": 8,
-        "proposal_grpo_objective": "dr_grpo",
         "proposal_grpo_learning_rate": "1e-6",
-        "proposal_grpo_kl_coef": "0",
-        "proposal_grpo_anchor_kl_coef": "0.01",
+        "proposal_grpo_kl_coef": "0.01",
         "job_id": "123",
-        "output_dir": "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
+        "output_dir": "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-eval-transformers",
         "status": "submitted",
     }
     assert (
-        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-obj-dr_grpo-lr-3e-6-akl-0-eval-vllm"][
-            "proposal_grpo_anchor_kl_coef"
+        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-lr-3e-6-eval-vllm"][
+            "proposal_grpo_learning_rate"
         ]
-        == "0"
+        == "3e-6"
     )
 
 
 def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> None:
-    with pytest.raises(ValueError, match="groups of 13"):
+    with pytest.raises(ValueError, match="groups of 11"):
         build_adaptive_candidate_submission_manifest(
             out_root="/tmp/run",
             tasks="addition",
@@ -110,10 +100,8 @@ def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> 
             proposal_grpo_zero_variance_modes="fixed_baseline",
             candidate_eval_backends="transformers",
             num_candidates_list="8",
-            proposal_grpo_objective="grpo",
             proposal_grpo_learning_rates="1e-6",
-            proposal_grpo_kl_coef="0",
-            proposal_grpo_anchor_kl_coefs="0.01",
+            proposal_grpo_kl_coef="0.01",
             adaptive_config_files="",
             job_fields=["addition", "config"],
         )
@@ -181,13 +169,9 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "transformers",
             "--num-candidates-list",
             "8",
-            "--proposal-grpo-objective",
-            "dr_grpo",
             "--proposal-grpo-learning-rates",
             "1e-6",
             "--proposal-grpo-kl-coef",
-            "0",
-            "--proposal-grpo-anchor-kl-coefs",
             "0.01",
             "--adaptive-config-files",
             "/tmp/base.env",
@@ -199,12 +183,10 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "fixed_baseline",
             "transformers",
             "8",
-            "dr_grpo",
             "1e-6",
-            "0",
             "0.01",
             "123",
-            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-eval-transformers",
         ]
     )
 
@@ -212,8 +194,9 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
     assert payload["adaptive_config_files"] == "/tmp/base.env"
     assert payload["model_name"] == "Qwen/Qwen3-4B"
     assert payload["proposal_model_name"] == "current"
-    assert payload["proposal_grpo_objective"] == "dr_grpo"
     assert (
-        payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-obj-dr_grpo-lr-1e-6-akl-0.01-eval-transformers"]["job_id"]
+        payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-eval-transformers"][
+            "job_id"
+        ]
         == "123"
     )

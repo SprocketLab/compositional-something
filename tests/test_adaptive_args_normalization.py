@@ -15,9 +15,9 @@ def test_args_normalization_preserves_task_defaults() -> None:
     assert addition_args.expand_train_per_digit == addition_args.candidate_train_per_size
     assert addition_args.proposal_grpo_steps == 1
     assert addition_args.proposal_update_loss_mode == "merged_agent"
-    assert addition_args.proposal_grpo_objective == "grpo"
-    assert addition_args.proposal_grpo_anchor_kl_coef == 0.01
-    assert addition_args.proposal_grpo_anchor_kl_reference == "adaptive_init"
+    assert addition_args.proposal_prompt_action_history is True
+    assert addition_args.proposal_grpo_learning_rate == 1e-6
+    assert addition_args.proposal_grpo_novelty_bonus_beta == 0.05
     assert addition_args.post_task_proposal_rehearsal is False
     assert addition_args.num_rounds is None
     assert addition_args.max_attempt_rounds == 100

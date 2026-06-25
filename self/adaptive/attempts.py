@@ -470,7 +470,6 @@ class AttemptLoopResult:
     selected_rounds: int
     attempt_index: int
     current_checkpoint: str
-    proposal_kl_reference_checkpoint: str
     current_final_accuracy: float
     current_per_size_accuracy: Mapping[int, float]
     source_sizes: set[int]
@@ -508,7 +507,6 @@ def handle_no_selection_attempt(
     selected_rounds: int,
     consecutive_no_selection: int,
     current_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     proposal_trace_buffer: Sequence[Any],
@@ -542,7 +540,6 @@ def handle_no_selection_attempt(
         next_checkpoint, proposal_grpo_metrics = deps.apply_or_dispatch_proposal_grpo_update(
             args=args,
             source_checkpoint=current_checkpoint,
-            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             output_dir=round_dir / "proposal_grpo",
             prompt=prompt,
             proposal_results=proposal_results,
@@ -555,7 +552,6 @@ def handle_no_selection_attempt(
         deleted_checkpoints = checkpoint_manager.cleanup_replaced_checkpoint(
             old_checkpoint=previous_checkpoint,
             new_checkpoint=next_checkpoint,
-            protected_checkpoints=[proposal_kl_reference_checkpoint] if proposal_kl_reference_checkpoint else [],
         )
         deleted_replaced_model_dirs.extend(deleted_checkpoints)
         if deleted_checkpoints:
@@ -632,7 +628,6 @@ def handle_selected_attempt(
     attempt_index: int,
     selected_rounds: int,
     current_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     init_final_accuracy: float,
     source_sizes: set[int],
     source_examples: list[Any],
@@ -681,7 +676,6 @@ def handle_selected_attempt(
         checkpoint_manager.cleanup_replaced_checkpoint(
             old_checkpoint=previous_checkpoint,
             new_checkpoint=current_checkpoint,
-            protected_checkpoints=[proposal_kl_reference_checkpoint] if proposal_kl_reference_checkpoint else [],
         )
     )
     current_final_accuracy = selected.final_accuracy
@@ -692,7 +686,6 @@ def handle_selected_attempt(
         next_checkpoint, proposal_grpo_metrics = deps.apply_or_dispatch_proposal_grpo_update(
             args=args,
             source_checkpoint=current_checkpoint,
-            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             output_dir=round_dir / "proposal_grpo",
             prompt=prompt,
             proposal_results=proposal_results,
@@ -705,7 +698,6 @@ def handle_selected_attempt(
         deleted_checkpoints = checkpoint_manager.cleanup_replaced_checkpoint(
             old_checkpoint=previous_checkpoint,
             new_checkpoint=next_checkpoint,
-            protected_checkpoints=[proposal_kl_reference_checkpoint] if proposal_kl_reference_checkpoint else [],
         )
         deleted_replaced_model_dirs.extend(deleted_checkpoints)
         if deleted_checkpoints:
@@ -801,7 +793,6 @@ def handle_attempt_outcome(
     selected_rounds: int,
     consecutive_no_selection: int,
     current_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
@@ -863,7 +854,6 @@ def handle_attempt_outcome(
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
             current_checkpoint=current_checkpoint,
-            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy=current_per_size_accuracy,
             proposal_trace_buffer=proposal_trace_buffer,
@@ -889,7 +879,6 @@ def handle_attempt_outcome(
         attempt_index=attempt_index,
         selected_rounds=selected_rounds,
         current_checkpoint=current_checkpoint,
-        proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
         init_final_accuracy=init_final_accuracy,
         source_sizes=source_sizes,
         source_examples=source_examples,
@@ -936,7 +925,6 @@ def run_candidate_attempt(
     exclude_keys: set[Any],
     eval_examples: Sequence[Any],
     current_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
@@ -1035,7 +1023,6 @@ def run_candidate_attempt(
         selected_rounds=selected_rounds,
         consecutive_no_selection=consecutive_no_selection,
         current_checkpoint=current_checkpoint,
-        proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
@@ -1103,7 +1090,6 @@ def run_adaptive_attempt_loop(
     selected_rounds = 0
     attempt_index = 0
     consecutive_no_selection = 0
-    proposal_kl_reference_checkpoint = current_checkpoint
     proposal_trace_buffer: list[Any] = []
     outcome_trace_buffer: list[Any] = []
     proposal_grpo_update_count = 0
@@ -1183,7 +1169,6 @@ def run_adaptive_attempt_loop(
             exclude_keys=exclude_keys,
             eval_examples=eval_examples,
             current_checkpoint=current_checkpoint,
-            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy=current_per_size_accuracy,
             init_final_accuracy=init_final_accuracy,
@@ -1210,7 +1195,6 @@ def run_adaptive_attempt_loop(
         selected_rounds=selected_rounds,
         attempt_index=attempt_index,
         current_checkpoint=current_checkpoint,
-        proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         source_sizes=source_sizes,

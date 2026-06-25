@@ -22,7 +22,7 @@ NUM_CANDIDATES="${NUM_CANDIDATES:-8}"
 NUM_CANDIDATES_LIST="${NUM_CANDIDATES_LIST:-${NUM_CANDIDATES}}"
 PROPOSAL_TEMPERATURE="${PROPOSAL_TEMPERATURE:-0.9}"
 PROPOSAL_TOP_P="${PROPOSAL_TOP_P:-0.95}"
-PROPOSAL_PROMPT_ACTION_HISTORY="${PROPOSAL_PROMPT_ACTION_HISTORY:-0}"
+PROPOSAL_PROMPT_ACTION_HISTORY="${PROPOSAL_PROMPT_ACTION_HISTORY:-1}"
 PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS="${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS:-5}"
 FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
 PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
@@ -53,13 +53,9 @@ PROPOSAL_FORMAT_LOSS_WEIGHT="${PROPOSAL_FORMAT_LOSS_WEIGHT:-0.02}"
 PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES="${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES:-256}"
 PROPOSAL_GRPO_DEDUPLICATE_ACTIONS="${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS:-1}"
 PROPOSAL_GRPO_SPAN="${PROPOSAL_GRPO_SPAN:-reasoning_action}"
-PROPOSAL_GRPO_OBJECTIVE="${PROPOSAL_GRPO_OBJECTIVE:-grpo}"
 PROPOSAL_GRPO_LEARNING_RATE="${PROPOSAL_GRPO_LEARNING_RATE:-1e-6}"
 PROPOSAL_GRPO_LEARNING_RATES="${PROPOSAL_GRPO_LEARNING_RATES:-${PROPOSAL_GRPO_LEARNING_RATE}}"
 PROPOSAL_GRPO_KL_COEF="${PROPOSAL_GRPO_KL_COEF:-0.01}"
-PROPOSAL_GRPO_ANCHOR_KL_COEF="${PROPOSAL_GRPO_ANCHOR_KL_COEF:-0.01}"
-PROPOSAL_GRPO_ANCHOR_KL_COEFS="${PROPOSAL_GRPO_ANCHOR_KL_COEFS:-${PROPOSAL_GRPO_ANCHOR_KL_COEF}}"
-PROPOSAL_GRPO_ANCHOR_KL_REFERENCE="${PROPOSAL_GRPO_ANCHOR_KL_REFERENCE:-adaptive_init}"
 PROPOSAL_GRPO_NOVELTY_BONUS_BETA="${PROPOSAL_GRPO_NOVELTY_BONUS_BETA:-0.05}"
 SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD="${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD:-0.80}"
 PROPOSAL_UPDATE_MICROBATCH_SIZE="${PROPOSAL_UPDATE_MICROBATCH_SIZE:-8}"
@@ -84,7 +80,6 @@ submit_cell() {
   local zero_variance="$5"
   local num_candidates="$6"
   local proposal_lr="$7"
-  local anchor_kl_coef="$8"
   local task_slug
   task_slug="${task//_/-}"
   local condition_slug
@@ -97,15 +92,10 @@ submit_cell() {
   zero_slug="${zero_variance//_/-}"
   local backend_slug
   backend_slug="${CANDIDATE_EVAL_BACKEND//_/-}"
-  local objective_slug
-  objective_slug="${PROPOSAL_GRPO_OBJECTIVE//_/-}"
   local lr_slug
   lr_slug="${proposal_lr//./p}"
   lr_slug="${lr_slug//-/m}"
-  local anchor_kl_slug
-  anchor_kl_slug="${anchor_kl_coef//./p}"
-  anchor_kl_slug="${anchor_kl_slug//-/m}"
-  local sweep_slug="obj-${objective_slug}-lr-${lr_slug}-akl-${anchor_kl_slug}"
+  local sweep_slug="lr-${lr_slug}"
   local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-eval-${backend_slug}"
   local -a sbatch_resources
   sbatch_resources=(--mem "${SBATCH_MEM}")
@@ -161,11 +151,8 @@ submit_cell() {
       "PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES=${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES}" \
 	      "PROPOSAL_GRPO_DEDUPLICATE_ACTIONS=${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS}" \
 	      "PROPOSAL_GRPO_SPAN=${PROPOSAL_GRPO_SPAN}" \
-	      "PROPOSAL_GRPO_OBJECTIVE=${PROPOSAL_GRPO_OBJECTIVE}" \
 	      "PROPOSAL_GRPO_LEARNING_RATE=${proposal_lr}" \
 	      "PROPOSAL_GRPO_KL_COEF=${PROPOSAL_GRPO_KL_COEF}" \
-	      "PROPOSAL_GRPO_ANCHOR_KL_COEF=${anchor_kl_coef}" \
-	      "PROPOSAL_GRPO_ANCHOR_KL_REFERENCE=${PROPOSAL_GRPO_ANCHOR_KL_REFERENCE}" \
 	      "PROPOSAL_GRPO_NOVELTY_BONUS_BETA=${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}" \
       "SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD=${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}" \
       "PROPOSAL_UPDATE_MICROBATCH_SIZE=${PROPOSAL_UPDATE_MICROBATCH_SIZE}" \
@@ -184,17 +171,13 @@ for task in ${TASKS}; do
         for zero_variance in ${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}; do
           for num_candidates in ${NUM_CANDIDATES_LIST}; do
             for proposal_lr in ${PROPOSAL_GRPO_LEARNING_RATES}; do
-              for anchor_kl_coef in ${PROPOSAL_GRPO_ANCHOR_KL_COEFS}; do
                 outcome_slug="${outcome_mode//_/-}"
                 reward_slug="${reward_mode//_/-}"
                 zero_slug="${zero_variance//_/-}"
                 lr_slug="${proposal_lr//./p}"
                 lr_slug="${lr_slug//-/m}"
-                anchor_kl_slug="${anchor_kl_coef//./p}"
-                anchor_kl_slug="${anchor_kl_slug//-/m}"
-                objective_slug="${PROPOSAL_GRPO_OBJECTIVE//_/-}"
-                sweep_slug="obj-${objective_slug}-lr-${lr_slug}-akl-${anchor_kl_slug}"
-                job_id="$(submit_cell "${task}" "${condition}" "${outcome_mode}" "${reward_mode}" "${zero_variance}" "${num_candidates}" "${proposal_lr}" "${anchor_kl_coef}")"
+                sweep_slug="lr-${lr_slug}"
+                job_id="$(submit_cell "${task}" "${condition}" "${outcome_mode}" "${reward_mode}" "${zero_variance}" "${num_candidates}" "${proposal_lr}")"
                 MANIFEST_ARGS+=(
                   "${task}"
                   "${condition}"
@@ -203,14 +186,11 @@ for task in ${TASKS}; do
                   "${zero_variance}"
                   "${CANDIDATE_EVAL_BACKEND}"
                   "${num_candidates}"
-                  "${PROPOSAL_GRPO_OBJECTIVE}"
                   "${proposal_lr}"
                   "${PROPOSAL_GRPO_KL_COEF}"
-                  "${anchor_kl_coef}"
                   "${job_id}"
                   "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-eval-${CANDIDATE_EVAL_BACKEND//_/-}"
                 )
-              done
             done
           done
         done
@@ -230,10 +210,8 @@ MANIFEST="${OUT_ROOT}/submission_manifest.json"
   --proposal-grpo-zero-variance-modes "${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}" \
   --candidate-eval-backends "${CANDIDATE_EVAL_BACKEND}" \
   --num-candidates-list "${NUM_CANDIDATES_LIST}" \
-  --proposal-grpo-objective "${PROPOSAL_GRPO_OBJECTIVE}" \
   --proposal-grpo-learning-rates "${PROPOSAL_GRPO_LEARNING_RATES}" \
   --proposal-grpo-kl-coef "${PROPOSAL_GRPO_KL_COEF}" \
-  --proposal-grpo-anchor-kl-coefs "${PROPOSAL_GRPO_ANCHOR_KL_COEFS}" \
   --adaptive-config-files "${ADAPTIVE_CONFIG_EXPORT}" \
   --model-name "${MODEL_NAME}" \
   --proposal-model-name "${PROPOSAL_MODEL_NAME}" \

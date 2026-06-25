@@ -267,7 +267,6 @@ def finalize_adaptive_run(
     selected_rounds: int,
     attempt_index: int,
     current_checkpoint: str,
-    proposal_kl_reference_checkpoint: str,
     source_sizes: set[int],
     proposal_trace_buffer: Sequence[Any],
     outcome_trace_buffer: Sequence[Any],
@@ -287,21 +286,12 @@ def finalize_adaptive_run(
         checkpoint=current_checkpoint,
         keep_final=bool(getattr(args, "keep_final_model_checkpoint", False)),
     )
-    deleted_anchor_model_dirs: List[str] = []
-    if proposal_kl_reference_checkpoint and proposal_kl_reference_checkpoint != current_checkpoint:
-        deleted_anchor_model_dirs = checkpoint_manager.cleanup_final_checkpoint(
-            checkpoint=proposal_kl_reference_checkpoint,
-            keep_final=bool(getattr(args, "keep_final_model_checkpoint", False)),
-        )
-        deleted_final_model_dirs.extend(deleted_anchor_model_dirs)
     if deleted_final_model_dirs:
         write_json(
             output_dir / "deleted_final_model_dirs.json",
             {
                 "current_checkpoint": current_checkpoint,
-                "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
                 "deleted_model_dirs": deleted_final_model_dirs,
-                "deleted_anchor_model_dirs": deleted_anchor_model_dirs,
                 "keep_final_model_checkpoint": bool(getattr(args, "keep_final_model_checkpoint", False)),
             },
         )
@@ -336,11 +326,8 @@ def finalize_adaptive_run(
             ),
             (
                 "Proposal GRPO KL: "
-                f"old-policy coef `{args.proposal_grpo_kl_coef}`; "
-                f"anchor `{args.proposal_grpo_anchor_kl_reference}` coef "
-                f"`{args.proposal_grpo_anchor_kl_coef}`."
+                f"old-policy coef `{args.proposal_grpo_kl_coef}`."
             ),
-            f"Proposal GRPO anchor checkpoint: `{proposal_kl_reference_checkpoint}`.",
             f"Proposal GRPO action dedup: `{args.proposal_grpo_deduplicate_actions}`.",
             f"Proposal GRPO novelty beta: `{args.proposal_grpo_novelty_bonus_beta}`.",
             f"Source admission target-accuracy threshold: `{args.source_admission_target_accuracy_threshold}`.",
@@ -365,7 +352,6 @@ def finalize_adaptive_run(
         "no_selection_patience": args.no_selection_patience,
         "num_candidates": args.num_candidates,
         "current_checkpoint": current_checkpoint,
-        "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
         "source_sizes": sorted(source_sizes),
         "proposal_trace_buffer_size": len(proposal_trace_buffer),
         "proposal_output_schema": args.proposal_output_schema,
@@ -386,8 +372,6 @@ def finalize_adaptive_run(
         "proposal_grpo_steps": args.proposal_grpo_steps,
         "proposal_grpo_learning_rate": args.proposal_grpo_learning_rate,
         "proposal_grpo_kl_coef": args.proposal_grpo_kl_coef,
-        "proposal_grpo_anchor_kl_coef": args.proposal_grpo_anchor_kl_coef,
-        "proposal_grpo_anchor_kl_reference": args.proposal_grpo_anchor_kl_reference,
         "proposal_grpo_zero_variance": args.proposal_grpo_zero_variance,
         "proposal_grpo_reward_mode": args.proposal_grpo_reward_mode,
         "proposal_grpo_span": args.proposal_grpo_span,
@@ -402,7 +386,6 @@ def finalize_adaptive_run(
         "source_admission_target_accuracy_threshold": args.source_admission_target_accuracy_threshold,
         "keep_final_model_checkpoint": args.keep_final_model_checkpoint,
         "deleted_final_model_dirs": deleted_final_model_dirs,
-        "deleted_anchor_model_dirs": deleted_anchor_model_dirs,
         "keep_all_proposal_grpo_checkpoints": args.keep_all_proposal_grpo_checkpoints,
         "init_final_accuracy": init_final_accuracy,
         "results_path": str(results_path),
@@ -845,7 +828,6 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
         selected_rounds=loop_result.selected_rounds,
         attempt_index=loop_result.attempt_index,
         current_checkpoint=loop_result.current_checkpoint,
-        proposal_kl_reference_checkpoint=loop_result.proposal_kl_reference_checkpoint,
         source_sizes=loop_result.source_sizes,
         proposal_trace_buffer=loop_result.proposal_trace_buffer,
         outcome_trace_buffer=loop_result.outcome_trace_buffer,

@@ -1255,7 +1255,6 @@ def test_parser_defaults_enable_numeric_outcome_and_config_grpo():
     assert args.proposal_grpo_deduplicate_actions is True
     assert args.proposal_update_microbatch_size == 8
     assert args.proposal_grpo_learning_rate == 1e-6
-    assert args.proposal_grpo_objective == "grpo"
     assert args.proposal_grpo_zero_variance == "skip"
     assert args.proposal_grpo_reward_mode == "outcome"
     assert args.proposal_grpo_outcome_scale == 0.05
@@ -2310,21 +2309,9 @@ def test_proposal_grpo_reward_mapping_and_advantages():
     assert advantages[0] > advantages[-1]
 
     advantages, skipped, mode = loop.proposal_grpo_advantages(
-        rewards,
-        zero_variance="fixed_baseline",
-        fixed_baseline=0.5,
-        objective="dr_grpo",
-    )
-    mean_reward = sum(rewards) / len(rewards)
-    assert not skipped
-    assert mode == "mean_centered"
-    assert advantages == [reward - mean_reward for reward in rewards]
-
-    advantages, skipped, mode = loop.proposal_grpo_advantages(
         [1.0, 1.0],
         zero_variance="fixed_baseline",
         fixed_baseline=0.5,
-        objective="dr_grpo",
     )
     assert not skipped
     assert mode == "fixed_baseline"
@@ -2334,7 +2321,6 @@ def test_proposal_grpo_reward_mapping_and_advantages():
         [0.0, 0.0],
         zero_variance="skip",
         fixed_baseline=0.5,
-        objective="dr_grpo",
     )
     assert skipped
     assert mode == "zero_variance"
@@ -3027,9 +3013,7 @@ def test_proposal_policy_microbatches_match_full_batch_gradient():
     ]
     advantages = torch.tensor([1.0, -0.25, 0.5], dtype=torch.float32)
     old_logprobs = torch.tensor([-0.1, -0.2, -0.3], dtype=torch.float32)
-    anchor_logprobs = torch.tensor([-0.5, -0.1, -0.4], dtype=torch.float32)
     kl_coef = 0.07
-    anchor_kl_coef = 0.03
 
     full_model = _TinyCausalModel()
     micro_model = _TinyCausalModel()
@@ -3051,7 +3035,6 @@ def test_proposal_policy_microbatches_match_full_batch_gradient():
     full_loss = (
         (-(advantages * full_logprobs)).sum()
         + kl_coef * ((full_logprobs - old_logprobs) ** 2).sum()
-        + anchor_kl_coef * ((full_logprobs - anchor_logprobs) ** 2).sum()
     ) / len(samples)
     full_loss.backward()
 
@@ -3061,24 +3044,20 @@ def test_proposal_policy_microbatches_match_full_batch_gradient():
         samples=samples,
         advantages=advantages,
         old_logprobs=old_logprobs,
-        anchor_logprobs=anchor_logprobs,
         device=torch.device("cpu"),
         microbatch_size=1,
         kl_coef=kl_coef,
-        anchor_kl_coef=anchor_kl_coef,
         normalize_by_length=True,
     )
 
     assert torch.allclose(micro_model.bias.grad, full_model.bias.grad, atol=1e-6)
     assert math.isclose(
         micro_metrics["policy_loss"]
-        + kl_coef * micro_metrics["kl_proxy"]
-        + anchor_kl_coef * micro_metrics["anchor_kl_proxy"],
+        + kl_coef * micro_metrics["kl_proxy"],
         float(full_loss.detach()),
         rel_tol=1e-6,
         abs_tol=1e-6,
     )
-    assert micro_metrics["anchor_kl_proxy"] > 0.0
 
 
 def test_select_candidate_tiebreaks_by_frontier_delta_before_target_delta():

@@ -1647,7 +1647,6 @@ PROPOSAL_GRPO_ZERO_VARIANCE_MODES = ("fixed_baseline", "skip")
 PROPOSAL_GRPO_REWARD_MODES = ("outcome", "rank", "validity")
 PROPOSAL_UPDATE_LOSS_MODES = ("legacy_grpo", "merged_agent")
 PROPOSAL_GRPO_SPAN_MODES = ("reasoning_action", "action_only")
-PROPOSAL_GRPO_OBJECTIVES = ("grpo", "dr_grpo")
 PROPOSAL_GRPO_REWARD_BY_CATEGORY: Dict[str, float] = {
     "valid": 1.0,
     "range_error": 0.6,
@@ -1886,20 +1885,15 @@ def proposal_grpo_advantages(
     *,
     zero_variance: str,
     fixed_baseline: float,
-    objective: str = "grpo",
     eps: float = 1e-6,
 ) -> Tuple[List[float], bool, str]:
     if not rewards:
         return [], True, "no_rewards"
-    if objective not in PROPOSAL_GRPO_OBJECTIVES:
-        raise ValueError(f"Unsupported proposal_grpo_objective={objective!r}.")
     reward_values = [float(reward) for reward in rewards]
     mean_reward = sum(reward_values) / len(reward_values)
     variance = sum((reward - mean_reward) ** 2 for reward in reward_values) / len(reward_values)
     std_reward = math.sqrt(variance)
     if std_reward > eps:
-        if objective == "dr_grpo":
-            return [reward - mean_reward for reward in reward_values], False, "mean_centered"
         return [(reward - mean_reward) / (std_reward + eps) for reward in reward_values], False, "normalized"
     if zero_variance == "skip":
         return [0.0 for _ in reward_values], True, "zero_variance"
@@ -2043,7 +2037,6 @@ def build_proposal_grpo_traces(
         rewards,
         zero_variance=zero_variance_mode,
         fixed_baseline=args.proposal_grpo_fixed_baseline,
-        objective=str(getattr(args, "proposal_grpo_objective", "grpo")),
     )
     traces: List[ProposalGRPOTrace] = []
     for entry, advantage in zip(included_entries, advantages):
@@ -2119,7 +2112,7 @@ def build_proposal_grpo_traces(
         "invalid_only_fixed_baseline": bool(invalid_only_fixed_baseline),
         "requested_zero_variance_mode": str(args.proposal_grpo_zero_variance),
         "reward_mode": args.proposal_grpo_reward_mode,
-        "objective": str(getattr(args, "proposal_grpo_objective", "grpo")),
+        "objective": "grpo",
         "outcome_scale": float(args.proposal_grpo_outcome_scale),
         "novelty_bonus_beta": float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0)),
         "novelty_bonus_mean": (
@@ -2155,7 +2148,6 @@ from self.adaptive.proposal import (
     PROPOSAL_GRPO_OUTCOME_INVALID_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_MODES,
-    PROPOSAL_GRPO_OBJECTIVES,
     PROPOSAL_GRPO_SPAN_MODES,
     PROPOSAL_GRPO_ZERO_VARIANCE_MODES,
     ProposalGRPOTrace,
@@ -2676,11 +2668,9 @@ def _backward_policy_microbatches(
     samples: Sequence[JsonDict],
     advantages: torch.Tensor,
     old_logprobs: torch.Tensor,
-    anchor_logprobs: Optional[torch.Tensor],
     device: torch.device,
     microbatch_size: int,
     kl_coef: float,
-    anchor_kl_coef: float,
     normalize_by_length: bool,
 ) -> JsonDict:
     import torch
@@ -2688,7 +2678,6 @@ def _backward_policy_microbatches(
     denominator = max(1, len(samples))
     policy_sum = torch.zeros((), dtype=torch.float32, device=device)
     kl_sum = torch.zeros((), dtype=torch.float32, device=device)
-    anchor_kl_sum = torch.zeros((), dtype=torch.float32, device=device)
     mean_after_sum = torch.zeros((), dtype=torch.float32, device=device)
     offset = 0
     for sample_batch in _proposal_sample_batches(samples, microbatch_size):
@@ -2704,11 +2693,6 @@ def _backward_policy_microbatches(
         policy_terms = -(batch_advantages * new_logprobs)
         kl_terms = (new_logprobs - batch_old_logprobs) ** 2
         loss_terms = policy_terms.sum() + float(kl_coef) * kl_terms.sum()
-        if anchor_logprobs is not None and float(anchor_kl_coef) > 0.0:
-            batch_anchor_logprobs = anchor_logprobs[offset : offset + batch_size]
-            anchor_kl_terms = (new_logprobs - batch_anchor_logprobs) ** 2
-            loss_terms = loss_terms + float(anchor_kl_coef) * anchor_kl_terms.sum()
-            anchor_kl_sum = anchor_kl_sum + anchor_kl_terms.detach().sum()
         (loss_terms / denominator).backward()
         policy_sum = policy_sum + policy_terms.detach().sum()
         kl_sum = kl_sum + kl_terms.detach().sum()
@@ -2717,7 +2701,6 @@ def _backward_policy_microbatches(
     return {
         "policy_loss": float((policy_sum / denominator).detach().cpu()),
         "kl_proxy": float((kl_sum / denominator).detach().cpu()),
-        "anchor_kl_proxy": float((anchor_kl_sum / denominator).detach().cpu()),
         "mean_logprob_after": float((mean_after_sum / denominator).detach().cpu()),
     }
 
@@ -2749,7 +2732,6 @@ def apply_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
@@ -2770,14 +2752,9 @@ def apply_proposal_grpo_update(
         "model_dir": None,
         "proposal_count": len(proposal_results),
         "steps": int(args.proposal_grpo_steps),
-        "objective": str(getattr(args, "proposal_grpo_objective", "grpo")),
+        "objective": "grpo",
         "learning_rate": float(args.proposal_grpo_learning_rate),
         "kl_coef": float(args.proposal_grpo_kl_coef),
-        "anchor_kl_coef": float(getattr(args, "proposal_grpo_anchor_kl_coef", 0.0)),
-        "anchor_kl_reference": str(getattr(args, "proposal_grpo_anchor_kl_reference", "none")),
-        "anchor_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
-        "anchor_kl_enabled": False,
-        "anchor_kl_skip_reason": None,
         "grad_clip": float(args.proposal_grpo_grad_clip),
         "zero_variance": args.proposal_grpo_zero_variance,
         "fixed_baseline": float(args.proposal_grpo_fixed_baseline),
@@ -2842,11 +2819,8 @@ def apply_proposal_grpo_update(
         device = next(model.parameters()).device
         loss_mode = str(getattr(args, "proposal_update_loss_mode", "legacy_grpo"))
         span_mode = str(getattr(args, "proposal_grpo_span", "reasoning_action"))
-        objective = str(getattr(args, "proposal_grpo_objective", "grpo"))
-        if objective not in PROPOSAL_GRPO_OBJECTIVES:
-            raise ValueError(f"Unsupported proposal_grpo_objective={objective!r}.")
-        normalize_policy_logprobs = objective != "dr_grpo"
-        metrics["policy_logprob_normalization"] = "mean" if normalize_policy_logprobs else "sum"
+        normalize_policy_logprobs = True
+        metrics["policy_logprob_normalization"] = "mean"
         encoded_samples: List[JsonDict] = []
         encoded_traces: List[ProposalGRPOTrace] = []
         for trace in traces:
@@ -2960,59 +2934,6 @@ def apply_proposal_grpo_update(
                 microbatch_size=microbatch_size,
                 normalize_by_length=normalize_policy_logprobs,
             ).detach()
-        anchor_logprobs: Optional[torch.Tensor] = None
-        anchor_reference_mode = str(getattr(args, "proposal_grpo_anchor_kl_reference", "none"))
-        anchor_kl_coef = float(getattr(args, "proposal_grpo_anchor_kl_coef", 0.0))
-        if anchor_kl_coef > 0.0 and anchor_reference_mode != "none":
-            if not proposal_kl_reference_checkpoint:
-                metrics["anchor_kl_skip_reason"] = "missing_reference_checkpoint"
-            elif str(proposal_kl_reference_checkpoint) == str(source_checkpoint):
-                anchor_logprobs = old_logprobs
-                metrics["anchor_kl_enabled"] = True
-                metrics["anchor_kl_skip_reason"] = None
-                metrics["anchor_kl_reused_old_logprobs"] = True
-                metrics["anchor_mean_logprob_reference"] = float(old_logprobs.mean().detach().cpu())
-            else:
-                anchor_model = None
-                anchor_tokenizer = None
-                try:
-                    anchor_checkpoint_path = Path(str(proposal_kl_reference_checkpoint))
-                    anchor_checkpoint_for_load = (
-                        str(anchor_checkpoint_path.resolve())
-                        if anchor_checkpoint_path.exists()
-                        else str(proposal_kl_reference_checkpoint)
-                    )
-                    metrics["anchor_kl_reference_checkpoint_resolved"] = anchor_checkpoint_for_load
-                    anchor_model, anchor_tokenizer = instantiate_model_and_tokenizer(
-                        anchor_checkpoint_for_load,
-                        bf16=args.bf16,
-                        fp16=args.fp16,
-                        init_from_scratch=False,
-                        tokenizer_mode=args.tokenizer_mode,
-                        recipe=args.recipe,
-                    )
-                    anchor_model.eval()
-                    with torch.no_grad():
-                        anchor_logprobs = _proposal_completion_mean_logprobs_for_samples(
-                            model=anchor_model,
-                            tokenizer=tokenizer,
-                            samples=encoded_samples,
-                            device=next(anchor_model.parameters()).device,
-                            microbatch_size=microbatch_size,
-                            normalize_by_length=normalize_policy_logprobs,
-                        ).detach().to(device)
-                    metrics["anchor_kl_enabled"] = True
-                    metrics["anchor_kl_skip_reason"] = None
-                    metrics["anchor_kl_reused_old_logprobs"] = False
-                    metrics["anchor_mean_logprob_reference"] = float(anchor_logprobs.mean().detach().cpu())
-                finally:
-                    if anchor_model is not None:
-                        del anchor_model
-                    if anchor_tokenizer is not None:
-                        del anchor_tokenizer
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-
         optimizer = torch.optim.AdamW(model.parameters(), lr=float(args.proposal_grpo_learning_rate))
         loss_history: List[JsonDict] = []
         for step_index in range(int(args.proposal_grpo_steps)):
@@ -3024,16 +2945,13 @@ def apply_proposal_grpo_update(
                 samples=encoded_samples,
                 advantages=advantages,
                 old_logprobs=old_logprobs,
-                anchor_logprobs=anchor_logprobs,
                 device=device,
                 microbatch_size=microbatch_size,
                 kl_coef=float(args.proposal_grpo_kl_coef),
-                anchor_kl_coef=anchor_kl_coef,
                 normalize_by_length=normalize_policy_logprobs,
             )
             policy_loss = float(policy_metrics["policy_loss"])
             kl_proxy = float(policy_metrics["kl_proxy"])
-            anchor_kl_proxy = float(policy_metrics["anchor_kl_proxy"])
             mean_logprob_after = float(policy_metrics["mean_logprob_after"])
             observation_loss = 0.0
             format_loss = 0.0
@@ -3064,7 +2982,6 @@ def apply_proposal_grpo_update(
             loss = (
                 policy_loss
                 + float(args.proposal_grpo_kl_coef) * kl_proxy
-                + anchor_kl_coef * anchor_kl_proxy
                 + float(getattr(args, "proposal_observation_loss_weight", 0.0)) * observation_loss
                 + float(getattr(args, "proposal_format_loss_weight", 0.0)) * format_loss
             )
@@ -3079,12 +2996,8 @@ def apply_proposal_grpo_update(
                         "observation_loss": observation_loss,
                         "format_loss": format_loss,
                         "kl_proxy": kl_proxy,
-                        "anchor_kl_proxy": anchor_kl_proxy,
                         "grad_norm": float(grad_norm.detach().cpu() if torch.is_tensor(grad_norm) else grad_norm),
                         "mean_logprob_before": float(old_logprobs.mean().detach().cpu()),
-                        "anchor_mean_logprob_reference": (
-                            float(anchor_logprobs.mean().detach().cpu()) if anchor_logprobs is not None else None
-                        ),
                         "mean_logprob_after": mean_logprob_after,
                     }
                 )
@@ -3146,7 +3059,6 @@ def apply_or_dispatch_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
-    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
@@ -3159,7 +3071,6 @@ def apply_or_dispatch_proposal_grpo_update(
         return deps.apply_proposal_grpo_update(
             args=args,
             source_checkpoint=source_checkpoint,
-            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             output_dir=output_dir,
             prompt=prompt,
             proposal_results=proposal_results,
@@ -3188,7 +3099,6 @@ def apply_or_dispatch_proposal_grpo_update(
         phase=PHASE_PROPOSAL_GRPO,
         payload={
             "source_checkpoint": source_checkpoint,
-            "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
             "proposal_grpo_dir": str(output_dir),
             "prompt_path": str(prompt_path),
             "proposal_results_path": str(proposal_results_path),
@@ -3560,7 +3470,6 @@ class ProgramProposal:
 
 __all__ = [
     "DEFAULT_CONFIG_SEARCH_SPACES",
-    "PROPOSAL_GRPO_OBJECTIVES",
     "PROPOSAL_GRPO_SPAN_MODES",
     "PROPOSAL_OUTPUT_SCHEMAS",
     "ConfigProposal",

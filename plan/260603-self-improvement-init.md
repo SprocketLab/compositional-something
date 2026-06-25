@@ -6527,3 +6527,21 @@ Acceptance criteria for first pilot:
   - The result files reliably record selected candidate rewards/actions, validity, diversity, and proposal-GRPO metrics, but they do not preserve a clean post-attempt global held-out average accuracy trajectory after final checkpoint cleanup.
   - Because final model checkpoints are deleted by default, exact final heatmaps/final-delta comparisons require logging post-update eval summaries before cleanup in future runs.
   - Repetition is still visible in the best addition partial run, especially repeated `13+7->20 reject_boundary_carry` after that action becomes selected.
+
+### Implementation Log: 2026-06-25 Adaptive GRPO Simplification
+
+- Checkpointed the pre-cleanup adaptive sweep code in git: `43ceb83 Checkpoint adaptive GRPO sweep code`.
+- Adopted the current default config cell:
+  - `PROPOSAL_PROMPT_ACTION_HISTORY=1`
+  - `PROPOSAL_GRPO_NOVELTY_BONUS_BETA=0.05`
+  - `PROPOSAL_GRPO_LEARNING_RATE=1e-6`
+  - old-policy sampled-token KL remains controlled by `PROPOSAL_GRPO_KL_COEF=0.01`.
+- Removed Dr.GRPO objective plumbing from the adaptive proposal update path, CLI parser, submitter matrix, manifest builder, and launcher tests.
+- Removed anchor-KL plumbing from the adaptive proposal update path, controller payloads, final cleanup, CLI parser, submitter matrix, manifest builder, and launchers.
+- Simplified launcher job keys/output dirs to omit `obj-*` and `akl-*` suffixes; LR remains the only proposal-GRPO sweep dimension in the current submitter.
+- Updated tests to cover the simplified launcher/manifest contract and the current GRPO microbatch loss.
+- Verification:
+  - `python -m py_compile self/adaptive/args.py self/adaptive/proposal.py self/adaptive/attempts.py self/adaptive/driver.py self/adaptive/run.py self/adaptive/controller.py self/launcher_manifests.py`
+  - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_args_normalization.py tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py -q`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py -k 'parser_defaults_enable_numeric_outcome_and_config_grpo or proposal_grpo_reward_mapping_and_advantages or proposal_policy_microbatches_match_full_batch_gradient' -q`
