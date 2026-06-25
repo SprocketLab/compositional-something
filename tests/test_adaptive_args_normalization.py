@@ -20,6 +20,7 @@ def test_args_normalization_preserves_task_defaults() -> None:
     assert addition_args.max_attempt_rounds == 100
     assert addition_args.max_selected_rounds == 0
     assert addition_args.no_selection_patience == 100
+    assert addition_args.prepared_start_run_dir is None
     assert addition_args.proposal_format_mask_config_values is True
     assert addition_args.synthetic_proposal_sft is False
     assert addition_args.synthetic_proposal_sft_seed_mix is False

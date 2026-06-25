@@ -62,6 +62,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum selected-action history rows to include when proposal prompt action history is enabled.",
     )
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/runs/adaptive_candidate_training"))
+    parser.add_argument(
+        "--prepared-start-run-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Start the adaptive loop from a completed run directory instead of training a "
+            "new seed checkpoint. The prior run must contain summary/results JSON plus "
+            "data/initial_train.jsonl and data/evaluation.jsonl."
+        ),
+    )
     parser.add_argument("--proposal-fixture-jsonl", type=Path, default=None)
     parser.add_argument(
         "--max-selected-rounds",
@@ -547,6 +557,19 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("proposal_trace_replay_max_examples must be non-negative.")
     if args.proposal_prompt_action_history_max_items < 0:
         raise ValueError("proposal_prompt_action_history_max_items must be non-negative.")
+    if args.prepared_start_run_dir is not None:
+        prepared_dir = args.prepared_start_run_dir
+        required_files = [
+            prepared_dir / "summary.json",
+            prepared_dir / "adaptive_candidate_training_results.json",
+            prepared_dir / "data" / "initial_train.jsonl",
+            prepared_dir / "data" / "evaluation.jsonl",
+        ]
+        missing = [str(path) for path in required_files if not path.exists()]
+        if missing:
+            raise ValueError(f"prepared_start_run_dir is missing required files: {missing}")
+        if args.synthetic_proposal_sft or args.synthetic_proposal_sft_seed_mix:
+            raise ValueError("prepared_start_run_dir cannot be combined with synthetic proposal SFT stages.")
     if args.synthetic_proposal_sft_examples < 0:
         raise ValueError("synthetic_proposal_sft_examples must be non-negative.")
     if args.synthetic_proposal_sft_num_epochs < 0:

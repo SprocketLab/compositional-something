@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -246,3 +247,130 @@ def test_seed_dispatch_skips_synthetic_when_amount_is_zero(tmp_path: Path) -> No
 
     assert result.current_checkpoint == "seed-model"
     assert "synthetic_proposal_sft" not in result.summary_records[0]
+
+
+def test_prepared_start_loads_prior_data_and_skips_seed_training(tmp_path: Path) -> None:
+    prior = tmp_path / "prior"
+    prior_data = prior / "data"
+    prior_data.mkdir(parents=True)
+    checkpoint = prior / "round_00" / "synthetic_proposal_sft" / "model"
+    checkpoint.mkdir(parents=True)
+
+    def write_jsonl(path: Path, rows):
+        with path.open("w", encoding="utf-8") as handle:
+            for row in rows:
+                json.dump(row, handle)
+                handle.write("\n")
+
+    write_jsonl(prior_data / "initial_train.jsonl", [{"id": "train", "size": 3}])
+    write_jsonl(prior_data / "initial_validation.jsonl", [{"id": "val", "size": 3}])
+    write_jsonl(prior_data / "initial_test.jsonl", [{"id": "test", "size": 4}])
+    write_jsonl(prior_data / "evaluation.jsonl", [{"id": "eval", "size": 5}])
+    (prior_data / "metadata.json").write_text('{"task":"addition"}\n', encoding="utf-8")
+    (prior / "summary.json").write_text(
+        json.dumps(
+            {
+                "current_checkpoint": str(checkpoint),
+                "init_final_accuracy": 0.44,
+                "source_sizes": [3, 4],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (prior / "adaptive_candidate_training_results.json").write_text(
+        json.dumps(
+            [
+                {
+                    "current_checkpoint": str(checkpoint),
+                    "eval_accuracy": 0.41,
+                    "per_size_accuracy": {"3": 0.9, "4": 0.8, "5": 0.2},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class DummyTask:
+        def deserialize_example(self, payload):
+            return dict(payload)
+
+        def serialize_example(self, example):
+            return dict(example)
+
+        def key_for_example(self, example):
+            return example["id"]
+
+        def keys_for_examples(self, examples):
+            return {self.key_for_example(example) for example in examples}
+
+        def size_of(self, example):
+            return int(example["size"])
+
+    def write_json(path: Path, payload):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    args = _args(
+        prepared_start_run_dir=prior,
+        output_dir=tmp_path / "run",
+        keep_all_candidate_models=False,
+        keep_all_proposal_grpo_checkpoints=False,
+    )
+    run_inputs = adaptive_run.initialize_adaptive_run(
+        args=args,
+        task=DummyTask(),
+        rng=None,
+        deps=adaptive_run.RunInitializationDeps(
+            ensure_dir=lambda path: path.mkdir(parents=True, exist_ok=True),
+            make_config=lambda _: "config",
+            prepare_datasets=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("prepared start should not regenerate datasets")
+            ),
+            save_examples=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("prepared start should copy prior data")
+            ),
+            write_json=write_json,
+        ),
+    )
+
+    assert run_inputs.prepared_start is not None
+    assert run_inputs.prepared_start["current_checkpoint"] == str(checkpoint)
+    assert run_inputs.source_examples == [{"id": "train", "size": 3}]
+    assert run_inputs.eval_examples == [{"id": "eval", "size": 5}]
+    assert run_inputs.source_sizes == {3, 4}
+    assert run_inputs.exclude_keys == {"train", "val", "test", "eval"}
+    assert (tmp_path / "run" / "data" / "initial_train.jsonl").exists()
+    assert (tmp_path / "run" / "prepared_start.json").exists()
+
+    result = adaptive_run.run_seed_dispatch(
+        args=args,
+        task=DummyTask(),
+        config="config",
+        source_examples=run_inputs.source_examples,
+        eval_examples=run_inputs.eval_examples,
+        output_dir=tmp_path / "run",
+        data_dir=tmp_path / "run" / "data",
+        source_sizes=run_inputs.source_sizes,
+        deps=adaptive_run.SeedDispatchDeps(
+            run_controller_worker_slurm=lambda **_: (_ for _ in ()).throw(
+                AssertionError("prepared start should not dispatch seed worker")
+            ),
+            float_or_nan=float,
+            run_seed_phase=lambda **_: (_ for _ in ()).throw(
+                AssertionError("prepared start should not train seed")
+            ),
+            build_synthetic_proposal_seed_mix=lambda **_: (_ for _ in ()).throw(
+                AssertionError("prepared start should not run seed mix")
+            ),
+            apply_synthetic_proposal_sft=lambda **_: (_ for _ in ()).throw(
+                AssertionError("prepared start should not run synthetic SFT")
+            ),
+        ),
+        prepared_start=run_inputs.prepared_start,
+    )
+
+    assert result.current_checkpoint == str(checkpoint)
+    assert result.current_final_accuracy == 0.41
+    assert result.init_final_accuracy == 0.41
+    assert result.current_per_size_accuracy == {3: 0.9, 4: 0.8, 5: 0.2}
+    assert result.summary_records[0]["prepared_start"]["prior_init_final_accuracy"] == 0.44

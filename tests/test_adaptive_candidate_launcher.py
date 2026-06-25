@@ -11,12 +11,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "launchers" / "self" / "run_adaptive_candidate_training_ailab.sbatch"
 SUBMITTER = ROOT / "launchers" / "self" / "submit_adaptive_candidate_training_ailab.sh"
+PREPARED_SUBMITTER = ROOT / "launchers" / "self" / "submit_adaptive_prepared_start_ailab.sh"
 BASE_CONFIG = ROOT / "launchers" / "self" / "config" / "adaptive_candidate_base.env"
 
 
 def test_adaptive_candidate_launcher_has_valid_bash_syntax():
     subprocess.run(["bash", "-n", str(RUNNER)], check=True)
     subprocess.run(["bash", "-n", str(SUBMITTER)], check=True)
+    subprocess.run(["bash", "-n", str(PREPARED_SUBMITTER)], check=True)
 
 
 def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path: Path):
@@ -36,6 +38,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
             "TASK": "addition",
             "OUT_DIR": str(tmp_path / "run"),
             "ADAPTIVE_CONFIG_FILES": str(BASE_CONFIG),
+            "PREPARED_START_RUN_DIR": str(tmp_path / "prior"),
             "RUN_COMPILE_CHECK": "0",
             "PYTHON_BIN": str(python_stub),
             "HF_HUB_OFFLINE": "1",
@@ -56,6 +59,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert f"[INFO] Loaded adaptive config: {BASE_CONFIG}" in stdout
     assert "Proposal sampling temp/top_p/force-unique/max-draws/batch-size: 0.9/0.95/1/0/8" in stdout
     assert "Proposal prompt action history/max items: 1/5" in stdout
+    assert f"Prepared start run dir: {tmp_path / 'prior'}" in stdout
     assert "Synthetic proposal SFT enabled/examples/epochs/lr/top-k/temp: 0/0/1/1e-6/4/0.7" in stdout
     assert "Synthetic proposal seed mix: 0" in stdout
     assert "Attempts/candidates: 100/8" in stdout
@@ -78,6 +82,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "--proposal-prompt-action-history" in stdout
     assert "--no-proposal-prompt-action-history" not in stdout
     assert "--proposal-prompt-action-history-max-items 5" in stdout
+    assert f"--prepared-start-run-dir {tmp_path / 'prior'}" in stdout
     assert "--proposal-sampling-batch-size 8" in stdout
     assert "--force-unique-proposals" in stdout
     assert "--proposal-unique-max-draws 0" in stdout
@@ -354,3 +359,65 @@ def test_adaptive_candidate_submitter_dry_run_expands_synthetic_seed_mix_sweep(t
     assert "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=1" in combined
     assert "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=8192" in combined
     assert "adaptive-cand-run-length-config-numeric-n8-outcome-skip-lr-1em6-seedmix-syn4096" in combined
+
+
+def test_adaptive_prepared_start_submitter_dry_run_writes_manifest(tmp_path: Path):
+    prior_root = tmp_path / "prior"
+    prior_dirs = [
+        prior_root / "addition-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn2048",
+        prior_root / "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-syn4096",
+    ]
+    for index, prior_dir in enumerate(prior_dirs):
+        model_dir = prior_dir / "round_00" / "synthetic_proposal_sft" / "model"
+        model_dir.mkdir(parents=True)
+        (prior_dir / "summary.json").write_text(
+            json.dumps({"current_checkpoint": str(model_dir), "index": index}),
+            encoding="utf-8",
+        )
+
+    out_root = tmp_path / "prepared_submit"
+    env = os.environ.copy()
+    env.update(
+        {
+            "DRY_RUN": "1",
+            "OUT_ROOT": str(out_root),
+            "LOG_DIR": str(tmp_path / "logs"),
+            "PYTHON_BIN": sys.executable,
+            "PREPARED_START_RUN_DIRS_LIST": " ".join(str(path) for path in prior_dirs),
+            "MAX_ATTEMPT_ROUNDS": "25",
+            "NO_SELECTION_PATIENCE": "25",
+            "SBATCH_TIME": "02:59:00",
+            "ADAPTIVE_CONFIG_FILES": str(BASE_CONFIG),
+        }
+    )
+
+    result = subprocess.run(
+        ["bash", str(PREPARED_SUBMITTER)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    manifest = json.loads((out_root / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["max_attempt_rounds"] == 25
+    assert manifest["no_selection_patience"] == 25
+    assert manifest["walltime"] == "02:59:00"
+    assert set(manifest["jobs"]) == {
+        "addition-postsynthetic-syn2048-25a",
+        "run_length-postsynthetic-syn4096-25a",
+    }
+    assert manifest["jobs"]["addition-postsynthetic-syn2048-25a"]["prepared_start_run_dir"] == str(
+        prior_dirs[0]
+    )
+    assert manifest["jobs"]["run_length-postsynthetic-syn4096-25a"]["synthetic_proposal_sft_examples"] == 4096
+
+    combined = result.stdout + result.stderr
+    assert "--time 02:59:00" in combined
+    assert "PREPARED_START_RUN_DIR=" in combined
+    assert "MAX_ATTEMPT_ROUNDS=25" in combined
+    assert "NO_SELECTION_PATIENCE=25" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT=0" in combined
+    assert "SYNTHETIC_PROPOSAL_SFT_SEED_MIX=0" in combined
+    assert "KEEP_FINAL_MODEL_CHECKPOINT=0" in combined

@@ -70,6 +70,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence
 
+from self.core.data_io import load_examples
+
 if TYPE_CHECKING:
     from self.core.training import TrainingConfig
 
@@ -189,6 +191,103 @@ class RunInitializationResult:
     source_sizes: set[int]
     exclude_keys: set[Any]
     eval_examples: list[Any]
+    prepared_start: Optional[JsonDict] = None
+
+
+def _load_json_file(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _copy_if_exists(source: Path, destination: Path) -> None:
+    if source.exists():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+
+
+def _extract_prepared_start_state(run_dir: Path) -> JsonDict:
+    summary = _load_json_file(run_dir / "summary.json")
+    results = _load_json_file(run_dir / "adaptive_candidate_training_results.json")
+    if not isinstance(results, list) or not results:
+        raise ValueError(f"prepared_start_run_dir has no round records: {run_dir}")
+    round0 = dict(results[0])
+    current_checkpoint = str(summary.get("current_checkpoint") or round0.get("current_checkpoint") or "")
+    if not current_checkpoint:
+        raise ValueError(f"prepared_start_run_dir does not record current_checkpoint: {run_dir}")
+    if not Path(current_checkpoint).exists():
+        raise ValueError(f"prepared_start checkpoint does not exist: {current_checkpoint}")
+    current_final_accuracy = float(round0.get("eval_accuracy"))
+    current_per_size_accuracy = {
+        int(size): float(score)
+        for size, score in dict(round0.get("per_size_accuracy") or {}).items()
+        if score is not None
+    }
+    return {
+        "prepared_start_run_dir": str(run_dir),
+        "current_checkpoint": current_checkpoint,
+        "current_final_accuracy": current_final_accuracy,
+        "current_per_size_accuracy": current_per_size_accuracy,
+        "init_final_accuracy": current_final_accuracy,
+        "prior_init_final_accuracy": summary.get("init_final_accuracy"),
+        "prior_summary_path": str(run_dir / "summary.json"),
+        "prior_results_path": str(run_dir / "adaptive_candidate_training_results.json"),
+        "prior_round0": round0,
+        "prior_summary": summary,
+    }
+
+
+def _initialize_prepared_start_run(
+    *,
+    args: argparse.Namespace,
+    task: Any,
+    output_dir: Path,
+    data_dir: Path,
+    config: TrainingConfig,
+    deps: RunInitializationDeps,
+) -> RunInitializationResult:
+    run_dir = args.prepared_start_run_dir
+    if run_dir is None:
+        raise ValueError("prepared_start_run_dir is required.")
+    prior_data_dir = run_dir / "data"
+    for filename in (
+        "initial_train.jsonl",
+        "initial_validation.jsonl",
+        "initial_test.jsonl",
+        "evaluation.jsonl",
+        "metadata.json",
+    ):
+        _copy_if_exists(prior_data_dir / filename, data_dir / filename)
+
+    source_examples = load_examples(prior_data_dir / "initial_train.jsonl", task.deserialize_example)
+    validation_examples = load_examples(prior_data_dir / "initial_validation.jsonl", task.deserialize_example)
+    test_examples = load_examples(prior_data_dir / "initial_test.jsonl", task.deserialize_example)
+    eval_examples = load_examples(prior_data_dir / "evaluation.jsonl", task.deserialize_example)
+    prepared_start = _extract_prepared_start_state(run_dir)
+    source_sizes = {
+        int(size)
+        for size in prepared_start.get("prior_summary", {}).get("source_sizes", [])
+    } or source_sizes_from_examples(task, source_examples)
+    exclude_keys = task.keys_for_examples(
+        list(source_examples) + list(validation_examples) + list(test_examples) + list(eval_examples)
+    )
+    deps.write_json(output_dir / "prepared_start.json", prepared_start)
+
+    checkpoint_manager = CheckpointManager(
+        output_dir=output_dir,
+        keep_candidate_models=args.keep_all_candidate_models,
+        keep_proposal_grpo_checkpoints=args.keep_all_proposal_grpo_checkpoints,
+    )
+    return RunInitializationResult(
+        output_dir=output_dir,
+        data_dir=data_dir,
+        checkpoint_manager=checkpoint_manager,
+        config=config,
+        source_examples=source_examples,
+        source_sizes=source_sizes,
+        exclude_keys=exclude_keys,
+        eval_examples=eval_examples,
+        prepared_start=prepared_start,
+    )
 
 
 def initialize_adaptive_run(
@@ -209,6 +308,16 @@ def initialize_adaptive_run(
     )
 
     config = deps.make_config(args)
+    if args.prepared_start_run_dir is not None:
+        return _initialize_prepared_start_run(
+            args=args,
+            task=task,
+            output_dir=output_dir,
+            data_dir=data_dir,
+            config=config,
+            deps=deps,
+        )
+
     base_splits, base_records, eval_examples, eval_keys = deps.prepare_datasets(args, task, rng)
     deps.save_examples(data_dir / "initial_train.jsonl", base_splits["train"], task.serialize_example)
     deps.save_examples(data_dir / "initial_validation.jsonl", base_splits["validation"], task.serialize_example)
@@ -335,6 +444,7 @@ def finalize_adaptive_run(
                 f"`{args.synthetic_proposal_sft}`; examples: `{args.synthetic_proposal_sft_examples}`."
             ),
             f"Synthetic proposal seed mix: `{args.synthetic_proposal_sft_seed_mix}`.",
+            f"Prepared start run dir: `{args.prepared_start_run_dir}`.",
             f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
             f"Keep all proposal-GRPO checkpoints: `{args.keep_all_proposal_grpo_checkpoints}`.",
         ],
@@ -379,6 +489,7 @@ def finalize_adaptive_run(
         "proposal_observation_loss_weight": args.proposal_observation_loss_weight,
         "proposal_format_loss_weight": args.proposal_format_loss_weight,
         "proposal_format_replay_max_examples": args.proposal_format_replay_max_examples,
+        "prepared_start_run_dir": None if args.prepared_start_run_dir is None else str(args.prepared_start_run_dir),
         "synthetic_proposal_sft": args.synthetic_proposal_sft,
         "synthetic_proposal_sft_seed_mix": args.synthetic_proposal_sft_seed_mix,
         "synthetic_proposal_sft_examples": args.synthetic_proposal_sft_examples,
@@ -444,7 +555,31 @@ def run_seed_dispatch(
     data_dir: Path,
     source_sizes: set[int],
     deps: SeedDispatchDeps,
+    prepared_start: Mapping[str, Any] | None = None,
 ) -> SeedDispatchResult:
+    if prepared_start is not None:
+        current_checkpoint = str(prepared_start["current_checkpoint"])
+        current_final_accuracy = float(prepared_start["current_final_accuracy"])
+        current_per_size_accuracy = {
+            int(size): float(score)
+            for size, score in dict(prepared_start.get("current_per_size_accuracy") or {}).items()
+        }
+        init_final_accuracy = float(prepared_start.get("init_final_accuracy", current_final_accuracy))
+        return SeedDispatchResult(
+            current_checkpoint=current_checkpoint,
+            current_final_accuracy=current_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
+            init_final_accuracy=init_final_accuracy,
+            summary_records=build_initial_summary_records(
+                current_checkpoint=current_checkpoint,
+                source_sizes=source_sizes,
+                current_final_accuracy=current_final_accuracy,
+                current_per_size_accuracy=current_per_size_accuracy,
+                init_final_accuracy=init_final_accuracy,
+                prepared_start=prepared_start,
+            ),
+        )
+
     synthetic_seed_mix_metrics = None
     seed_source_examples = list(source_examples)
     if (
@@ -556,6 +691,7 @@ def build_initial_summary_records(
     init_final_accuracy: float,
     synthetic_proposal_sft: Mapping[str, Any] | None = None,
     synthetic_proposal_sft_seed_mix: Mapping[str, Any] | None = None,
+    prepared_start: Mapping[str, Any] | None = None,
 ) -> list[JsonDict]:
     record: JsonDict = {
         "round": 0,
@@ -570,6 +706,13 @@ def build_initial_summary_records(
         record["synthetic_proposal_sft"] = dict(synthetic_proposal_sft)
     if synthetic_proposal_sft_seed_mix is not None:
         record["synthetic_proposal_sft_seed_mix"] = dict(synthetic_proposal_sft_seed_mix)
+    if prepared_start is not None:
+        record["prepared_start"] = {
+            "prepared_start_run_dir": prepared_start.get("prepared_start_run_dir"),
+            "prior_init_final_accuracy": prepared_start.get("prior_init_final_accuracy"),
+            "prior_summary_path": prepared_start.get("prior_summary_path"),
+            "prior_results_path": prepared_start.get("prior_results_path"),
+        }
     return [record]
 
 
@@ -806,6 +949,7 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
         output_dir=output_dir,
         data_dir=data_dir,
         source_sizes=source_sizes,
+        prepared_start=run_inputs.prepared_start,
         deps=SeedDispatchDeps(
             run_controller_worker_slurm=deps.run_controller_worker_slurm,
             float_or_nan=deps.float_or_nan,
