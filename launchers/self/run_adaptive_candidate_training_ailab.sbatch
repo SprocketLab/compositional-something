@@ -110,16 +110,7 @@ EVAL_PER_SIZE="${EVAL_PER_SIZE:-100}"
 COMPOSED_EVAL_PER_SIZE="${COMPOSED_EVAL_PER_SIZE:-100}"
 PLAN_LOG_PATH="${PLAN_LOG_PATH:-${ROOT_DIR}/plan/260603-self-improvement-init.md}"
 RUN_COMPILE_CHECK="${RUN_COMPILE_CHECK:-1}"
-REPAIR_ATTEMPTS="${REPAIR_ATTEMPTS:-1}"
-PROGRAM_TIMEOUT_SECONDS="${PROGRAM_TIMEOUT_SECONDS:-1.0}"
-PROGRAM_BATCH_TIMEOUT_SECONDS="${PROGRAM_BATCH_TIMEOUT_SECONDS:-30.0}"
-if [[ -z "${PROPOSAL_MAX_NEW_TOKENS:-}" ]]; then
-  if [[ "${CONDITION}" == "config" ]]; then
-    PROPOSAL_MAX_NEW_TOKENS="160"
-  else
-    PROPOSAL_MAX_NEW_TOKENS="512"
-  fi
-fi
+PROPOSAL_MAX_NEW_TOKENS="${PROPOSAL_MAX_NEW_TOKENS:-160}"
 
 case "${CONDITION}" in
   config) ;;
@@ -362,7 +353,6 @@ fi
   --proposal-top-p "${PROPOSAL_TOP_P}" \
   --proposal-sampling-batch-size "${PROPOSAL_SAMPLING_BATCH_SIZE}" \
   --proposal-unique-max-draws "${PROPOSAL_UNIQUE_MAX_DRAWS}" \
-  --repair-attempts "${REPAIR_ATTEMPTS}" \
   --proposal-trace-replay-ratio "${PROPOSAL_TRACE_REPLAY_RATIO}" \
   --proposal-trace-replay-max-examples "${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES}" \
   --outcome-trace-target-mode "${OUTCOME_TRACE_TARGET_MODE}" \
@@ -383,8 +373,6 @@ fi
   --proposal-grpo-outcome-scale "${PROPOSAL_GRPO_OUTCOME_SCALE}" \
   --proposal-grpo-fixed-baseline "${PROPOSAL_GRPO_FIXED_BASELINE}" \
   --proposal-grpo-novelty-bonus-beta "${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}" \
-  --program-timeout-seconds "${PROGRAM_TIMEOUT_SECONDS}" \
-  --program-batch-timeout-seconds "${PROGRAM_BATCH_TIMEOUT_SECONDS}" \
   --lambda-final "${LAMBDA_FINAL}" \
   --selection-min-reward "${SELECTION_MIN_REWARD}" \
   --source-admission-target-accuracy-threshold "${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}" \
