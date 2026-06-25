@@ -80,7 +80,6 @@ def test_trained_candidate_metrics_use_avg_delta_from_current_reward():
         model_dir=Path("model"),
         proposal_trace_replay_count=3,
         candidate_proposal_trace_count=1,
-        post_task_proposal_rehearsal_count=2,
         outcome_trace_replay_count=4,
     )
 
@@ -97,6 +96,5 @@ def test_trained_candidate_metrics_use_avg_delta_from_current_reward():
     assert metrics.pseudo_count == 2
     assert metrics.proposal_trace_replay_count == 3
     assert metrics.candidate_proposal_trace_count == 1
-    assert metrics.post_task_proposal_rehearsal_count == 2
     assert metrics.outcome_trace_replay_count == 4
     assert metrics.per_size_accuracy == {4: 0.2, 5: 0.8, 6: 1.0, 7: 0.9}

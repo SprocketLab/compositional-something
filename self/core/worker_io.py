@@ -17,7 +17,6 @@ PATH_ARG_NAMES = {
     "plan_log_path",
     "controller_worker_sbatch_script",
     "controller_worker_spec",
-    "candidate_array_sbatch_script",
     "candidate_worker_spec",
     "candidate_worker_pack_spec",
 }

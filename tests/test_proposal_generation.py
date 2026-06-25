@@ -4,11 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.adaptive import attempts
-from self.adaptive import driver as adaptive_driver
-from self.adaptive import proposal as proposal_executable_validation
 from self.adaptive import proposal as proposal_generation
-from self.adaptive import proposal as proposal_prompts
 from self.adaptive import proposal as proposal_runtime
 from self.adaptive.proposal import PromptBundle
 
@@ -207,11 +203,3 @@ def test_proposal_runtime_reexports_generation_helpers_for_compatibility():
     assert proposal_runtime._rows_for_round is proposal_generation._rows_for_round
     assert proposal_runtime.generate_proposals_from_model is proposal_generation.generate_proposals_from_model
     assert proposal_runtime.load_or_generate_proposal_rows is proposal_generation.load_or_generate_proposal_rows
-
-
-def test_proposal_implementation_imports_use_canonical_owners():
-    assert proposal_runtime.choose_default_program_pair is proposal_prompts.choose_default_program_pair
-    assert attempts.choose_default_program_pair is proposal_prompts.choose_default_program_pair
-    assert attempts.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt
-    assert adaptive_driver.choose_default_program_pair is proposal_prompts.choose_default_program_pair
-    assert adaptive_driver.render_program_candidate_prompt is proposal_prompts.render_program_candidate_prompt

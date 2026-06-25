@@ -454,11 +454,6 @@ def validate_config_rows(
 import argparse
 from typing import List
 
-from self.adaptive.program_sandbox import (
-    build_addition_program_cases,
-    build_run_length_program_cases,
-)
-from self.adaptive.program_sandbox import SandboxCase
 from self.adaptive.proposal import ConfigProposal
 
 RUN_LENGTH_TARGET_RUN_STATE = "run_state"
@@ -488,41 +483,8 @@ def component_prediction_examples_for_task(task_name: str, args: argparse.Namesp
     raise ValueError(f"Unsupported task={task_name!r}.")
 
 
-def program_validation_cases(task_name: str, args: argparse.Namespace) -> List[SandboxCase]:
-    if task_name == "addition":
-        return build_addition_program_cases()
-    if task_name == "run_length":
-        if _normalize_bit_target_mode(args) != RUN_LENGTH_TARGET_RUN_STATE:
-            return []
-        return build_run_length_program_cases(random_seed=args.seed, random_count=8)
-    raise ValueError(f"Unsupported task={task_name!r}.")
-
-
-def choose_default_program_pair(
-    *,
-    source_sizes: set[int],
-    frontier_min: int,
-    frontier_max: int,
-    allow_repeat_targets: bool,
-) -> ConfigProposal:
-    for target in range(frontier_min, frontier_max + 1):
-        if not allow_repeat_targets and target in source_sizes:
-            continue
-        pairs = [(left, target - left) for left in sorted(source_sizes) if target - left in source_sizes]
-        if not pairs:
-            continue
-        left, right = sorted(pairs, key=lambda pair: (abs(pair[0] - pair[1]), pair[0]))[0]
-        return ConfigProposal(left=left, right=right, guard="none", target=target)
-    raise ValueError(
-        "No driver-selected program pair is available from the current source pool "
-        f"for frontier={frontier_min}..{frontier_max}."
-    )
-
-
 __all__ = [
-    "choose_default_program_pair",
     "component_prediction_examples_for_task",
-    "program_validation_cases",
     "target_format_for_task",
 ]
 
@@ -674,199 +636,6 @@ def render_config_prompt(
         f"{final_output_instruction}"
     )
     return PromptBundle(system=system, user=user)
-
-
-def render_program_prompt(
-    *,
-    task_name: str,
-    target_format: str,
-    component_prediction_examples: Sequence[str],
-) -> PromptBundle:
-    system = (
-        "You are generating a restricted Python composition program for a self-improvement pipeline.\n"
-        "Output only Python code. Do not include markdown or explanations.\n"
-        "The code will be statically checked and sandboxed.\n"
-        "Imports, file access, network access, subprocesses, eval, exec, and global mutation are forbidden."
-    )
-    user = (
-        f"Task: {task_name}\n\n"
-        "Goal:\n"
-        "Write a composition function that combines component predictions into one pseudo-label.\n\n"
-        "Allowed function signature:\n"
-        "def compose(components, metadata):\n"
-        "    ...\n\n"
-        "Inputs:\n"
-        "- components: ordered list of dictionaries.\n"
-        "- Each component has:\n"
-        '  - "size": integer\n'
-        '  - "input_id": string\n'
-        '  - "prediction": string produced by the current model\n'
-        '  - "metadata": safe component metadata\n'
-        "- metadata: safe composed-example metadata.\n"
-        "- You do not receive oracle labels.\n\n"
-        "Output:\n"
-        '- Return {"accept": True, "target": "<target string>"} if composition succeeds.\n'
-        '- Return {"accept": False, "reason": "<short reason>"} if it should be skipped.\n\n'
-        "Task target format:\n"
-        f"{target_format}\n\n"
-        "Examples of valid component predictions:\n"
-        f"{json.dumps(list(component_prediction_examples), indent=2)}\n\n"
-        "Constraints:\n"
-        "- Use only component predictions and metadata.\n"
-        "- Do not solve directly from the full input.\n"
-        "- Reject malformed component predictions.\n"
-        "- Be deterministic.\n"
-        "- Keep code short.\n\n"
-        "Output only Python code."
-    )
-    return PromptBundle(system=system, user=user)
-
-
-def render_program_repair_prompt(
-    *,
-    task_name: str,
-    target_format: str,
-    failure_category: str,
-    failure_summary: str,
-    previous_program: str,
-) -> PromptBundle:
-    system = (
-        "You are repairing a restricted Python composition program for a self-improvement pipeline.\n"
-        "Output only the corrected Python code. Do not include markdown or explanations.\n"
-        "The same sandbox rules still apply: no imports, file access, network access, subprocesses, eval, exec, or global mutation."
-    )
-    user = (
-        "The previous program failed validation.\n\n"
-        f"Task: {task_name}\n\n"
-        "Target format:\n"
-        f"{target_format}\n\n"
-        "Validation failure category:\n"
-        f"{failure_category}\n\n"
-        "Sanitized validation summary:\n"
-        f"{failure_summary}\n\n"
-        "Previous program:\n"
-        f"{previous_program}\n\n"
-        "Repair requirements:\n"
-        "- Keep the same function signature: def compose(components, metadata):\n"
-        "- Use only component predictions and safe metadata.\n"
-        "- Do not inspect oracle labels.\n"
-        "- Do not solve directly from full inputs.\n"
-        '- Return {"accept": True, "target": "<target string>"} or {"accept": False, "reason": "<short reason>"}.\n'
-        "- Make the smallest correction needed to pass validation.\n\n"
-        "Output only Python code."
-    )
-    return PromptBundle(system=system, user=user)
-
-
-def render_program_candidate_prompt(
-    *,
-    args: argparse.Namespace,
-    round_index: int,
-    current_checkpoint: str,
-    current_source: Mapping[str, Any],
-    allowed_target_frontier: Mapping[str, Any],
-    aggregate_metrics: Mapping[str, Any],
-    default_pair: Optional[ConfigProposal],
-) -> PromptBundle:
-    target_format = target_format_for_task(args.task, args)
-    examples = component_prediction_examples_for_task(args.task, args)
-    common = (
-        f"Task: {args.task}\n\n"
-        "Current attempt context:\n"
-        f"- next_selected_trace_index_if_chosen: {round_index}\n"
-        f"- current_source_slices: {json.dumps(sanitize_json_value(dict(current_source)), sort_keys=True)}\n"
-        f"- allowed_target_frontier: {json.dumps(sanitize_json_value(dict(allowed_target_frontier)), sort_keys=True)}\n"
-        f"- model: {current_checkpoint}\n"
-        "Aggregate diagnostics:\n"
-        f"{json.dumps(sanitize_json_value(dict(aggregate_metrics)), sort_keys=True, indent=2)}\n\n"
-        "Self-labeling rule:\n"
-        "- The target label must be derived from current-model component predictions.\n"
-        "- Do not use oracle labels or write a direct task solver from raw target inputs.\n"
-        "- The driver constructs target inputs and held-out evaluation; your code only composes pseudo-labels.\n\n"
-        "Function contract:\n"
-        "def compose(components, metadata):\n"
-        "    ...\n\n"
-        "Each component is a dictionary with size, input_id, prediction, and metadata.\n"
-        "The input_id is opaque. Use component predictions and sizes.\n"
-        f"Target output format: {target_format}\n"
-        f"Example component predictions: {json.dumps(examples)}\n"
-        '- Return {"accept": True, "target": "<target string>"} or '
-        '{"accept": False, "reason": "<short reason>"}.\n\n'
-        "Sandbox rules:\n"
-        "- exactly one top-level compose function\n"
-        "- no imports, filesystem, network, subprocess, eval, exec, compile, open, globals, locals, vars, dir, getattr, setattr, delattr, or __import__\n"
-        "- deterministic output on repeated calls\n"
-    )
-    if args.condition == "program":
-        if default_pair is None:
-            raise ValueError("program condition requires a driver-selected default pair")
-        system = (
-            "You are generating a restricted Python composition program.\n"
-            "Output only Python code. Do not include markdown or explanations."
-        )
-        user = (
-            common
-            +
-            "Driver-selected source policy:\n"
-            f"- left: {default_pair.left}\n"
-            f"- right: {default_pair.right}\n"
-            f"- target: {default_pair.target}\n"
-            "- You only write the compose function for this source pair.\n\n"
-            "Output only Python code."
-        )
-        return PromptBundle(system=system, user=user)
-
-    if args.condition == "policy":
-        system = (
-            "You are generating a source-selection policy plus a restricted Python composer.\n"
-            "Output only valid JSON. Do not include markdown or explanations."
-        )
-        user = (
-            common
-            +
-            "JSON schema:\n"
-            "{\n"
-            '  "left": integer source slice size,\n'
-            '  "right": integer source slice size,\n'
-            '  "guard": "none" or a listed task guard,\n'
-            '  "code": "Python code defining compose(components, metadata)",\n'
-            '  "notes": "optional short rationale"\n'
-            "}\n\n"
-            "Policy constraints:\n"
-            "- left and right must be current source slices.\n"
-            "- left + right must be inside the allowed target frontier.\n"
-            "- Choose slices based on current slice accuracy and expected self-labeling reliability.\n\n"
-            "Output only JSON."
-        )
-        return PromptBundle(system=system, user=user)
-
-    if args.condition == "meta":
-        system = (
-            "You are generating an intermediate representation policy plus a restricted Python composer.\n"
-            "Output only valid JSON. Do not include markdown or explanations."
-        )
-        user = (
-            common
-            +
-            "JSON schema:\n"
-            "{\n"
-            '  "left": integer source slice size,\n'
-            '  "right": integer source slice size,\n'
-            '  "guard": "none" or a listed task guard,\n'
-            '  "representation": "short name for the intermediate state you are composing through",\n'
-            '  "target_format": "final target format your compose function returns",\n'
-            '  "code": "Python code defining compose(components, metadata)",\n'
-            '  "notes": "optional short rationale"\n'
-            "}\n\n"
-            "Meta-composition constraints:\n"
-            "- You may invent the intermediate representation used inside compose.\n"
-            f"- The final returned target must still match the task target format: {target_format}.\n"
-            "- left and right must be current source slices, and left + right must be inside the allowed target frontier.\n\n"
-            "Output only JSON."
-        )
-        return PromptBundle(system=system, user=user)
-
-    raise ValueError(f"Unsupported condition={args.condition!r}.")
 
 
 # --- from proposal_io.py ---
@@ -1257,312 +1026,6 @@ def load_or_generate_proposal_rows(
             torch.cuda.empty_cache()
 
 
-# --- from proposal_executable_validation.py ---
-"""Executable proposal validation and repair for adaptive self-improvement."""
-
-import argparse
-from typing import Any, Dict, List, Mapping, Optional, Sequence
-
-from self.core.data_io import sanitize_json_value
-from self.adaptive.program_sandbox import validate_program_with_repair
-from self.adaptive.program_sandbox import ProgramValidationResult
-from self.adaptive.proposal import _raw_output
-from self.adaptive.proposal import (
-    DEFAULT_CONFIG_SEARCH_SPACES,
-    ConfigProposal,
-    extract_json_object,
-)
-from self.adaptive.proposal import generate_proposals_from_model
-from self.adaptive.proposal import (
-    program_validation_cases,
-    target_format_for_task,
-)
-from self.adaptive.proposal import render_program_repair_prompt
-
-
-JsonDict = Dict[str, Any]
-
-
-def _extract_python_code(raw: Any, payload: Optional[Mapping[str, Any]] = None) -> str:
-    if payload is not None:
-        if "code_lines" in payload and isinstance(payload["code_lines"], list):
-            return "\n".join(str(line) for line in payload["code_lines"]).strip()
-        for key in ("code", "completion", "program"):
-            if key in payload:
-                return str(payload[key]).strip()
-    text = str(raw).strip()
-    if "```" in text:
-        pieces = text.split("```")
-        for piece in pieces:
-            stripped = piece.strip()
-            if stripped.startswith("python"):
-                stripped = stripped[len("python") :].strip()
-            if "def compose" in stripped:
-                text = stripped
-                break
-    start = text.find("def compose")
-    if start > 0:
-        text = text[start:]
-    return text.strip()
-
-
-def _row_payload(raw: Any) -> Optional[JsonDict]:
-    if isinstance(raw, dict):
-        return dict(raw)
-    return extract_json_object(str(raw))
-
-
-def _row_repair_output(row: Mapping[str, Any]) -> Optional[str]:
-    if "repair_output_lines" in row:
-        repair_lines = row["repair_output_lines"]
-        if not isinstance(repair_lines, list):
-            raise ValueError("repair_output_lines must be a list of strings")
-        return "\n".join(str(line) for line in repair_lines)
-    for key in ("repair_output", "repaired_output", "repair_code"):
-        if key in row and row[key] is not None:
-            return str(row[key])
-    return None
-
-
-def _repair_program_with_model(
-    *,
-    args: argparse.Namespace,
-    current_model: Optional[Any],
-    current_tokenizer: Optional[Any],
-    category: str,
-    message: str,
-    code: str,
-) -> Optional[str]:
-    if current_model is None or current_tokenizer is None:
-        return None
-    repair_prompt = render_program_repair_prompt(
-        task_name=args.task,
-        target_format=target_format_for_task(args.task, args),
-        failure_category=category,
-        failure_summary=message,
-        previous_program=code,
-    )
-    rows = generate_proposals_from_model(
-        model=current_model,
-        tokenizer=current_tokenizer,
-        prompt=repair_prompt,
-        num_candidates=1,
-        max_new_tokens=args.proposal_max_new_tokens,
-        temperature=args.proposal_temperature,
-        top_p=args.proposal_top_p,
-    )
-    if not rows:
-        return None
-    return _extract_python_code(rows[0].get("raw_output", ""))
-
-
-def validate_executable_rows(
-    *,
-    rows: Sequence[Mapping[str, Any]],
-    args: argparse.Namespace,
-    source_sizes: set[int],
-    frontier_min: int,
-    frontier_max: int,
-    default_pair: Optional[ConfigProposal],
-    current_model: Optional[Any] = None,
-    current_tokenizer: Optional[Any] = None,
-) -> List[JsonDict]:
-    source_min = min(source_sizes) if source_sizes else args.initial_min_size
-    source_max = max(source_sizes) if source_sizes else args.initial_max_size
-    guards = set(DEFAULT_CONFIG_SEARCH_SPACES[args.task]["guards"])
-    results: List[JsonDict] = []
-    seen: set[str] = set()
-    cases = program_validation_cases(args.task, args)
-
-    for index, row in enumerate(rows):
-        raw = _raw_output(row)
-        payload = _row_payload(raw)
-        condition = str(row.get("condition", args.condition))
-        row_raw_for_code: Any = raw
-        if payload is None and isinstance(row, Mapping):
-            payload = dict(row)
-        if condition != args.condition:
-            continue
-
-        if args.condition == "program":
-            if default_pair is None:
-                validation_valid = False
-                category = "range_error"
-                message = "program condition has no driver-selected source pair"
-                proposal_payload = None
-                completion = ""
-                duplicate = False
-                results.append(
-                    sanitize_json_value(
-                        {
-                            "proposal_index": index,
-                            "id": row.get("id"),
-                            "raw_output": raw,
-                            "valid": validation_valid,
-                            "validation_category": category,
-                            "validation_message": message,
-                            "parsed_proposal": proposal_payload,
-                            "completion": completion,
-                            "duplicate": duplicate,
-                        }
-                    )
-                )
-                continue
-            left = default_pair.left
-            right = default_pair.right
-            target = default_pair.target
-            guard = "none"
-        else:
-            if payload is None:
-                results.append(
-                    sanitize_json_value(
-                        {
-                            "proposal_index": index,
-                            "id": row.get("id"),
-                            "raw_output": raw,
-                            "valid": False,
-                            "validation_category": "parse_error",
-                            "validation_message": f"{args.condition} proposal must be a JSON object",
-                            "parsed_proposal": None,
-                            "completion": "",
-                            "duplicate": False,
-                        }
-                    )
-                )
-                continue
-            try:
-                left = int(payload["left"])
-                right = int(payload["right"])
-            except (KeyError, TypeError, ValueError):
-                results.append(
-                    sanitize_json_value(
-                        {
-                            "proposal_index": index,
-                            "id": row.get("id"),
-                            "raw_output": raw,
-                            "valid": False,
-                            "validation_category": "schema_error",
-                            "validation_message": f"{args.condition} proposal requires integer left and right",
-                            "parsed_proposal": None,
-                            "completion": "",
-                            "duplicate": False,
-                        }
-                    )
-                )
-                continue
-            target = left + right
-            guard = str(payload.get("guard", "none"))
-            row_raw_for_code = payload
-
-        range_error = ""
-        if left < source_min or left > source_max or right < source_min or right > source_max:
-            range_error = "source slice is outside allowed source bounds"
-        elif left not in source_sizes or right not in source_sizes:
-            range_error = "source slice is not in the current source pool"
-        elif target < frontier_min or target > frontier_max:
-            range_error = "left + right target is outside the allowed frontier"
-        elif not args.allow_repeat_targets and target in source_sizes:
-            range_error = "target slice is already in the current source pool"
-        elif guard not in guards:
-            range_error = f"invalid guard={guard!r}"
-
-        code = _extract_python_code(row_raw_for_code, payload if isinstance(row_raw_for_code, Mapping) else None)
-        if range_error:
-            results.append(
-                sanitize_json_value(
-                    {
-                        "proposal_index": index,
-                        "id": row.get("id"),
-                        "raw_output": raw,
-                        "valid": False,
-                        "validation_category": "range_error" if "guard" not in range_error else "enum_error",
-                        "validation_message": range_error,
-                        "parsed_proposal": None,
-                        "completion": "",
-                        "duplicate": False,
-                    }
-                )
-            )
-            continue
-
-        repair_prompt_text: Optional[str] = None
-
-        def repair_callback(category: str, message: str, previous_program: str) -> Optional[str]:
-            nonlocal repair_prompt_text
-            repair_prompt = render_program_repair_prompt(
-                task_name=args.task,
-                target_format=target_format_for_task(args.task, args),
-                failure_category=category,
-                failure_summary=message,
-                previous_program=previous_program,
-            )
-            repair_prompt_text = repair_prompt.text()
-            fixture_repair = _row_repair_output(row)
-            if fixture_repair is not None:
-                return _extract_python_code(fixture_repair)
-            return _repair_program_with_model(
-                args=args,
-                current_model=current_model,
-                current_tokenizer=current_tokenizer,
-                category=category,
-                message=message,
-                code=previous_program,
-            )
-
-        validation: ProgramValidationResult = validate_program_with_repair(
-            code,
-            repair_callback=repair_callback,
-            cases=cases,
-            timeout_seconds=args.program_timeout_seconds,
-            repair_attempts=args.repair_attempts,
-        )
-        valid_code = validation.repaired_code if validation.valid and validation.repaired_code else code
-        completion = valid_code if validation.valid else ""
-        duplicate = bool(completion and completion in seen)
-        if completion:
-            seen.add(completion)
-        proposal = None
-        if validation.valid:
-            from self.core.models import ExecutableProposal
-
-            proposal = ExecutableProposal(
-                left=left,
-                right=right,
-                guard=guard,
-                target=target,
-                code=valid_code,
-                condition=args.condition,
-                notes=str((payload or {}).get("notes", "")),
-                representation=str((payload or {}).get("representation", "")),
-                target_format=str((payload or {}).get("target_format", target_format_for_task(args.task, args))),
-                repaired=validation.repaired,
-                original_validation_category=validation.original_category,
-                original_validation_message=validation.original_message,
-            )
-        results.append(
-            sanitize_json_value(
-                {
-                    "proposal_index": index,
-                    "id": row.get("id"),
-                    "raw_output": raw,
-                    "valid": validation.valid,
-                    "validation_category": validation.category,
-                    "validation_message": validation.message,
-                    "original_validation_category": validation.original_category,
-                    "original_validation_message": validation.original_message,
-                    "repair_attempted": validation.repair_attempted,
-                    "repair_prompt": repair_prompt_text,
-                    "repaired": validation.repaired,
-                    "repaired_output": validation.repaired_code,
-                    "parsed_proposal": proposal.to_json_dict() if proposal is not None else None,
-                    "completion": completion,
-                    "duplicate": duplicate,
-                }
-            )
-        )
-    return results
-
-
 # --- from proposal_runtime.py ---
 """Runtime proposal generation and validation for adaptive self-improvement."""
 
@@ -1570,29 +1033,12 @@ import argparse
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.adaptive.proposal import (
-    _extract_python_code,
-    _repair_program_with_model,
-    _row_payload,
-    _row_repair_output,
-    validate_executable_rows,
-)
-from self.adaptive.proposal import (
     _rows_for_round,
     generate_proposals_from_model,
     load_or_generate_proposal_rows,
 )
 from self.adaptive.proposal import _raw_output, validate_config_rows
 from self.adaptive.proposal import ConfigProposal
-from self.adaptive.proposal import (
-    choose_default_program_pair,
-    component_prediction_examples_for_task,
-    program_validation_cases,
-    target_format_for_task,
-)
-from self.adaptive.proposal import (
-    render_program_candidate_prompt,
-    render_program_repair_prompt,
-)
 
 JsonDict = Dict[str, Any]
 
@@ -1608,23 +1054,12 @@ def validate_proposal_rows(
     current_model: Optional[Any] = None,
     current_tokenizer: Optional[Any] = None,
 ) -> List[JsonDict]:
-    if args.condition == "config":
-        return validate_config_rows(
-            rows=rows,
-            args=args,
-            source_sizes=source_sizes,
-            frontier_min=frontier_min,
-            frontier_max=frontier_max,
-        )
-    return validate_executable_rows(
+    return validate_config_rows(
         rows=rows,
         args=args,
         source_sizes=source_sizes,
         frontier_min=frontier_min,
         frontier_max=frontier_max,
-        default_pair=default_pair,
-        current_model=current_model,
-        current_tokenizer=current_tokenizer,
     )
 
 
@@ -1645,7 +1080,6 @@ JsonDict = Dict[str, Any]
 
 PROPOSAL_GRPO_ZERO_VARIANCE_MODES = ("fixed_baseline", "skip")
 PROPOSAL_GRPO_REWARD_MODES = ("outcome", "rank", "validity")
-PROPOSAL_UPDATE_LOSS_MODES = ("legacy_grpo", "merged_agent")
 PROPOSAL_GRPO_SPAN_MODES = ("reasoning_action", "action_only")
 PROPOSAL_GRPO_REWARD_BY_CATEGORY: Dict[str, float] = {
     "valid": 1.0,
@@ -2763,7 +2197,7 @@ def apply_proposal_grpo_update(
         "novelty_bonus_beta": float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0)),
         "proposal_grpo_span": str(getattr(args, "proposal_grpo_span", "reasoning_action")),
         "candidate_metric_count": len(candidate_metrics),
-        "loss_mode": getattr(args, "proposal_update_loss_mode", "legacy_grpo"),
+        "loss_mode": "merged_agent",
         "observation_loss_weight": float(getattr(args, "proposal_observation_loss_weight", 0.0)),
         "format_loss_weight": float(getattr(args, "proposal_format_loss_weight", 0.0)),
         "format_replay_max_examples": int(getattr(args, "proposal_format_replay_max_examples", 0)),
@@ -2817,7 +2251,6 @@ def apply_proposal_grpo_update(
     )
     try:
         device = next(model.parameters()).device
-        loss_mode = str(getattr(args, "proposal_update_loss_mode", "legacy_grpo"))
         span_mode = str(getattr(args, "proposal_grpo_span", "reasoning_action"))
         normalize_policy_logprobs = True
         metrics["policy_logprob_normalization"] = "mean"
@@ -2828,9 +2261,7 @@ def apply_proposal_grpo_update(
                 tokenizer=tokenizer,
                 prompt_text=trace.prompt_text,
                 completion=trace.completion,
-                completion_char_span=(
-                    _proposal_policy_span(trace, span_mode=span_mode) if loss_mode == "merged_agent" else None
-                ),
+                completion_char_span=_proposal_policy_span(trace, span_mode=span_mode),
             )
             if sample is None:
                 continue
@@ -2851,54 +2282,53 @@ def apply_proposal_grpo_update(
         observation_samples: List[JsonDict] = []
         format_rows: List[JsonDict] = []
         format_samples: List[JsonDict] = []
-        if loss_mode == "merged_agent":
-            format_loss_weight = float(getattr(args, "proposal_format_loss_weight", 0.0))
-            for trace in traces:
-                completion = _realized_observation_completion(trace)
-                if not completion:
-                    continue
-                observation_prompt = _observation_trace_prompt(trace.prompt_text, trace.completion)
+        format_loss_weight = float(getattr(args, "proposal_format_loss_weight", 0.0))
+        for trace in traces:
+            completion = _realized_observation_completion(trace)
+            if not completion:
+                continue
+            observation_prompt = _observation_trace_prompt(trace.prompt_text, trace.completion)
+            sample = _encode_proposal_grpo_sample(
+                tokenizer=tokenizer,
+                prompt_text=observation_prompt,
+                completion=completion,
+                completion_char_span=None,
+            )
+            if sample is None:
+                continue
+            observation_rows.append(
+                {
+                    "proposal_index": trace.proposal_index,
+                    "prompt": observation_prompt,
+                    "trace_completion": trace.completion,
+                    "completion": completion,
+                    "policy_reward": trace.reward,
+                }
+            )
+            observation_samples.append(sample)
+        if format_loss_weight > 0.0:
+            format_rows = _build_format_replay_rows(
+                traces=traces,
+                proposal_trace_buffer=proposal_trace_buffer,
+                fallback_prompt=prompt.text(),
+                max_examples=int(getattr(args, "proposal_format_replay_max_examples", 0)),
+            )
+            mask_format_values = bool(getattr(args, "proposal_format_mask_config_values", True))
+            for row in format_rows:
+                completion = str(row["completion"])
+                exclude_spans = _proposal_format_value_char_spans(completion) if mask_format_values else ()
                 sample = _encode_proposal_grpo_sample(
                     tokenizer=tokenizer,
-                    prompt_text=observation_prompt,
+                    prompt_text=str(row["prompt"]),
                     completion=completion,
                     completion_char_span=None,
+                    completion_char_exclude_spans=exclude_spans,
                 )
-                if sample is None:
-                    continue
-                observation_rows.append(
-                    {
-                        "proposal_index": trace.proposal_index,
-                        "prompt": observation_prompt,
-                        "trace_completion": trace.completion,
-                        "completion": completion,
-                        "policy_reward": trace.reward,
-                    }
-                )
-                observation_samples.append(sample)
-            if format_loss_weight > 0.0:
-                format_rows = _build_format_replay_rows(
-                    traces=traces,
-                    proposal_trace_buffer=proposal_trace_buffer,
-                    fallback_prompt=prompt.text(),
-                    max_examples=int(getattr(args, "proposal_format_replay_max_examples", 0)),
-                )
-                mask_format_values = bool(getattr(args, "proposal_format_mask_config_values", True))
-                for row in format_rows:
-                    completion = str(row["completion"])
-                    exclude_spans = _proposal_format_value_char_spans(completion) if mask_format_values else ()
-                    sample = _encode_proposal_grpo_sample(
-                        tokenizer=tokenizer,
-                        prompt_text=str(row["prompt"]),
-                        completion=completion,
-                        completion_char_span=None,
-                        completion_char_exclude_spans=exclude_spans,
+                if sample is not None:
+                    sample["masked_value_tokens"] = int(sample["total_completion_tokens"]) - int(
+                        sample["completion_tokens"]
                     )
-                    if sample is not None:
-                        sample["masked_value_tokens"] = int(sample["total_completion_tokens"]) - int(
-                            sample["completion_tokens"]
-                        )
-                        format_samples.append(sample)
+                    format_samples.append(sample)
         if observation_rows:
             write_trace_jsonl(output_dir / "proposal_observation_targets.jsonl", observation_rows)
         if format_rows:
@@ -2955,12 +2385,8 @@ def apply_proposal_grpo_update(
             mean_logprob_after = float(policy_metrics["mean_logprob_after"])
             observation_loss = 0.0
             format_loss = 0.0
-            if loss_mode != "merged_agent":
-                observation_samples_for_loss: Sequence[JsonDict] = []
-                format_samples_for_loss: Sequence[JsonDict] = []
-            else:
-                observation_samples_for_loss = observation_samples
-                format_samples_for_loss = format_samples
+            observation_samples_for_loss = observation_samples
+            format_samples_for_loss = format_samples
             if observation_samples_for_loss:
                 observation_loss = _backward_completion_loss_microbatches(
                     model=model,
@@ -3123,15 +2549,7 @@ from self.adaptive.proposal import build_trace_row
 from self.adaptive.proposal import (
     PromptBundle,
     render_config_prompt,
-    render_program_prompt,
-    render_program_repair_prompt,
 )
-from self.adaptive.program_sandbox import validate_program_with_repair
-from self.adaptive.program_sandbox import (
-    build_addition_program_cases,
-    build_run_length_program_cases,
-)
-from self.adaptive.program_sandbox import ProgramValidationResult
 
 
 JsonDict = Dict[str, Any]
@@ -3184,30 +2602,6 @@ def pilot_reward(
     }
 
 
-def target_format_for_pilot_task(task: str) -> str:
-    if task == "run_length":
-        return "max_run|prefix_symbol|prefix_run|suffix_symbol|suffix_run"
-    if task == "addition":
-        return "integer result string formed from component prediction strings"
-    raise ValueError(f"Unsupported task={task!r}")
-
-
-def component_prediction_examples_for_pilot_task(task: str) -> List[str]:
-    if task == "run_length":
-        return ["3|0|2|2|3", "5|1|5|1|5"]
-    if task == "addition":
-        return ["46", "064", "1002"]
-    raise ValueError(f"Unsupported task={task!r}")
-
-
-def program_cases_for_pilot_task(task: str):
-    if task == "run_length":
-        return build_run_length_program_cases(random_seed=0, random_count=8)
-    if task == "addition":
-        return build_addition_program_cases()
-    raise ValueError(f"Unsupported task={task!r}")
-
-
 def raw_pilot_output(row: Mapping[str, Any]) -> Any:
     if "code_lines" in row:
         code_lines = row["code_lines"]
@@ -3239,28 +2633,24 @@ def pilot_source_bounds(args: argparse.Namespace) -> tuple[int, int]:
 
 
 def render_pilot_prompt(args: argparse.Namespace, aggregate_metrics: Mapping[str, Any]) -> PromptBundle:
-    if args.condition == "config":
-        space = DEFAULT_CONFIG_SEARCH_SPACES[args.task]
-        source_min, source_max = pilot_source_bounds(args)
-        return render_config_prompt(
-            task_name=args.task,
-            round_index=args.round_index,
-            current_source={
-                "min": source_min,
-                "max": source_max,
-            },
-            allowed_target_frontier={
-                "min": args.frontier_min_allowed,
-                "max": args.frontier_max_allowed,
-            },
-            aggregate_metrics=aggregate_metrics,
-            guard_choices=space["guards"],
-            model_name=args.model_name,
-        )
-    return render_program_prompt(
+    if args.condition != "config":
+        raise ValueError("adaptive proposal pilot now supports only condition='config'.")
+    space = DEFAULT_CONFIG_SEARCH_SPACES[args.task]
+    source_min, source_max = pilot_source_bounds(args)
+    return render_config_prompt(
         task_name=args.task,
-        target_format=target_format_for_pilot_task(args.task),
-        component_prediction_examples=component_prediction_examples_for_pilot_task(args.task),
+        round_index=args.round_index,
+        current_source={
+            "min": source_min,
+            "max": source_max,
+        },
+        allowed_target_frontier={
+            "min": args.frontier_min_allowed,
+            "max": args.frontier_max_allowed,
+        },
+        aggregate_metrics=aggregate_metrics,
+        guard_choices=space["guards"],
+        model_name=args.model_name,
     )
 
 
@@ -3301,73 +2691,16 @@ def validate_config_pilot_row(row: Mapping[str, Any], args: argparse.Namespace) 
     )
 
 
-def validate_program_pilot_row(row: Mapping[str, Any], args: argparse.Namespace) -> JsonDict:
-    code = str(raw_pilot_output(row))
-    repair_prompt_text: Optional[str] = None
-
-    def repair_callback(category: str, message: str, previous_program: str) -> Optional[str]:
-        nonlocal repair_prompt_text
-        repair_prompt = render_program_repair_prompt(
-            task_name=args.task,
-            target_format=target_format_for_pilot_task(args.task),
-            failure_category=category,
-            failure_summary=message,
-            previous_program=previous_program,
-        )
-        repair_prompt_text = repair_prompt.text()
-        if "repair_output_lines" in row:
-            repair_lines = row["repair_output_lines"]
-            if not isinstance(repair_lines, list):
-                raise ValueError("repair_output_lines must be a list of strings")
-            repaired = "\n".join(str(line) for line in repair_lines)
-        else:
-            repaired = row.get("repair_output", row.get("repaired_output"))
-        return str(repaired) if repaired is not None else None
-
-    validation: ProgramValidationResult = validate_program_with_repair(
-        code,
-        repair_callback=repair_callback,
-        cases=program_cases_for_pilot_task(args.task),
-        timeout_seconds=args.program_timeout_seconds,
-        repair_attempts=args.repair_attempts,
-    )
-    reward = pilot_reward(
-        row,
-        lambda_final=args.lambda_final,
-        init_final_accuracy=args.init_final_accuracy,
-    )
-    valid_code = validation.repaired_code if validation.valid and validation.repaired_code is not None else code
-    return sanitize_json_value(
-        {
-            "id": row.get("id"),
-            "condition": "program",
-            "raw_output": code,
-            "valid": validation.valid,
-            "validation_category": validation.category,
-            "validation_message": validation.message,
-            "original_validation_category": validation.original_category,
-            "original_validation_message": validation.original_message,
-            "repair_attempted": validation.repair_attempted,
-            "repaired": validation.repaired,
-            "repair_prompt": repair_prompt_text,
-            "repaired_output": validation.repaired_code,
-            "completion": valid_code if validation.valid else "",
-            **reward,
-        }
-    )
-
-
 def process_pilot_rows(rows: Sequence[Mapping[str, Any]], args: argparse.Namespace) -> List[JsonDict]:
+    if args.condition != "config":
+        raise ValueError("adaptive proposal pilot now supports only condition='config'.")
     results: List[JsonDict] = []
     seen_completions: set[str] = set()
     for index, row in enumerate(rows):
         row_condition = row.get("condition", args.condition)
         if row_condition != args.condition:
             continue
-        if args.condition == "config":
-            result = validate_config_pilot_row(row, args)
-        else:
-            result = validate_program_pilot_row(row, args)
+        result = validate_config_pilot_row(row, args)
         result["proposal_index"] = index
         completion = str(result.get("completion", ""))
         duplicate = bool(completion) and completion in seen_completions
@@ -3429,7 +2762,6 @@ def build_pilot_trace_rows(
 # --- from proposals.py ---
 """Proposal generation, validation, prompting, and GRPO modules."""
 
-from dataclasses import asdict, dataclass
 from typing import Any, Dict
 
 from self.adaptive.proposal import (
@@ -3447,25 +2779,10 @@ from self.adaptive.proposal import build_trace_row, load_fixture_proposals, writ
 from self.adaptive.proposal import (
     PromptBundle,
     render_config_prompt,
-    render_program_prompt,
-    render_program_repair_prompt,
 )
 
 
 JsonDict = Dict[str, Any]
-
-
-@dataclass(frozen=True)
-class ProgramProposal:
-    proposal_type: str
-    task: str
-    code: str
-
-    def to_json_dict(self) -> JsonDict:
-        return asdict(self)
-
-    def to_completion(self) -> str:
-        return self.code
 
 
 __all__ = [
@@ -3474,7 +2791,6 @@ __all__ = [
     "PROPOSAL_OUTPUT_SCHEMAS",
     "ConfigProposal",
     "JsonDict",
-    "ProgramProposal",
     "PromptBundle",
     "ProposalValidation",
     "build_trace_row",
@@ -3485,7 +2801,5 @@ __all__ = [
     "proposal_output_schema",
     "proposal_payload_for_schema",
     "render_config_prompt",
-    "render_program_prompt",
-    "render_program_repair_prompt",
     "write_trace_jsonl",
 ]

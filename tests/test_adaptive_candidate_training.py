@@ -18,7 +18,6 @@ from self.adaptive.proposal import (
     proposal_grpo_advantages,
     proposal_grpo_reward,
 )
-from self.adaptive.proposal import choose_default_program_pair
 from self.adaptive.proposal import validate_proposal_rows
 from self.adaptive import driver as adaptive_driver
 from self.adaptive import traces as adaptive_traces
@@ -28,7 +27,6 @@ from self.core.models import (
     CandidateMetrics,
     CandidateWorkItem,
     ExactPairDataset,
-    ExecutableProposal,
     candidate_metrics_from_json,
 )
 from self.core.task_protocols import task_for_name
@@ -60,7 +58,6 @@ def _make_loop_facade() -> SimpleNamespace:
     loop.build_exact_pair_run_length_dataset = composition.build_exact_pair_run_length_dataset
     loop.merge_run_length_examples = composition.merge_run_length_examples
     loop.compose_run_length_pseudo_examples = composition.compose_run_length_pseudo_examples
-    loop.compose_program_pseudo_examples = composition.compose_program_pseudo_examples
     loop.compose_examples = compose_examples
     loop.validate_config_rows = validate_config_rows
     loop.proposal_grpo_reward = proposal_grpo_reward
@@ -71,7 +68,6 @@ def _make_loop_facade() -> SimpleNamespace:
     loop.cleanup_replaced_model_checkpoint = candidate_training.cleanup_replaced_model_checkpoint
     loop.select_candidate = candidate_training.select_candidate
     loop.task_for_name = task_for_name
-    loop.ExecutableProposal = ExecutableProposal
     loop.CandidateWorkItem = CandidateWorkItem
     loop.ExactPairDataset = ExactPairDataset
     loop.CandidateMetrics = CandidateMetrics
@@ -80,22 +76,19 @@ def _make_loop_facade() -> SimpleNamespace:
     loop.OutcomeTraceExample = adaptive_traces.OutcomeTraceExample
     loop.sample_proposal_trace_replay = adaptive_traces.sample_proposal_trace_replay
     loop.sample_outcome_trace_replay = adaptive_traces.sample_outcome_trace_replay
-    loop.build_post_task_proposal_rehearsal_examples = adaptive_traces.build_post_task_proposal_rehearsal_examples
     loop.build_selected_proposal_trace_example = adaptive_traces.build_selected_proposal_trace_example
     loop.build_candidate_proposal_trace_example = adaptive_traces.build_candidate_proposal_trace_example
     loop.build_outcome_trace_example = adaptive_traces.build_outcome_trace_example
-    loop.choose_default_program_pair = choose_default_program_pair
     loop.validate_proposal_rows = validate_proposal_rows
     loop.save_examples = save_examples
 
     loop._candidate_failure_metrics = candidate_dispatch.candidate_failure_metrics
-    loop._collect_candidate_array_metrics = candidate_dispatch.collect_candidate_array_metrics
+    loop._collect_candidate_worker_metrics = candidate_dispatch.collect_candidate_worker_metrics
     loop.run = lambda args: driver_wiring.run(loop, args)
     loop.apply_or_dispatch_proposal_grpo_update = (
         lambda **kwargs: driver_wiring.apply_or_dispatch_proposal_grpo_update(loop, **kwargs)
     )
     loop.train_candidates_serial = lambda **kwargs: driver_wiring.train_candidates_serial(loop, **kwargs)
-    loop.train_candidates_slurm_array = lambda **kwargs: driver_wiring.train_candidates_slurm_array(loop, **kwargs)
     loop.train_candidates_local_parallel = lambda **kwargs: driver_wiring.train_candidates_local_parallel(loop, **kwargs)
     loop.train_candidate_metrics = lambda **kwargs: driver_wiring.train_candidate_metrics(loop, **kwargs)
     loop.run_candidate_worker_from_spec = lambda spec_path, **kwargs: driver_wiring.run_candidate_worker_from_spec(
@@ -493,197 +486,6 @@ def test_candidate_work_items_deduplicate_equivalent_config_actions(tmp_path):
     annotated_results = json.loads((tmp_path / "proposal_results.json").read_text())
     assert annotated_results[1]["candidate_dedup_skipped"] is True
 
-
-VALID_ADDITION_PROGRAM = """def compose(components, metadata):
-    if not components:
-        return {"accept": False, "reason": "no_components"}
-    pieces = []
-    for component in components:
-        prediction = str(component["prediction"]).strip()
-        if prediction == "":
-            return {"accept": False, "reason": "empty_prediction"}
-        try:
-            value = int(prediction)
-            size = int(component["size"])
-        except ValueError:
-            return {"accept": False, "reason": "bad_prediction"}
-        if value < 0:
-            return {"accept": False, "reason": "negative_prediction"}
-        pieces.append(prediction.zfill(size))
-    return {"accept": True, "target": "".join(pieces)}
-"""
-
-
-VALID_RUN_STATE_PROGRAM = """def compose(components, metadata):
-    if not components:
-        return {"accept": False, "reason": "no_components"}
-    parsed = []
-    for component in components:
-        parts = str(component["prediction"]).split("|")
-        if len(parts) != 5:
-            return {"accept": False, "reason": "bad_component_format"}
-        try:
-            max_run = int(parts[0])
-            prefix_symbol = parts[1]
-            prefix_run = int(parts[2])
-            suffix_symbol = parts[3]
-            suffix_run = int(parts[4])
-            size = int(component["size"])
-        except ValueError:
-            return {"accept": False, "reason": "bad_component_format"}
-        parsed.append((size, max_run, prefix_symbol, prefix_run, suffix_symbol, suffix_run))
-    size, max_run, prefix_symbol, prefix_run, suffix_symbol, suffix_run = parsed[0]
-    for right in parsed[1:]:
-        r_size, r_max, r_prefix_symbol, r_prefix_run, r_suffix_symbol, r_suffix_run = right
-        boundary = suffix_run + r_prefix_run if suffix_symbol == r_prefix_symbol else 0
-        new_size = size + r_size
-        new_max = max(max_run, r_max, boundary)
-        new_prefix_run = prefix_run
-        if prefix_run == size and prefix_symbol == r_prefix_symbol:
-            new_prefix_run = size + r_prefix_run
-        new_suffix_run = r_suffix_run
-        if r_suffix_run == r_size and suffix_symbol == r_suffix_symbol:
-            new_suffix_run = r_size + suffix_run
-        size = new_size
-        max_run = new_max
-        prefix_run = new_prefix_run
-        suffix_symbol = r_suffix_symbol
-        suffix_run = new_suffix_run
-    target = str(max_run) + "|" + prefix_symbol + "|" + str(prefix_run) + "|" + suffix_symbol + "|" + str(suffix_run)
-    return {"accept": True, "target": target}
-"""
-
-
-def test_program_pseudo_labels_use_sandboxed_composer():
-    args = argparse.Namespace(
-        task="addition",
-        program_timeout_seconds=1.0,
-        program_batch_timeout_seconds=5.0,
-    )
-    task = loop.task_for_name("addition")
-    left = AdditionExample(a=12, b=13, result=25, digits=2, has_carry=False, operand_width=2)
-    right = AdditionExample(a=123, b=111, result=234, digits=3, has_carry=False, operand_width=3)
-    composed = loop.compose_examples(left, right)
-    proposal = loop.ExecutableProposal(
-        left=2,
-        right=3,
-        guard="none",
-        target=5,
-        code=VALID_ADDITION_PROGRAM,
-        condition="program",
-    )
-
-    pseudo, diagnostics = loop.compose_program_pseudo_examples(
-        task_name="addition",
-        task=task,
-        proposal=proposal,
-        composed_examples=[composed],
-        component_map={example_key(composed): [example_key(left), example_key(right)]},
-        component_predictions={example_key(left): "25", example_key(right): "234"},
-        args=args,
-    )
-
-    assert diagnostics["retained_total"] == 1
-    assert pseudo[0].target_override == "25234"
-
-
-def test_policy_validation_accepts_source_choice_and_program_code():
-    args = argparse.Namespace(
-        task="addition",
-        condition="policy",
-        initial_min_size=2,
-        initial_max_size=4,
-        allow_repeat_targets=False,
-        seed=0,
-        repair_attempts=1,
-        program_timeout_seconds=1.0,
-        proposal_max_new_tokens=128,
-        proposal_temperature=0.0,
-        proposal_top_p=1.0,
-    )
-    rows = [
-        {
-            "id": "policy-add-2-3",
-            "raw_output": {
-                "left": 2,
-                "right": 3,
-                "guard": "none",
-                "code": VALID_ADDITION_PROGRAM,
-                "notes": "compose reliable nearby slices",
-            },
-        }
-    ]
-
-    results = loop.validate_proposal_rows(
-        rows=rows,
-        args=args,
-        source_sizes={2, 3, 4},
-        frontier_min=5,
-        frontier_max=8,
-        default_pair=None,
-    )
-
-    assert results[0]["valid"]
-    assert results[0]["parsed_proposal"]["condition"] == "policy"
-    assert results[0]["parsed_proposal"]["target"] == 5
-
-
-def test_meta_validation_records_representation():
-    args = argparse.Namespace(
-        task="run_length",
-        condition="meta",
-        initial_min_size=2,
-        initial_max_size=4,
-        allow_repeat_targets=False,
-        seed=0,
-        repair_attempts=1,
-        program_timeout_seconds=1.0,
-        proposal_max_new_tokens=256,
-        proposal_temperature=0.0,
-        proposal_top_p=1.0,
-        target_mode=RUN_LENGTH_TARGET_RUN_STATE,
-    )
-    rows = [
-        {
-            "id": "meta-run-state",
-            "raw_output": {
-                "left": 2,
-                "right": 3,
-                "guard": "none",
-                "representation": "max_prefix_suffix_boundary_state",
-                "target_format": "max|prefix_symbol|prefix_run|suffix_symbol|suffix_run",
-                "code": VALID_RUN_STATE_PROGRAM,
-            },
-        }
-    ]
-
-    results = loop.validate_proposal_rows(
-        rows=rows,
-        args=args,
-        source_sizes={2, 3, 4},
-        frontier_min=5,
-        frontier_max=8,
-        default_pair=None,
-    )
-
-    assert results[0]["valid"]
-    assert results[0]["parsed_proposal"]["condition"] == "meta"
-    assert results[0]["parsed_proposal"]["representation"] == "max_prefix_suffix_boundary_state"
-
-
-def test_program_condition_uses_driver_selected_pair():
-    proposal = loop.choose_default_program_pair(
-        source_sizes={3, 4, 5, 6, 7},
-        frontier_min=8,
-        frontier_max=12,
-        allow_repeat_targets=False,
-    )
-
-    assert proposal.left == 4
-    assert proposal.right == 4
-    assert proposal.target == 8
-
-
 def test_dry_run_attempts_continue_until_valid_candidate(tmp_path):
     fixture = tmp_path / "fixtures.jsonl"
     fixture.write_text(
@@ -816,7 +618,6 @@ def test_dry_run_attempt_loop_defaults_to_attempt_budget_without_selected_cap(tm
     assert summary["attempts_completed"] == 2
     assert summary["selected_rounds_completed"] == 2
     assert summary["max_selected_rounds"] == 0
-    assert summary["target_selected_rounds"] is None
 
 
 def test_dry_run_attempt_loop_honors_explicit_selected_cap(tmp_path):
@@ -1009,57 +810,6 @@ def test_proposal_trace_replay_sampling_can_be_disabled():
     assert replay == []
 
 
-def test_post_task_proposal_rehearsal_examples_are_bounded_and_include_candidate_trace():
-    selected_trace = loop.ProposalTraceExample(
-        prompt_text="selected prompt",
-        completion="selected completion",
-        task="addition",
-        condition="config",
-        round_index=1,
-        reward=0.5,
-        metadata={"selected": True},
-    )
-    candidate_trace = loop.ProposalTraceExample(
-        prompt_text="candidate prompt",
-        completion="candidate completion",
-        task="addition",
-        condition="config",
-        round_index=2,
-        reward=math.nan,
-        metadata={"candidate_local_trace": True},
-    )
-    args = argparse.Namespace(
-        post_task_proposal_rehearsal=True,
-        post_task_proposal_rehearsal_repeat_count=10,
-        post_task_proposal_rehearsal_max_examples=5,
-    )
-
-    examples = loop.build_post_task_proposal_rehearsal_examples(
-        args=args,
-        proposal_trace_buffer=[selected_trace],
-        candidate_trace_examples=[candidate_trace],
-        rng=random.Random(0),
-    )
-
-    assert len(examples) == 5
-    assert {example.completion for example in examples} <= {
-        "selected completion",
-        "candidate completion",
-    }
-    assert any(example.completion == "candidate completion" for example in examples)
-
-    args.post_task_proposal_rehearsal = False
-    assert (
-        loop.build_post_task_proposal_rehearsal_examples(
-            args=args,
-            proposal_trace_buffer=[selected_trace],
-            candidate_trace_examples=[candidate_trace],
-            rng=random.Random(0),
-        )
-        == []
-    )
-
-
 def test_numeric_textual_outcome_trace_uses_compact_state_and_target():
     args = argparse.Namespace(
         outcome_trace_target_mode="numeric_textual",
@@ -1239,14 +989,9 @@ def test_parser_defaults_enable_numeric_outcome_and_config_grpo():
     assert args.proposal_sampling_batch_size == 8
     assert args.force_unique_proposals is False
     assert args.proposal_unique_max_draws == 0
-    assert args.num_rounds is None
     assert args.max_attempt_rounds == 100
     assert args.max_selected_rounds == 0
-    assert args.post_task_proposal_rehearsal is False
-    assert args.post_task_proposal_rehearsal_repeat_count == 64
-    assert args.post_task_proposal_rehearsal_max_examples == 256
     assert args.proposal_grpo_steps == 1
-    assert args.proposal_update_loss_mode == "merged_agent"
     assert args.proposal_grpo_span == "reasoning_action"
     assert args.proposal_observation_loss_weight == 0.2
     assert args.proposal_format_loss_weight == 0.02
@@ -1265,40 +1010,6 @@ def test_parser_defaults_enable_numeric_outcome_and_config_grpo():
     assert args.candidate_execution_mode == "local_parallel"
     assert args.candidate_local_parallelism == 2
     assert args.candidate_local_pack_size == 1
-    assert args.candidate_eval_backend == "transformers"
-    assert args.vllm_python_bin is None
-    assert args.vllm_gpu_memory_utilization == 0.80
-    assert args.vllm_dtype == "auto"
-    assert args.vllm_flashinfer_sampler == "off"
-    assert args.vllm_enforce_eager is False
-    assert args.vllm_max_model_len == 0
-    assert args.vllm_max_num_seqs == 0
-    assert args.vllm_max_num_batched_tokens == 0
-    assert args.candidate_array_max_parallel == 4
-
-    program_args = loop.normalize_args(
-        parser.parse_args(
-            [
-                "--task",
-                "addition",
-                "--condition",
-                "program",
-            ]
-        )
-    )
-    assert program_args.proposal_grpo_steps == 0
-
-    legacy_args = loop.normalize_args(
-        parser.parse_args(
-            [
-                "--task",
-                "addition",
-                "--proposal-update-loss-mode",
-                "legacy_grpo",
-            ]
-        )
-    )
-    assert legacy_args.post_task_proposal_rehearsal is True
 
 
 def test_config_prompt_omits_action_history():
@@ -1438,7 +1149,6 @@ def test_candidate_metrics_json_roundtrip(tmp_path):
         model_dir=tmp_path / "model",
         proposal_trace_replay_count=2,
         candidate_proposal_trace_count=1,
-        post_task_proposal_rehearsal_count=3,
         outcome_trace_replay_count=4,
         proposal_prediction={
             "target": 5,
@@ -1458,7 +1168,6 @@ def test_candidate_metrics_json_roundtrip(tmp_path):
     assert restored.current_frontier_accuracy == 0.35
     assert restored.target_delta == 0.2
     assert restored.proposal_prediction["expected_frontier_delta"] == 0.1
-    assert restored.post_task_proposal_rehearsal_count == 3
 
 
 def test_candidate_worker_spec_roundtrip_loads_inputs(tmp_path, monkeypatch):
@@ -1576,55 +1285,6 @@ def test_candidate_worker_spec_roundtrip_loads_inputs(tmp_path, monkeypatch):
     assert seen["proposal_prompt"] == prompt
     assert seen["item"].pseudo_examples == pseudo_examples
     assert seen["current_per_size_accuracy"] == {3: 0.4, 5: 0.0}
-
-
-def test_slurm_array_mode_dispatches_even_single_candidate(monkeypatch):
-    proposal = ConfigProposal(left=2, right=3, guard="none", target=5)
-    work_item = loop.CandidateWorkItem(
-        index=0,
-        row_id=None,
-        proposal=proposal,
-        completion=proposal.to_completion(),
-        raw_output=proposal.to_json_dict(),
-        composed=loop.ExactPairDataset(examples=[], component_map={}, keys=set(), diagnostics={}),
-        pseudo_examples=[object()],
-        pseudo_diagnostics={},
-    )
-    args = argparse.Namespace(candidate_execution_mode="slurm_array")
-    called = {"slurm": 0, "serial": 0}
-
-    def fake_slurm(**kwargs):
-        called["slurm"] += 1
-        assert kwargs["work_items"] == [work_item]
-        return []
-
-    def fake_serial(**kwargs):
-        called["serial"] += 1
-        return []
-
-    monkeypatch.setattr(loop, "train_candidates_slurm_array", fake_slurm)
-    monkeypatch.setattr(loop, "train_candidates_serial", fake_serial)
-
-    loop.train_candidate_metrics(
-        args=args,
-        task=None,
-        current_checkpoint="checkpoint",
-        source_examples=[],
-        proposal_trace_buffer=[],
-        outcome_trace_buffer=[],
-        proposal_prompt=PromptBundle(system="", user=""),
-        round_index=1,
-        work_items=[work_item],
-        round_dir=None,
-        eval_examples=[],
-        current_final_accuracy=0.0,
-        current_per_size_accuracy={},
-        init_final_accuracy=0.0,
-        config=None,
-        attempt_index=1,
-    )
-
-    assert called == {"slurm": 1, "serial": 0}
 
 
 def _write_candidate_pseudo_examples(tmp_path, round_dir, task, count):

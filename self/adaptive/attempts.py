@@ -10,11 +10,9 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from self.adaptive.proposal import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal
-from self.adaptive.proposal import choose_default_program_pair
 from self.adaptive.proposal import (
     PromptBundle,
     render_config_prompt,
-    render_program_candidate_prompt,
 )
 
 
@@ -23,9 +21,7 @@ JsonDict = Dict[str, Any]
 
 @dataclass(frozen=True)
 class AttemptPromptDeps:
-    choose_default_program_pair: Callable[..., ConfigProposal]
     render_config_prompt: Callable[..., PromptBundle]
-    render_program_candidate_prompt: Callable[..., PromptBundle]
 
 
 @dataclass(frozen=True)
@@ -38,9 +34,7 @@ class AttemptPromptResult:
 
 
 DEFAULT_ATTEMPT_PROMPT_DEPS = AttemptPromptDeps(
-    choose_default_program_pair=choose_default_program_pair,
     render_config_prompt=render_config_prompt,
-    render_program_candidate_prompt=render_program_candidate_prompt,
 )
 
 
@@ -88,41 +82,20 @@ def build_attempt_prompt(
         "min": frontier_min,
         "max": frontier_max,
     }
-    default_program_pair: Optional[ConfigProposal] = None
-    if args.condition == "program":
-        default_program_pair = deps.choose_default_program_pair(
-            source_sizes=source_sizes,
-            frontier_min=frontier_min,
-            frontier_max=frontier_max,
-            allow_repeat_targets=args.allow_repeat_targets,
-        )
-        aggregate_metrics["driver_selected_program_pair"] = default_program_pair.to_json_dict()
-
-    if args.condition == "config":
-        prompt = deps.render_config_prompt(
-            task_name=args.task,
-            round_index=selected_round_for_prompt,
-            current_source=current_source_payload,
-            allowed_target_frontier=allowed_frontier_payload,
-            aggregate_metrics=aggregate_metrics,
-            guard_choices=DEFAULT_CONFIG_SEARCH_SPACES[args.task]["guards"],
-            model_name=current_checkpoint,
-            proposal_output_schema=args.proposal_output_schema,
-        )
-    else:
-        prompt = deps.render_program_candidate_prompt(
-            args=args,
-            round_index=selected_round_for_prompt,
-            current_checkpoint=current_checkpoint,
-            current_source=current_source_payload,
-            allowed_target_frontier=allowed_frontier_payload,
-            aggregate_metrics=aggregate_metrics,
-            default_pair=default_program_pair,
-        )
+    prompt = deps.render_config_prompt(
+        task_name=args.task,
+        round_index=selected_round_for_prompt,
+        current_source=current_source_payload,
+        allowed_target_frontier=allowed_frontier_payload,
+        aggregate_metrics=aggregate_metrics,
+        guard_choices=DEFAULT_CONFIG_SEARCH_SPACES[args.task]["guards"],
+        model_name=current_checkpoint,
+        proposal_output_schema=args.proposal_output_schema,
+    )
 
     return AttemptPromptResult(
         prompt=prompt,
-        default_program_pair=default_program_pair,
+        default_program_pair=None,
         aggregate_metrics=aggregate_metrics,
         current_source=current_source_payload,
         allowed_target_frontier=allowed_frontier_payload,
@@ -250,10 +223,7 @@ def _compact_attempt_actions(
 
 
 def _max_selected_rounds(args: argparse.Namespace) -> int:
-    if hasattr(args, "max_selected_rounds"):
-        return int(getattr(args, "max_selected_rounds") or 0)
-    legacy_num_rounds = getattr(args, "num_rounds", 0)
-    return int(legacy_num_rounds or 0)
+    return int(getattr(args, "max_selected_rounds") or 0)
 
 
 def _source_admission_decision(args: argparse.Namespace, selected: Any) -> JsonDict:
@@ -1004,7 +974,7 @@ def run_candidate_attempt(
         metrics=metrics,
         path=round_dir / "trace_examples.jsonl",
     )
-    deleted_unselected_model_dirs = checkpoint_manager.cleanup_unselected_candidates(metrics=metrics, selected=selected)
+    deleted_unselected_model_dirs = checkpoint_manager.cleanup_unselected_candidates(metrics=metrics, selected=selected) or []
     phase_timings["deleted_unselected_model_dir_count"] = len(deleted_unselected_model_dirs)
     if deleted_unselected_model_dirs:
         write_json = getattr(deps.attempt_outcome_deps, "write_json", None)

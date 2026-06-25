@@ -6545,3 +6545,30 @@ Acceptance criteria for first pilot:
   - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_args_normalization.py tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py -q`
   - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py -k 'parser_defaults_enable_numeric_outcome_and_config_grpo or proposal_grpo_reward_mapping_and_advantages or proposal_policy_microbatches_match_full_batch_gradient' -q`
+
+### Implementation Log: 2026-06-25 Config-Only Pipeline Cleanup
+
+- Confirmed the workshop/nonadaptive `num_rounds` pipeline is preserved in git history; removed only the adaptive candidate-training `--num-rounds` compatibility alias.
+- Removed inactive adaptive condition surfaces from the active code path:
+  - `program`, `policy`, and `meta` condition choices.
+  - executable program sandbox validation/composition helpers and tests.
+  - old adaptive condition pilot launchers/manifests.
+- Removed inactive training/evaluation infrastructure:
+  - legacy proposal-update mode / post-task proposal rehearsal paths.
+  - vLLM candidate-evaluation backend and tests.
+  - SLURM-array candidate worker dispatch and launcher.
+- Removed the stale dry-run adaptive condition pilot entrypoint
+  (`self/experiments/adaptive_self_improvement.py`) and non-config pilot
+  fixtures/tests, so active tests no longer preserve `program`/`policy`/`meta`
+  compatibility through a side path.
+- Kept the stable current experiment surface:
+  - config-only proposal actions with `left`, `right`, and `guard`.
+  - merged-agent proposal update with GRPO + observation CE + format CE.
+  - serial or local packed-parallel candidate training, defaulting to local packed workers.
+- Renamed remaining worker metric helpers away from `candidate_array_*` terminology to avoid confusing local packed workers with removed SLURM arrays.
+- Added `notebooks/README.md` to map analysis notebooks to their corresponding `artifacts/runs/...`, `artifacts/logs/...`, and figure-output families.
+- Verification:
+  - `~/.conda/envs/torch-env/bin/python -m py_compile self/adaptive/args.py self/adaptive/attempts.py self/adaptive/candidate.py self/adaptive/driver.py self/adaptive/proposal.py self/adaptive/run.py self/core/composition.py self/core/models.py self/core/worker_io.py self/launcher_manifests.py`
+  - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_args_normalization.py tests/test_launcher_manifests.py tests/test_adaptive_candidate_launcher.py tests/test_candidate_training_mix.py tests/test_candidate_training_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_candidate_metric_collection.py tests/test_candidate_rewards.py tests/test_experience_trace_models.py tests/test_adaptive_proposals_and_sandbox.py tests/test_proposal_generation.py tests/test_adaptive_candidate_training.py`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests` (`448 passed`)

@@ -313,11 +313,6 @@ def finalize_adaptive_run(
             ),
             f"Final source sizes tracked by driver: `{sorted(source_sizes)}`.",
             f"Selected proposal traces retained for replay: `{len(proposal_trace_buffer)}`.",
-            (
-                "Post-task proposal rehearsal: "
-                f"`{args.post_task_proposal_rehearsal}`; repeat/max examples: "
-                f"`{args.post_task_proposal_rehearsal_repeat_count}`/`{args.post_task_proposal_rehearsal_max_examples}`."
-            ),
             f"Outcome trace target mode: `{args.outcome_trace_target_mode}`; retained outcome traces: `{len(outcome_trace_buffer)}`.",
             (
                 f"Proposal GRPO updates: `{proposal_grpo_update_count}`; "
@@ -332,7 +327,7 @@ def finalize_adaptive_run(
             f"Proposal GRPO novelty beta: `{args.proposal_grpo_novelty_bonus_beta}`.",
             f"Source admission target-accuracy threshold: `{args.source_admission_target_accuracy_threshold}`.",
             (
-                f"Proposal update loss: `{args.proposal_update_loss_mode}`; "
+                "Proposal update loss: `merged_agent`; "
                 f"observation/format weights: `{args.proposal_observation_loss_weight}`/`{args.proposal_format_loss_weight}`."
             ),
             f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
@@ -347,7 +342,6 @@ def finalize_adaptive_run(
         "selected_rounds_completed": selected_rounds,
         "attempts_completed": attempt_index,
         "max_selected_rounds": max_selected_rounds,
-        "target_selected_rounds": getattr(args, "num_rounds", None),
         "max_attempt_rounds": args.max_attempt_rounds,
         "no_selection_patience": args.no_selection_patience,
         "num_candidates": args.num_candidates,
@@ -360,9 +354,6 @@ def finalize_adaptive_run(
         "proposal_trace_buffer_path": str(output_dir / "selected_proposal_trace_buffer.jsonl"),
         "proposal_trace_replay_ratio": args.proposal_trace_replay_ratio,
         "proposal_trace_replay_max_examples": args.proposal_trace_replay_max_examples,
-        "post_task_proposal_rehearsal": args.post_task_proposal_rehearsal,
-        "post_task_proposal_rehearsal_repeat_count": args.post_task_proposal_rehearsal_repeat_count,
-        "post_task_proposal_rehearsal_max_examples": args.post_task_proposal_rehearsal_max_examples,
         "outcome_trace_target_mode": args.outcome_trace_target_mode,
         "outcome_trace_buffer_size": len(outcome_trace_buffer),
         "outcome_trace_buffer_path": str(output_dir / "outcome_trace_buffer.jsonl"),
@@ -379,7 +370,7 @@ def finalize_adaptive_run(
         "proposal_grpo_fixed_baseline": args.proposal_grpo_fixed_baseline,
         "proposal_grpo_deduplicate_actions": args.proposal_grpo_deduplicate_actions,
         "proposal_grpo_novelty_bonus_beta": args.proposal_grpo_novelty_bonus_beta,
-        "proposal_update_loss_mode": args.proposal_update_loss_mode,
+        "proposal_update": "merged_agent",
         "proposal_observation_loss_weight": args.proposal_observation_loss_weight,
         "proposal_format_loss_weight": args.proposal_format_loss_weight,
         "proposal_format_replay_max_examples": args.proposal_format_replay_max_examples,
@@ -789,9 +780,7 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
             write_round_trace=deps.write_round_trace,
             handle_attempt_outcome=deps.handle_attempt_outcome,
             attempt_prompt_deps=AttemptPromptDeps(
-                choose_default_program_pair=deps.choose_default_program_pair,
                 render_config_prompt=deps.render_config_prompt,
-                render_program_candidate_prompt=deps.render_program_candidate_prompt,
             ),
             dry_run_attempt_deps=DryRunAttemptDeps(
                 load_fixture_proposals=deps.load_fixture_proposals,

@@ -140,35 +140,6 @@ def sample_proposal_trace_replay(
     return [rng.choice(trace_buffer) for _ in range(replay_count)]
 
 
-def build_post_task_proposal_rehearsal_examples(
-    *,
-    args: Any,
-    proposal_trace_buffer: Sequence[ProposalTraceExample],
-    candidate_trace_examples: Sequence[ProposalTraceExample],
-    rng: random.Random,
-) -> List[ProposalTraceExample]:
-    if not args.post_task_proposal_rehearsal:
-        return []
-    if args.post_task_proposal_rehearsal_repeat_count <= 0:
-        return []
-    if args.post_task_proposal_rehearsal_max_examples <= 0:
-        return []
-    base_examples = list(proposal_trace_buffer) + list(candidate_trace_examples)
-    if not base_examples:
-        return []
-    requested = len(base_examples) * int(args.post_task_proposal_rehearsal_repeat_count)
-    replay_count = min(int(args.post_task_proposal_rehearsal_max_examples), requested)
-    if replay_count <= 0:
-        return []
-    if replay_count <= len(base_examples):
-        return rng.sample(base_examples, replay_count)
-    examples = list(base_examples)
-    while len(examples) < replay_count:
-        examples.append(rng.choice(base_examples))
-    rng.shuffle(examples)
-    return examples
-
-
 def sample_outcome_trace_replay(
     *,
     args: Any,

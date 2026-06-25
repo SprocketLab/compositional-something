@@ -67,7 +67,6 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "Proposal GRPO span: reasoning_action" in stdout
     assert "--candidate-local-pack-size 2" in stdout
     assert "--candidate-local-cache-base-state" in stdout
-    assert "--candidate-eval-backend transformers" in stdout
     assert "--max-selected-rounds 0" in stdout
     assert "--max-steps 100" in stdout
     assert "--seed-max-steps 0" in stdout
@@ -80,7 +79,6 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "--force-unique-proposals" in stdout
     assert "--proposal-unique-max-draws 0" in stdout
     assert "--num-rounds" not in stdout
-    assert "--proposal-update-loss-mode merged_agent" in stdout
     assert "--proposal-update-microbatch-size 8" in stdout
     assert "--proposal-observation-loss-weight 0.2" in stdout
     assert "--proposal-grpo-span reasoning_action" in stdout
@@ -137,14 +135,14 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert manifest["proposal_grpo_kl_coef"] == "0.01"
     assert len(manifest["jobs"]) == 8
     assert (
-        manifest["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-eval-transformers"][
+        manifest["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6"][
             "job_id"
         ]
         == "dryrun-adaptive-cand-addition-config-numeric-n8-outcome-fixed-baseline-lr-1em6"
     )
-    assert manifest["jobs"]["addition-config-numeric-n16-reward-rank-grpo-skip-lr-1e-6-eval-transformers"][
+    assert manifest["jobs"]["addition-config-numeric-n16-reward-rank-grpo-skip-lr-1e-6"][
         "output_dir"
-    ] == str(out_root / "addition-config-numeric-n16-reward-rank-grpo-skip-lr-1em6-eval-transformers")
+    ] == str(out_root / "addition-config-numeric-n16-reward-rank-grpo-skip-lr-1em6")
 
     combined = result.stdout + result.stderr
     assert "--job-name adaptive-cand-addition-config-numeric-n8-outcome-fixed-baseline-lr-1em6" in combined
@@ -167,7 +165,6 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert "CANDIDATE_LOCAL_PARALLELISM=2" in combined
     assert "CANDIDATE_LOCAL_PACK_SIZE=2" in combined
     assert "CANDIDATE_LOCAL_CACHE_BASE_STATE=1" in combined
-    assert "CANDIDATE_EVAL_BACKEND=transformers" in combined
     assert "PROPOSAL_GRPO_REWARD_MODE=rank" in combined
     assert "PROPOSAL_GRPO_DEDUPLICATE_ACTIONS=1" in combined
     assert "PROPOSAL_GRPO_LEARNING_RATE=1e-6" in combined
@@ -176,10 +173,8 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert "PROPOSAL_GRPO_ANCHOR_KL" not in combined
     assert "PROPOSAL_GRPO_NOVELTY_BONUS_BETA=0.05" in combined
     assert "SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD=0.80" in combined
-    assert "PROPOSAL_UPDATE_LOSS_MODE=merged_agent" in combined
     assert "PROPOSAL_UPDATE_MICROBATCH_SIZE=8" in combined
     assert "PROPOSAL_HISTORY" not in combined
-    assert "POST_TASK_PROPOSAL_REHEARSAL=0" in combined
     assert f"ADAPTIVE_CONFIG_FILES={BASE_CONFIG}" in combined
 
 
@@ -223,11 +218,11 @@ def test_adaptive_candidate_submitter_dry_run_expands_lr_sweep(tmp_path: Path):
     assert manifest["proposal_grpo_kl_coef"] == "0"
     assert len(manifest["jobs"]) == 6
 
-    key = "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5e-6-eval-transformers"
+    key = "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5e-6"
     assert manifest["jobs"][key]["proposal_grpo_learning_rate"] == "5e-6"
     assert manifest["jobs"][key]["proposal_grpo_kl_coef"] == "0"
     assert manifest["jobs"][key]["output_dir"] == str(
-        out_root / "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5em6-eval-transformers"
+        out_root / "run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5em6"
     )
 
     combined = result.stdout + result.stderr

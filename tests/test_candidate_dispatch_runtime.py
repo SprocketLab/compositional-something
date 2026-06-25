@@ -199,58 +199,19 @@ def test_local_parallel_dispatch_sets_subprocess_binding_and_delegates(
     assert calls[0]["work_items"][0].index == 0
 
 
-def test_slurm_array_dispatch_delegates_to_candidate_workers(tmp_path: Path, monkeypatch):
-    calls = []
-
-    def fake_train_candidates_slurm_array(**kwargs):
-        calls.append(kwargs)
-        return ["metric"]
-
-    monkeypatch.setattr(
-        workers,
-        "_worker_train_candidates_slurm_array",
-        fake_train_candidates_slurm_array,
-    )
-
-    result = dispatch.train_candidates_slurm_array(
-        args=SimpleNamespace(seed=1),
-        task=object(),
-        current_checkpoint="checkpoint",
-        source_examples=[],
-        proposal_trace_buffer=[],
-        outcome_trace_buffer=[],
-        proposal_prompt=PromptBundle(system="", user=""),
-        round_index=1,
-        work_items=[_work_item(2)],
-        round_dir=tmp_path,
-        eval_examples=[],
-        current_final_accuracy=0.0,
-        current_per_size_accuracy={},
-        init_final_accuracy=0.0,
-        attempt_index=0,
-        collect_metrics_fn=lambda **kwargs: [],
-    )
-
-    assert result == ["metric"]
-    assert calls[0]["round_dir"] == tmp_path
-    assert calls[0]["work_items"][0].index == 2
-
-
 def test_candidate_dispatch_helpers_live_in_merged_module():
     assert dispatch.CandidateDispatchEntrypointDeps.__module__ == "self.adaptive.candidate"
     assert dispatch.train_candidates_serial.__module__ == "self.adaptive.candidate"
     assert dispatch.train_candidates_local_parallel.__module__ == "self.adaptive.candidate"
-    assert dispatch.train_candidates_slurm_array.__module__ == "self.adaptive.candidate"
 
 
 def test_build_candidate_dispatch_deps_reads_driver_bindings():
     bindings = SimpleNamespace(
         train_and_score_candidate=object(),
         _candidate_failure_metrics=object(),
-        _collect_candidate_array_metrics=object(),
+        _collect_candidate_worker_metrics=object(),
         train_candidates_serial=object(),
         train_candidates_local_parallel=object(),
-        train_candidates_slurm_array=object(),
         subprocess=object(),
     )
 
@@ -258,8 +219,7 @@ def test_build_candidate_dispatch_deps_reads_driver_bindings():
 
     assert deps.train_and_score_candidate is bindings.train_and_score_candidate
     assert deps.candidate_failure_metrics is bindings._candidate_failure_metrics
-    assert deps.collect_candidate_array_metrics is bindings._collect_candidate_array_metrics
+    assert deps.collect_candidate_worker_metrics is bindings._collect_candidate_worker_metrics
     assert deps.train_candidates_serial is bindings.train_candidates_serial
     assert deps.train_candidates_local_parallel is bindings.train_candidates_local_parallel
-    assert deps.train_candidates_slurm_array is bindings.train_candidates_slurm_array
     assert deps.subprocess_module is bindings.subprocess

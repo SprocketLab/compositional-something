@@ -42,7 +42,6 @@ DEFAULT_BINDING_NAMES = (
     "build_round_outcome_trace_examples",
     "build_selected_proposal_trace_example",
     "candidate_metrics_from_json",
-    "choose_default_program_pair",
     "ensure_dir",
     "handle_attempt_outcome",
     "load_fixture_proposals",
@@ -52,7 +51,6 @@ DEFAULT_BINDING_NAMES = (
     "normalize_args",
     "prepare_datasets",
     "render_config_prompt",
-    "render_program_candidate_prompt",
     "run_dry_attempt",
     "run_round_model_dispatch",
     "run_round_model_phase",
@@ -111,10 +109,8 @@ def _ensure_default_bindings() -> Any:
         PromptBundle,
         _rows_for_round,
         apply_proposal_grpo_update,
-        choose_default_program_pair,
         load_fixture_proposals,
         render_config_prompt,
-        render_program_candidate_prompt,
         validate_proposal_rows,
         write_trace_jsonl,
     )
@@ -163,7 +159,6 @@ def _ensure_default_bindings() -> Any:
             "build_round_outcome_trace_examples": build_round_outcome_trace_examples,
             "build_selected_proposal_trace_example": build_selected_proposal_trace_example,
             "candidate_metrics_from_json": candidate_metrics_from_json,
-            "choose_default_program_pair": choose_default_program_pair,
             "ensure_dir": ensure_dir,
             "handle_attempt_outcome": handle_attempt_outcome,
             "load_fixture_proposals": load_fixture_proposals,
@@ -173,7 +168,6 @@ def _ensure_default_bindings() -> Any:
             "normalize_args": normalize_args,
             "prepare_datasets": prepare_datasets,
             "render_config_prompt": render_config_prompt,
-            "render_program_candidate_prompt": render_program_candidate_prompt,
             "run_dry_attempt": run_dry_attempt,
             "run_round_model_dispatch": run_round_model_dispatch,
             "run_round_model_phase": run_round_model_phase,
@@ -257,9 +251,7 @@ class AdaptiveRunDeps:
     select_candidate: Any
     write_round_trace: Any
     handle_attempt_outcome: Any
-    choose_default_program_pair: Any
     render_config_prompt: Any
-    render_program_candidate_prompt: Any
     load_fixture_proposals: Any
     rows_for_round: Any
     validate_proposal_rows: Any
@@ -298,21 +290,12 @@ def train_candidates_serial(bindings: Any, **kwargs: Any) -> list[CandidateMetri
     return train_candidates_serial_entrypoint(**kwargs, deps=candidate_dispatch_deps(bindings))
 
 
-def collect_candidate_array_metrics(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
+def collect_candidate_worker_metrics(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
     from self.adaptive.candidate import (
-        collect_candidate_array_metrics_with_deps as collect_candidate_array_metrics_entrypoint,
+        collect_candidate_worker_metrics_with_deps as collect_candidate_worker_metrics_entrypoint,
     )
 
-    return collect_candidate_array_metrics_entrypoint(**kwargs, deps=candidate_dispatch_deps(bindings))
-
-
-def train_candidates_slurm_array(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
-    from self.adaptive.candidate import (
-        train_candidates_slurm_array_with_deps as train_candidates_slurm_array_entrypoint,
-    )
-
-    return train_candidates_slurm_array_entrypoint(**kwargs, deps=candidate_dispatch_deps(bindings))
-
+    return collect_candidate_worker_metrics_entrypoint(**kwargs, deps=candidate_dispatch_deps(bindings))
 
 def train_candidates_local_parallel(bindings: Any, **kwargs: Any) -> list[CandidateMetrics]:
     from self.adaptive.candidate import (
@@ -512,9 +495,7 @@ def adaptive_run_deps(bindings: Any) -> AdaptiveRunDeps:
         select_candidate=bindings.select_candidate,
         write_round_trace=bindings.write_round_trace,
         handle_attempt_outcome=bindings.handle_attempt_outcome,
-        choose_default_program_pair=bindings.choose_default_program_pair,
         render_config_prompt=bindings.render_config_prompt,
-        render_program_candidate_prompt=bindings.render_program_candidate_prompt,
         load_fixture_proposals=bindings.load_fixture_proposals,
         rows_for_round=bindings._rows_for_round,
         validate_proposal_rows=bindings.validate_proposal_rows,
@@ -555,8 +536,7 @@ DRIVER_WIRING_DELEGATES: tuple[tuple[str, str], ...] = (
     ("_candidate_dispatch_deps", "candidate_dispatch_deps"),
     ("_candidate_failure_metrics", "candidate_failure_metrics"),
     ("train_candidates_serial", "train_candidates_serial"),
-    ("_collect_candidate_array_metrics", "collect_candidate_array_metrics"),
-    ("train_candidates_slurm_array", "train_candidates_slurm_array"),
+    ("_collect_candidate_worker_metrics", "collect_candidate_worker_metrics"),
     ("train_candidates_local_parallel", "train_candidates_local_parallel"),
     ("train_candidate_metrics", "train_candidate_metrics"),
     ("_worker_entrypoint_deps", "worker_entrypoint_deps"),
@@ -614,8 +594,7 @@ _WIRE = SimpleNamespace(
     candidate_dispatch_deps=candidate_dispatch_deps,
     candidate_failure_metrics=candidate_failure_metrics,
     train_candidates_serial=train_candidates_serial,
-    collect_candidate_array_metrics=collect_candidate_array_metrics,
-    train_candidates_slurm_array=train_candidates_slurm_array,
+    collect_candidate_worker_metrics=collect_candidate_worker_metrics,
     train_candidates_local_parallel=train_candidates_local_parallel,
     train_candidate_metrics=train_candidate_metrics,
     worker_entrypoint_deps=worker_entrypoint_deps,

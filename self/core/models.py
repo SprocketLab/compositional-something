@@ -15,43 +15,6 @@ JsonDict = Dict[str, Any]
 
 
 @dataclass(frozen=True)
-class ExecutableProposal:
-    left: int
-    right: int
-    guard: str
-    target: int
-    code: str
-    condition: str
-    notes: str = ""
-    representation: str = ""
-    target_format: str = ""
-    repaired: bool = False
-    original_validation_category: Optional[str] = None
-    original_validation_message: Optional[str] = None
-
-    def to_json_dict(self) -> JsonDict:
-        return sanitize_json_value(
-            {
-                "left": self.left,
-                "right": self.right,
-                "guard": self.guard,
-                "target": self.target,
-                "code": self.code,
-                "condition": self.condition,
-                "notes": self.notes,
-                "representation": self.representation,
-                "target_format": self.target_format,
-                "repaired": self.repaired,
-                "original_validation_category": self.original_validation_category,
-                "original_validation_message": self.original_validation_message,
-            }
-        )
-
-    def to_completion(self) -> str:
-        return self.code
-
-
-@dataclass(frozen=True)
 class ExactPairDataset:
     examples: List[Any]
     component_map: Dict[Any, List[Any]]
@@ -91,7 +54,6 @@ class CandidateMetrics:
     failure_reason: Optional[str] = None
     proposal_trace_replay_count: int = 0
     candidate_proposal_trace_count: int = 0
-    post_task_proposal_rehearsal_count: int = 0
     outcome_trace_replay_count: int = 0
     current_final_accuracy: float = math.nan
     final_accuracy_delta_from_current: float = math.nan
@@ -126,7 +88,6 @@ class CandidateMetrics:
                 "pseudo_count": self.pseudo_count,
                 "proposal_trace_replay_count": self.proposal_trace_replay_count,
                 "candidate_proposal_trace_count": self.candidate_proposal_trace_count,
-                "post_task_proposal_rehearsal_count": self.post_task_proposal_rehearsal_count,
                 "outcome_trace_replay_count": self.outcome_trace_replay_count,
                 "model_dir": str(self.model_dir) if self.model_dir is not None else None,
                 "failure_reason": self.failure_reason,
@@ -135,29 +96,6 @@ class CandidateMetrics:
 
 
 def proposal_from_payload(payload: Mapping[str, Any]) -> Any:
-    if "code" in payload:
-        return ExecutableProposal(
-            left=int(payload["left"]),
-            right=int(payload["right"]),
-            guard=str(payload["guard"]),
-            target=int(payload["target"]),
-            code=str(payload["code"]),
-            condition=str(payload.get("condition") or "program"),
-            notes=str(payload.get("notes") or ""),
-            representation=str(payload.get("representation") or ""),
-            target_format=str(payload.get("target_format") or ""),
-            repaired=bool(payload.get("repaired", False)),
-            original_validation_category=(
-                str(payload["original_validation_category"])
-                if payload.get("original_validation_category") is not None
-                else None
-            ),
-            original_validation_message=(
-                str(payload["original_validation_message"])
-                if payload.get("original_validation_message") is not None
-                else None
-            ),
-        )
     return ConfigProposal(
         left=int(payload["left"]),
         right=int(payload["right"]),
@@ -205,7 +143,6 @@ def candidate_metrics_from_json(payload: Mapping[str, Any]) -> CandidateMetrics:
         pseudo_count=int(payload.get("pseudo_count", 0)),
         proposal_trace_replay_count=int(payload.get("proposal_trace_replay_count", 0)),
         candidate_proposal_trace_count=int(payload.get("candidate_proposal_trace_count", 0)),
-        post_task_proposal_rehearsal_count=int(payload.get("post_task_proposal_rehearsal_count", 0)),
         outcome_trace_replay_count=int(payload.get("outcome_trace_replay_count", 0)),
         model_dir=Path(str(payload["model_dir"])) if payload.get("model_dir") else None,
         failure_reason=str(payload["failure_reason"]) if payload.get("failure_reason") else None,

@@ -4,52 +4,8 @@ import json
 from pathlib import Path
 
 from self.adaptive import proposal as proposals
-from self.adaptive import program_sandbox
 from self.adaptive import proposal as proposal_config_schema, proposal as proposal_prompts
 from self.adaptive import proposal as proposal_io
-
-
-VALID_RUN_LENGTH_PROGRAM = '''def compose(components, metadata):
-    if not components:
-        return {"accept": False, "reason": "no_components"}
-    parsed = []
-    for c in components:
-        parts = str(c["prediction"]).split("|")
-        if len(parts) != 5:
-            return {"accept": False, "reason": "bad_component_format"}
-        try:
-            max_run = int(parts[0])
-            prefix_symbol = parts[1]
-            prefix_run = int(parts[2])
-            suffix_symbol = parts[3]
-            suffix_run = int(parts[4])
-            size = int(c["size"])
-        except ValueError:
-            return {"accept": False, "reason": "bad_component_format"}
-        if max_run < 0 or prefix_run < 0 or suffix_run < 0:
-            return {"accept": False, "reason": "negative_run"}
-        if max_run > size or prefix_run > size or suffix_run > size:
-            return {"accept": False, "reason": "run_exceeds_size"}
-        parsed.append((size, max_run, prefix_symbol, prefix_run, suffix_symbol, suffix_run))
-    size, max_run, prefix_symbol, prefix_run, suffix_symbol, suffix_run = parsed[0]
-    for right in parsed[1:]:
-        r_size, r_max, r_prefix_symbol, r_prefix_run, r_suffix_symbol, r_suffix_run = right
-        boundary = suffix_run + r_prefix_run if suffix_symbol == r_prefix_symbol else 0
-        new_size = size + r_size
-        new_max = max(max_run, r_max, boundary)
-        new_prefix_run = prefix_run
-        if prefix_run == size and prefix_symbol == r_prefix_symbol:
-            new_prefix_run = size + r_prefix_run
-        new_suffix_run = r_suffix_run
-        if r_suffix_run == r_size and suffix_symbol == r_suffix_symbol:
-            new_suffix_run = r_size + suffix_run
-        size = new_size
-        max_run = new_max
-        prefix_run = new_prefix_run
-        suffix_symbol = r_suffix_symbol
-        suffix_run = new_suffix_run
-    return {"accept": True, "target": f"{max_run}|{prefix_symbol}|{prefix_run}|{suffix_symbol}|{suffix_run}"}
-'''
 
 
 def test_config_proposal_schema_accepts_valid_json_and_trace_write(tmp_path: Path):
@@ -112,8 +68,6 @@ def test_config_schema_owner_reexports() -> None:
 def test_prompt_owner_reexports() -> None:
     assert proposals.PromptBundle is proposal_prompts.PromptBundle
     assert proposals.render_config_prompt is proposal_prompts.render_config_prompt
-    assert proposals.render_program_prompt is proposal_prompts.render_program_prompt
-    assert proposals.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
 
 
 def test_action_observation_config_prompt_uses_schema_without_concrete_action_example() -> None:
@@ -193,51 +147,3 @@ def test_config_proposal_schema_rejects_ranges_and_enums():
     assert invalid_enum.category == "enum_error"
     assert not old_driver_schema.valid
     assert old_driver_schema.category == "schema_error"
-
-
-def test_program_sandbox_accepts_run_length_property_cases():
-    result = program_sandbox.validate_program(
-        VALID_RUN_LENGTH_PROGRAM,
-        cases=program_sandbox.build_run_length_program_cases(random_seed=7, random_count=4),
-        timeout_seconds=1.0,
-    )
-    assert result.valid
-
-
-def test_program_sandbox_rejects_forbidden_import_eval_and_timeout():
-    forbidden_import = program_sandbox.validate_program(
-        "import os\n\ndef compose(components, metadata):\n    return {\"accept\": False, \"reason\": \"x\"}\n"
-    )
-    forbidden_eval = program_sandbox.validate_program(
-        "def compose(components, metadata):\n    return eval(\"1\")\n"
-    )
-    timeout = program_sandbox.validate_program(
-        "def compose(components, metadata):\n    while True:\n        pass\n",
-        cases=[program_sandbox.SandboxCase(name="one", components=[], expected_accept=False)],
-        timeout_seconds=0.1,
-    )
-
-    assert forbidden_import.category in {"schema_error", "forbidden_import"}
-    assert forbidden_eval.category in {"forbidden_name", "forbidden_call"}
-    assert timeout.category == "timeout"
-
-
-def test_program_repair_is_attempted_once_and_revalidated():
-    calls = []
-
-    def repair_callback(category: str, message: str, previous_program: str) -> str:
-        calls.append((category, message, previous_program))
-        return VALID_RUN_LENGTH_PROGRAM
-
-    result = program_sandbox.validate_program_with_repair(
-        "def compose(components, metadata):\n    return 1\n",
-        repair_callback=repair_callback,
-        cases=program_sandbox.build_run_length_program_cases(random_seed=0, random_count=1),
-        timeout_seconds=1.0,
-    )
-
-    assert result.valid
-    assert result.repaired
-    assert result.repair_attempted
-    assert result.original_category == "output_format"
-    assert len(calls) == 1

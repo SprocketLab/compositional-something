@@ -25,9 +25,6 @@ def _args(**overrides):
         condition="config",
         proposal_trace_replay_ratio=0.5,
         proposal_trace_replay_max_examples=2,
-        post_task_proposal_rehearsal=False,
-        post_task_proposal_rehearsal_repeat_count=3,
-        post_task_proposal_rehearsal_max_examples=4,
         outcome_trace_target_mode="none",
         outcome_trace_replay_ratio=0.5,
         outcome_trace_replay_max_examples=1,
@@ -94,7 +91,6 @@ def test_candidate_training_mix_includes_mixed_replay_when_post_task_rehearsal_d
     assert len(mix.mixed_proposal_replay_examples) == 2
     assert len(mix.candidate_trace_examples) == 1
     assert mix.mixed_candidate_trace_examples == mix.candidate_trace_examples
-    assert len(mix.post_task_rehearsal_examples) == 0
     assert len(mix.train_examples) == 7
     assert mix.summary_counts == {
         "task_train_examples": 4,
@@ -102,15 +98,14 @@ def test_candidate_training_mix_includes_mixed_replay_when_post_task_rehearsal_d
         "proposal_trace_replay_examples": 2,
         "candidate_proposal_trace_examples": 1,
         "mixed_candidate_proposal_trace_examples": 1,
-        "post_task_proposal_rehearsal_examples": 0,
         "total_train_examples": 7,
     }
 
 
-def test_candidate_training_mix_separates_post_task_rehearsal_examples():
+def test_candidate_training_mix_adds_outcome_and_selected_trace_examples():
     item = _item(["p0"])
     mix = build_candidate_training_mix(
-        args=_args(post_task_proposal_rehearsal=True, outcome_trace_target_mode="numeric"),
+        args=_args(outcome_trace_target_mode="numeric"),
         source_examples=["s0"],
         item=item,
         proposal_trace_buffer=[_proposal_trace("selected")],
@@ -122,16 +117,15 @@ def test_candidate_training_mix_separates_post_task_rehearsal_examples():
 
     assert mix.task_train_examples == ["s0", "p0"]
     assert len(mix.outcome_replay_examples) == 1
-    assert mix.mixed_proposal_replay_examples == []
-    assert mix.mixed_candidate_trace_examples == []
+    assert len(mix.mixed_proposal_replay_examples) == 1
+    assert len(mix.mixed_candidate_trace_examples) == 1
     assert len(mix.candidate_trace_examples) == 1
-    assert len(mix.post_task_rehearsal_examples) == 4
-    assert len(mix.train_examples) == 3
+    assert len(mix.train_examples) == 5
 
 
 def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
     item = _item(["p0"])
-    args = _args(post_task_proposal_rehearsal=True, outcome_trace_target_mode="numeric")
+    args = _args(outcome_trace_target_mode="numeric")
     proposal_trace_buffer = [_proposal_trace("selected")]
     outcome_trace_buffer = [_outcome_trace("a"), _outcome_trace("b")]
     mix = build_candidate_training_mix(
@@ -162,8 +156,7 @@ def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
     ]
     assert (tmp_path / "outcome_trace_replay_examples.jsonl").exists()
     assert (tmp_path / "candidate_proposal_trace_example.jsonl").exists()
-    assert (tmp_path / "post_task_proposal_rehearsal_examples.jsonl").exists()
-    assert not (tmp_path / "proposal_trace_replay_examples.jsonl").exists()
+    assert (tmp_path / "proposal_trace_replay_examples.jsonl").exists()
 
     summary = json.loads((tmp_path / "train_mix_summary.json").read_text(encoding="utf-8"))
     assert summary["task_train_examples"] == 2
@@ -171,5 +164,4 @@ def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
     assert summary["pseudo_examples"] == 1
     assert summary["outcome_trace_buffer_size"] == 2
     assert summary["proposal_trace_buffer_size"] == 1
-    assert summary["post_task_proposal_rehearsal"] is True
     assert summary["total_train_examples"] == len(mix.train_examples)

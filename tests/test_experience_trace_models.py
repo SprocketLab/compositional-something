@@ -8,7 +8,6 @@ from self.adaptive import traces
 from self.adaptive.traces import (
     OutcomeTraceExample,
     ProposalTraceExample,
-    build_post_task_proposal_rehearsal_examples,
     outcome_trace_from_json,
     proposal_trace_from_json,
     sample_outcome_trace_replay,
@@ -63,9 +62,6 @@ def test_trace_replay_sampling_respects_ratio_caps_and_modes():
     args = SimpleNamespace(
         proposal_trace_replay_ratio=0.5,
         proposal_trace_replay_max_examples=3,
-        post_task_proposal_rehearsal=True,
-        post_task_proposal_rehearsal_repeat_count=3,
-        post_task_proposal_rehearsal_max_examples=5,
         outcome_trace_target_mode="numeric",
         outcome_trace_replay_ratio=0.4,
         outcome_trace_replay_max_examples=2,
@@ -83,19 +79,11 @@ def test_trace_replay_sampling_respects_ratio_caps_and_modes():
         task_train_count=5,
         rng=random.Random(1),
     )
-    rehearsal = build_post_task_proposal_rehearsal_examples(
-        args=args,
-        proposal_trace_buffer=proposals[:1],
-        candidate_trace_examples=proposals[1:],
-        rng=random.Random(2),
-    )
 
     assert len(proposal_replay) == 3
     assert all(trace in proposals for trace in proposal_replay)
     assert len(outcome_replay) == 2
     assert all(trace in outcomes for trace in outcome_replay)
-    assert len(rehearsal) == 5
-    assert all(trace in proposals for trace in rehearsal)
 
     args.outcome_trace_target_mode = "none"
     assert sample_outcome_trace_replay(

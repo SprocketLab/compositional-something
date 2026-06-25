@@ -15,16 +15,14 @@ from self.adaptive.proposal import (
     PROPOSAL_GRPO_SPAN_MODES,
     PROPOSAL_GRPO_REWARD_MODES,
     PROPOSAL_GRPO_ZERO_VARIANCE_MODES,
-    PROPOSAL_UPDATE_LOSS_MODES,
 )
 from self.tasks.bit import RUN_LENGTH_TARGET_RUN_STATE
 
 
 TASK_CHOICES = ("addition", "run_length")
-CONDITION_CHOICES = ("config", "program", "policy", "meta")
+CONDITION_CHOICES = ("config",)
 OUTCOME_TRACE_TARGET_MODES = ("none", "numeric", "textual", "numeric_textual")
-CANDIDATE_EXECUTION_MODES = ("local_parallel", "slurm_array", "serial")
-CANDIDATE_EVAL_BACKENDS = ("transformers", "vllm")
+CANDIDATE_EXECUTION_MODES = ("local_parallel", "serial")
 CONTROLLER_EXECUTION_MODES = ("local", "slurm")
 
 
@@ -65,15 +63,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/runs/adaptive_candidate_training"))
     parser.add_argument("--proposal-fixture-jsonl", type=Path, default=None)
-    parser.add_argument(
-        "--num-rounds",
-        type=int,
-        default=None,
-        help=(
-            "Deprecated adaptive alias for --max-selected-rounds. If set without "
-            "--max-attempt-rounds, attempts default to 10 * num_rounds for old-run compatibility."
-        ),
-    )
     parser.add_argument(
         "--max-selected-rounds",
         type=int,
@@ -192,8 +181,8 @@ def build_parser() -> argparse.ArgumentParser:
         choices=CANDIDATE_EXECUTION_MODES,
         default="local_parallel",
         help=(
-            "Train candidates as local subprocesses by default, or use slurm_array/serial "
-            "for compatibility."
+            "Train candidates as local subprocesses by default, or use serial execution "
+            "for debugging."
         ),
     )
     parser.add_argument(
@@ -220,97 +209,6 @@ def build_parser() -> argparse.ArgumentParser:
             "cached state. This avoids repeated checkpoint weight reads but increases CPU "
             "memory use. Candidate training semantics remain isolated."
         ),
-    )
-    parser.add_argument(
-        "--candidate-array-sbatch-script",
-        type=Path,
-        default=Path("launchers/self/run_adaptive_candidate_worker_ailab.sbatch"),
-        help="SBATCH script used when candidate_execution_mode=slurm_array.",
-    )
-    parser.add_argument(
-        "--candidate-array-max-parallel",
-        type=int,
-        default=4,
-        help="Maximum simultaneously running candidate workers in the SLURM array. Use 0 for no array throttle.",
-    )
-    parser.add_argument(
-        "--candidate-array-poll-seconds",
-        type=float,
-        default=30.0,
-        help="Polling interval while waiting for candidate-worker array metrics.",
-    )
-    parser.add_argument(
-        "--candidate-array-timeout-seconds",
-        type=float,
-        default=0.0,
-        help="Optional controller-side timeout for one candidate-worker array. 0 disables it.",
-    )
-    parser.add_argument(
-        "--candidate-array-time-limit",
-        default="08:00:00",
-        help="SBATCH --time limit for each candidate-worker array task.",
-    )
-    parser.add_argument(
-        "--candidate-eval-backend",
-        choices=CANDIDATE_EVAL_BACKENDS,
-        default="transformers",
-        help=(
-            "Backend for candidate held-out evaluation after candidate training. "
-            "transformers evaluates in-process with model.generate; vllm releases the "
-            "Trainer model and evaluates the saved checkpoint in a separate vLLM process."
-        ),
-    )
-    parser.add_argument(
-        "--vllm-python-bin",
-        default=None,
-        help=(
-            "Python executable for the vLLM evaluation subprocess. Defaults to the "
-            "current Python if unset; launchers may set VLLM_PYTHON_BIN."
-        ),
-    )
-    parser.add_argument(
-        "--vllm-gpu-memory-utilization",
-        type=float,
-        default=0.80,
-        help="vLLM gpu_memory_utilization used for candidate evaluation.",
-    )
-    parser.add_argument(
-        "--vllm-dtype",
-        default="auto",
-        help="vLLM dtype used for candidate evaluation, for example auto, bfloat16, or float16.",
-    )
-    parser.add_argument(
-        "--vllm-flashinfer-sampler",
-        choices=("auto", "on", "off"),
-        default="off",
-        help=(
-            "Control vLLM's FlashInfer sampler path. 'off' is the default for adaptive "
-            "candidate eval because our greedy short-output scoring otherwise pays JIT/cache overhead."
-        ),
-    )
-    parser.add_argument(
-        "--vllm-enforce-eager",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Pass enforce_eager=True to vLLM. Useful for small eval batches where CUDA graph setup dominates.",
-    )
-    parser.add_argument(
-        "--vllm-max-model-len",
-        type=int,
-        default=0,
-        help="Optional vLLM max_model_len override. 0 lets vLLM use the checkpoint default.",
-    )
-    parser.add_argument(
-        "--vllm-max-num-seqs",
-        type=int,
-        default=0,
-        help="Optional vLLM max_num_seqs override. 0 lets vLLM choose its default.",
-    )
-    parser.add_argument(
-        "--vllm-max-num-batched-tokens",
-        type=int,
-        default=0,
-        help="Optional vLLM max_num_batched_tokens override. 0 lets vLLM choose its default.",
     )
     parser.add_argument("--run-candidate-worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--candidate-worker-spec", type=Path, default=None, help=argparse.SUPPRESS)
@@ -347,9 +245,6 @@ def build_parser() -> argparse.ArgumentParser:
             "0 uses an automatic budget of max(8 * num_candidates, num_candidates + 16)."
         ),
     )
-    parser.add_argument("--repair-attempts", type=int, default=1)
-    parser.add_argument("--program-timeout-seconds", type=float, default=1.0)
-    parser.add_argument("--program-batch-timeout-seconds", type=float, default=30.0)
     parser.add_argument("--lambda-final", type=float, default=0.1)
     parser.add_argument("--selection-min-reward", type=float, default=0.0)
     parser.add_argument(
@@ -378,24 +273,6 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=256,
         help="Maximum replayed proposal-trace examples mixed into each candidate update.",
-    )
-    parser.add_argument(
-        "--post-task-proposal-rehearsal",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help="Run a bounded proposal-trace SFT phase after each candidate task SFT update.",
-    )
-    parser.add_argument(
-        "--post-task-proposal-rehearsal-repeat-count",
-        type=int,
-        default=64,
-        help="Nominal repeats per available proposal trace in the post-task proposal rehearsal phase.",
-    )
-    parser.add_argument(
-        "--post-task-proposal-rehearsal-max-examples",
-        type=int,
-        default=256,
-        help="Maximum proposal-trace examples in the post-task proposal rehearsal phase.",
     )
     parser.add_argument(
         "--outcome-trace-target-mode",
@@ -428,15 +305,6 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Immediate GRPO-style proposal-validity update steps after each config attempt. "
             "Defaults to 1 for condition=config and 0 otherwise."
-        ),
-    )
-    parser.add_argument(
-        "--proposal-update-loss-mode",
-        choices=PROPOSAL_UPDATE_LOSS_MODES,
-        default="merged_agent",
-        help=(
-            "Proposal update objective. legacy_grpo trains the old full-completion GRPO loss; "
-            "merged_agent adds action GRPO, environment-observation CE, and JSON-format CE."
         ),
     )
     parser.add_argument(
@@ -584,14 +452,12 @@ def build_parser() -> argparse.ArgumentParser:
 def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
     if args.task is None:
         raise ValueError("task must be set.")
-    if args.num_rounds is not None and args.num_rounds < 0:
-        raise ValueError("num_rounds must be non-negative.")
     if args.max_selected_rounds is None:
-        args.max_selected_rounds = args.num_rounds if args.num_rounds is not None else 0
+        args.max_selected_rounds = 0
     if args.max_selected_rounds < 0:
         raise ValueError("max_selected_rounds must be non-negative.")
     if args.max_attempt_rounds is None:
-        args.max_attempt_rounds = args.num_rounds * 10 if args.num_rounds is not None else 100
+        args.max_attempt_rounds = 100
     if args.max_attempt_rounds < 0:
         raise ValueError("max_attempt_rounds must be non-negative.")
     if args.no_selection_patience is None:
@@ -614,22 +480,6 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("candidate_local_parallelism must be positive.")
     if args.candidate_local_pack_size < 1:
         raise ValueError("candidate_local_pack_size must be positive.")
-    if args.candidate_array_max_parallel < 0:
-        raise ValueError("candidate_array_max_parallel must be non-negative.")
-    if args.candidate_array_poll_seconds <= 0.0:
-        raise ValueError("candidate_array_poll_seconds must be positive.")
-    if args.candidate_array_timeout_seconds < 0.0:
-        raise ValueError("candidate_array_timeout_seconds must be non-negative.")
-    if args.vllm_gpu_memory_utilization <= 0.0 or args.vllm_gpu_memory_utilization > 1.0:
-        raise ValueError("vllm_gpu_memory_utilization must be in (0, 1].")
-    if args.vllm_max_model_len < 0:
-        raise ValueError("vllm_max_model_len must be non-negative.")
-    if args.vllm_max_num_seqs < 0:
-        raise ValueError("vllm_max_num_seqs must be non-negative.")
-    if args.vllm_max_num_batched_tokens < 0:
-        raise ValueError("vllm_max_num_batched_tokens must be non-negative.")
-    if args.candidate_eval_backend == "vllm" and args.vllm_python_bin is not None:
-        args.vllm_python_bin = str(args.vllm_python_bin).strip() or None
     if args.run_candidate_worker and args.candidate_worker_spec is None:
         raise ValueError("candidate_worker_spec is required with run_candidate_worker.")
     if args.run_candidate_pack_worker and args.candidate_worker_pack_spec is None:
@@ -644,34 +494,20 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("candidate_train_per_size must be non-negative.")
     if args.bf16 and args.fp16:
         raise ValueError("Choose only one of --bf16 and --fp16.")
-    if args.repair_attempts < 0:
-        raise ValueError("repair_attempts must be non-negative.")
-    if args.program_timeout_seconds <= 0.0:
-        raise ValueError("program_timeout_seconds must be positive.")
-    if args.program_batch_timeout_seconds <= 0.0:
-        raise ValueError("program_batch_timeout_seconds must be positive.")
     if args.proposal_trace_replay_ratio < 0.0:
         raise ValueError("proposal_trace_replay_ratio must be non-negative.")
     if args.proposal_trace_replay_max_examples < 0:
         raise ValueError("proposal_trace_replay_max_examples must be non-negative.")
     if args.proposal_prompt_action_history_max_items < 0:
         raise ValueError("proposal_prompt_action_history_max_items must be non-negative.")
-    if args.post_task_proposal_rehearsal_repeat_count < 0:
-        raise ValueError("post_task_proposal_rehearsal_repeat_count must be non-negative.")
-    if args.post_task_proposal_rehearsal_max_examples < 0:
-        raise ValueError("post_task_proposal_rehearsal_max_examples must be non-negative.")
     if args.outcome_trace_replay_ratio < 0.0:
         raise ValueError("outcome_trace_replay_ratio must be non-negative.")
     if args.outcome_trace_replay_max_examples < 0:
         raise ValueError("outcome_trace_replay_max_examples must be non-negative.")
     if args.proposal_grpo_steps is None:
-        args.proposal_grpo_steps = 1 if args.condition == "config" else 0
-    if args.post_task_proposal_rehearsal is None:
-        args.post_task_proposal_rehearsal = args.proposal_update_loss_mode != "merged_agent"
+        args.proposal_grpo_steps = 1
     if args.proposal_grpo_steps < 0:
         raise ValueError("proposal_grpo_steps must be non-negative.")
-    if args.condition != "config" and args.proposal_grpo_steps > 0:
-        raise ValueError("proposal_grpo_steps is currently supported only for condition=config.")
     if args.proposal_grpo_learning_rate <= 0.0:
         raise ValueError("proposal_grpo_learning_rate must be positive.")
     if args.proposal_grpo_kl_coef < 0.0:

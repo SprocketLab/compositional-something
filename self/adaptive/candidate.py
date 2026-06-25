@@ -186,7 +186,7 @@ def candidate_action_key(proposal: Any) -> tuple[Any, ...]:
             right,
             guard,
             target,
-            str(getattr(proposal, "condition", "program")),
+            str(getattr(proposal, "condition", "config")),
             str(code),
         )
     return ("config", left, right, guard, target)
@@ -454,7 +454,6 @@ def build_trained_candidate_metrics(
     model_dir: Path,
     proposal_trace_replay_count: int,
     candidate_proposal_trace_count: int,
-    post_task_proposal_rehearsal_count: int,
     outcome_trace_replay_count: int,
 ) -> CandidateMetrics:
     target_accuracy = float(per_size_accuracy.get(item.proposal.target, 0.0))
@@ -494,7 +493,6 @@ def build_trained_candidate_metrics(
         model_dir=model_dir,
         proposal_trace_replay_count=proposal_trace_replay_count,
         candidate_proposal_trace_count=candidate_proposal_trace_count,
-        post_task_proposal_rehearsal_count=post_task_proposal_rehearsal_count,
         outcome_trace_replay_count=outcome_trace_replay_count,
         proposal_prediction=dict(item.proposal_prediction),
     )
@@ -513,7 +511,6 @@ from self.core import worker_io
 from self.core.evaluation import evaluate_accuracy_with_breakdown, resolve_max_new_tokens
 from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.model_io import instantiate_model_and_tokenizer
-from self.core.vllm_evaluation import evaluate_model_with_vllm_subprocess
 from self.core.training import (
     CausalLMDataCollator,
     TrainingConfig,
@@ -612,48 +609,10 @@ def evaluate_model(
     examples: Sequence[Any],
     batch_size: int,
     decode_max_new_tokens: int,
-    backend: str = "transformers",
-    model_dir: Path | None = None,
-    task_name: str | None = None,
-    output_dir: Path | None = None,
-    vllm_python_bin: str | None = None,
-    vllm_gpu_memory_utilization: float = 0.80,
-    vllm_dtype: str = "auto",
-    vllm_flashinfer_sampler: str = "off",
-    vllm_enforce_eager: bool = False,
-    vllm_max_model_len: int = 0,
-    vllm_max_num_seqs: int = 0,
-    vllm_max_num_batched_tokens: int = 0,
 ) -> Tuple[float, Dict[int, float]]:
     max_tokens = resolve_max_new_tokens(examples, decode_max_new_tokens)
-    if backend == "vllm":
-        if model_dir is None:
-            raise ValueError("model_dir is required for vLLM candidate evaluation.")
-        if task_name is None:
-            raise ValueError("task_name is required for vLLM candidate evaluation.")
-        if output_dir is None:
-            raise ValueError("output_dir is required for vLLM candidate evaluation.")
-        return evaluate_model_with_vllm_subprocess(
-            model_dir=model_dir,
-            task_name=task_name,
-            examples=examples,
-            task=task,
-            output_dir=output_dir,
-            batch_size=batch_size,
-            decode_max_new_tokens=max_tokens,
-            python_bin=vllm_python_bin,
-            gpu_memory_utilization=vllm_gpu_memory_utilization,
-            dtype=vllm_dtype,
-            flashinfer_sampler=vllm_flashinfer_sampler,
-            enforce_eager=vllm_enforce_eager,
-            max_model_len=vllm_max_model_len,
-            max_num_seqs=vllm_max_num_seqs,
-            max_num_batched_tokens=vllm_max_num_batched_tokens,
-        )
-    if backend != "transformers":
-        raise ValueError(f"Unsupported candidate eval backend: {backend}")
     if model is None or tokenizer is None:
-        raise ValueError("model and tokenizer are required for Transformers candidate evaluation.")
+        raise ValueError("model and tokenizer are required for candidate evaluation.")
     return evaluate_accuracy_with_breakdown(
         model=model,
         tokenizer=tokenizer,
@@ -670,47 +629,6 @@ def clear_cuda_cache() -> None:
         torch.cuda.empty_cache()
 
 
-def train_post_task_proposal_rehearsal(
-    *,
-    task_model_dir: Path,
-    candidate_dir: Path,
-    task: Any,
-    args: argparse.Namespace,
-    config: TrainingConfig,
-    seed: int,
-    proposal_trace_buffer: Sequence[Any],
-    candidate_trace_examples: Sequence[Any],
-    post_task_rehearsal_examples: Sequence[Any],
-    train_checkpoint_fn: Callable[..., Tuple[Any, Any, Path]] = train_checkpoint,
-    write_json_fn: Callable[[Path, Any], None] = worker_io.write_json,
-) -> Tuple[Any, Any, Path]:
-    model, tokenizer, model_dir = train_checkpoint_fn(
-        source_checkpoint=str(task_model_dir),
-        train_examples=post_task_rehearsal_examples,
-        output_dir=candidate_dir / "proposal_rehearsal",
-        task=task,
-        args=args,
-        config=config,
-        seed=seed + 37,
-        recipe_phase_name="proposal_rehearsal",
-    )
-    write_json_fn(
-        candidate_dir / "proposal_rehearsal_summary.json",
-        {
-            "source_checkpoint": str(task_model_dir),
-            "model_dir": str(model_dir),
-            "examples": len(post_task_rehearsal_examples),
-            "base_candidate_trace_examples": len(candidate_trace_examples),
-            "base_selected_trace_buffer_size": len(proposal_trace_buffer),
-            "repeat_count": args.post_task_proposal_rehearsal_repeat_count,
-            "max_examples": args.post_task_proposal_rehearsal_max_examples,
-        },
-    )
-    if not args.keep_all_candidate_models and task_model_dir.exists():
-        shutil.rmtree(task_model_dir, ignore_errors=True)
-    return model, tokenizer, model_dir
-
-
 # --- from candidate_training_mix.py ---
 import argparse
 import random
@@ -723,7 +641,6 @@ from self.core.data_io import save_examples
 from self.adaptive.traces import (
     OutcomeTraceExample,
     ProposalTraceExample,
-    build_post_task_proposal_rehearsal_examples,
     sample_outcome_trace_replay,
     sample_proposal_trace_replay,
 )
@@ -740,7 +657,6 @@ class CandidateTrainingMix:
     candidate_trace_examples: List[ProposalTraceExample]
     mixed_proposal_replay_examples: List[ProposalTraceExample]
     mixed_candidate_trace_examples: List[ProposalTraceExample]
-    post_task_rehearsal_examples: List[ProposalTraceExample]
     train_examples: List[Any]
 
     @property
@@ -751,7 +667,6 @@ class CandidateTrainingMix:
             "proposal_trace_replay_examples": len(self.mixed_proposal_replay_examples),
             "candidate_proposal_trace_examples": len(self.candidate_trace_examples),
             "mixed_candidate_proposal_trace_examples": len(self.mixed_candidate_trace_examples),
-            "post_task_proposal_rehearsal_examples": len(self.post_task_rehearsal_examples),
             "total_train_examples": len(self.train_examples),
         }
 
@@ -776,7 +691,7 @@ def build_candidate_training_mix(
         rng=random_cls(seed + 6151),
     )
     candidate_trace_examples: List[ProposalTraceExample] = []
-    if item.completion and (args.post_task_proposal_rehearsal or args.proposal_trace_replay_ratio > 0.0):
+    if item.completion and args.proposal_trace_replay_ratio > 0.0:
         candidate_trace_examples.append(
             build_candidate_proposal_trace_example(
                 task_name=args.task,
@@ -787,20 +702,13 @@ def build_candidate_training_mix(
             )
         )
     mixed_proposal_replay_examples: List[ProposalTraceExample] = []
-    if not args.post_task_proposal_rehearsal:
-        mixed_proposal_replay_examples = sample_proposal_trace_replay(
-            args=args,
-            trace_buffer=proposal_trace_buffer,
-            task_train_count=len(task_train_examples),
-            rng=random_cls(seed + 7919),
-        )
-    mixed_candidate_trace_examples = [] if args.post_task_proposal_rehearsal else list(candidate_trace_examples)
-    post_task_rehearsal_examples = build_post_task_proposal_rehearsal_examples(
+    mixed_proposal_replay_examples = sample_proposal_trace_replay(
         args=args,
-        proposal_trace_buffer=proposal_trace_buffer,
-        candidate_trace_examples=candidate_trace_examples,
-        rng=random_cls(seed + 8863),
+        trace_buffer=proposal_trace_buffer,
+        task_train_count=len(task_train_examples),
+        rng=random_cls(seed + 7919),
     )
+    mixed_candidate_trace_examples = list(candidate_trace_examples)
     train_examples = (
         task_train_examples
         + list(outcome_replay_examples)
@@ -813,7 +721,6 @@ def build_candidate_training_mix(
         candidate_trace_examples=candidate_trace_examples,
         mixed_proposal_replay_examples=mixed_proposal_replay_examples,
         mixed_candidate_trace_examples=mixed_candidate_trace_examples,
-        post_task_rehearsal_examples=list(post_task_rehearsal_examples),
         train_examples=train_examples,
     )
 
@@ -848,11 +755,6 @@ def write_candidate_training_mix_artifacts(
             candidate_dir / "candidate_proposal_trace_example.jsonl",
             [example.to_json_dict() for example in mix.candidate_trace_examples],
         )
-    if mix.post_task_rehearsal_examples:
-        write_trace_jsonl_fn(
-            candidate_dir / "post_task_proposal_rehearsal_examples.jsonl",
-            [example.to_json_dict() for example in mix.post_task_rehearsal_examples],
-        )
     write_json_fn(
         candidate_dir / "train_mix_summary.json",
         {
@@ -866,9 +768,6 @@ def write_candidate_training_mix_artifacts(
             "proposal_trace_buffer_size": len(proposal_trace_buffer),
             "proposal_trace_replay_ratio": args.proposal_trace_replay_ratio,
             "proposal_trace_replay_max_examples": args.proposal_trace_replay_max_examples,
-            "post_task_proposal_rehearsal": bool(args.post_task_proposal_rehearsal),
-            "post_task_proposal_rehearsal_repeat_count": args.post_task_proposal_rehearsal_repeat_count,
-            "post_task_proposal_rehearsal_max_examples": args.post_task_proposal_rehearsal_max_examples,
         },
     )
 
@@ -950,28 +849,6 @@ def train_and_score_candidate(
         model_bootstrap_cache=model_bootstrap_cache,
     )
     model_dir = task_model_dir
-    if training_mix.post_task_rehearsal_examples:
-        del model
-        del tokenizer
-        clear_cuda_cache()
-        model, tokenizer, model_dir = train_post_task_proposal_rehearsal(
-            task_model_dir=task_model_dir,
-            candidate_dir=candidate_dir,
-            task=task,
-            args=args,
-            config=config,
-            seed=seed,
-            proposal_trace_buffer=proposal_trace_buffer,
-            candidate_trace_examples=training_mix.candidate_trace_examples,
-            post_task_rehearsal_examples=training_mix.post_task_rehearsal_examples,
-        )
-    eval_backend = str(getattr(args, "candidate_eval_backend", "transformers"))
-    if eval_backend == "vllm":
-        del model
-        del tokenizer
-        model = None
-        tokenizer = None
-        clear_cuda_cache()
     eval_start = time.monotonic()
     final_accuracy, per_size_accuracy = evaluate_model(
         model=model,
@@ -980,37 +857,17 @@ def train_and_score_candidate(
         examples=eval_examples,
         batch_size=config.per_device_eval_batch_size,
         decode_max_new_tokens=config.decode_max_new_tokens,
-        backend=eval_backend,
-        model_dir=model_dir,
-        task_name=args.task,
-        output_dir=candidate_dir,
-        vllm_python_bin=getattr(args, "vllm_python_bin", None),
-        vllm_gpu_memory_utilization=float(getattr(args, "vllm_gpu_memory_utilization", 0.80)),
-        vllm_dtype=str(getattr(args, "vllm_dtype", "auto")),
-        vllm_flashinfer_sampler=str(getattr(args, "vllm_flashinfer_sampler", "off")),
-        vllm_enforce_eager=bool(getattr(args, "vllm_enforce_eager", False)),
-        vllm_max_model_len=int(getattr(args, "vllm_max_model_len", 0)),
-        vllm_max_num_seqs=int(getattr(args, "vllm_max_num_seqs", 0)),
-        vllm_max_num_batched_tokens=int(getattr(args, "vllm_max_num_batched_tokens", 0)),
     )
     worker_io.write_json(
         candidate_dir / "candidate_eval_summary.json",
         {
-            "backend": eval_backend,
+            "backend": "transformers",
             "examples": len(eval_examples),
             "batch_size": config.per_device_eval_batch_size,
             "decode_max_new_tokens": config.decode_max_new_tokens,
             "resolved_max_new_tokens": resolve_max_new_tokens(eval_examples, config.decode_max_new_tokens),
             "runtime_seconds": time.monotonic() - eval_start,
             "model_dir": str(model_dir),
-            "vllm_python_bin": getattr(args, "vllm_python_bin", None),
-            "vllm_gpu_memory_utilization": getattr(args, "vllm_gpu_memory_utilization", None),
-            "vllm_dtype": getattr(args, "vllm_dtype", None),
-            "vllm_flashinfer_sampler": getattr(args, "vllm_flashinfer_sampler", None),
-            "vllm_enforce_eager": getattr(args, "vllm_enforce_eager", None),
-            "vllm_max_model_len": getattr(args, "vllm_max_model_len", None),
-            "vllm_max_num_seqs": getattr(args, "vllm_max_num_seqs", None),
-            "vllm_max_num_batched_tokens": getattr(args, "vllm_max_num_batched_tokens", None),
         },
     )
     metrics = build_trained_candidate_metrics(
@@ -1024,7 +881,6 @@ def train_and_score_candidate(
         model_dir=model_dir,
         proposal_trace_replay_count=len(training_mix.mixed_proposal_replay_examples),
         candidate_proposal_trace_count=len(training_mix.candidate_trace_examples),
-        post_task_proposal_rehearsal_count=len(training_mix.post_task_rehearsal_examples),
         outcome_trace_replay_count=len(training_mix.outcome_replay_examples),
     )
     worker_io.write_json(candidate_dir / "candidate_metrics.json", metrics.to_json_dict())
@@ -1682,9 +1538,10 @@ def train_candidates_local_parallel_from_specs(
                 f"[INFO] Local candidate workers: {done_count}/{len(work_items)} finished.",
                 flush=True,
             )
-            if args.candidate_array_timeout_seconds > 0.0:
+            timeout_seconds = float(getattr(args, "candidate_worker_timeout_seconds", 0.0))
+            if timeout_seconds > 0.0:
                 elapsed = monotonic_fn() - start
-                if elapsed >= args.candidate_array_timeout_seconds:
+                if elapsed >= timeout_seconds:
                     for unit, process, stdout_handle, stderr_handle in active:
                         process.terminate()
                         try:
@@ -1702,14 +1559,14 @@ def train_candidates_local_parallel_from_specs(
                                 returncode=process.returncode,
                                 reason=(
                                     f"candidate local worker {unit['label']} timed out after "
-                                    f"{args.candidate_array_timeout_seconds} seconds"
+                                    f"{timeout_seconds} seconds"
                                 ),
                             )
                     write_json(
                         job_dir / "local_timeout.json",
                         {
                             "elapsed_seconds": elapsed,
-                            "timeout_seconds": args.candidate_array_timeout_seconds,
+                            "timeout_seconds": timeout_seconds,
                             "max_parallel": max_parallel,
                             "pack_size": pack_size,
                         },
@@ -1718,7 +1575,7 @@ def train_candidates_local_parallel_from_specs(
                     pending = []
                     break
             if pending or active:
-                sleep_fn(float(args.candidate_array_poll_seconds))
+                sleep_fn(float(getattr(args, "candidate_worker_poll_seconds", 5.0)))
     finally:
         for unit, process, stdout_handle, stderr_handle in active:
             if process.poll() is None:
@@ -1797,17 +1654,11 @@ def write_json(path: Path, payload: Any) -> None:
 
 
 # --- from candidate_slurm_workers.py ---
-import sys
-import time
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Optional, Sequence
 
 from self.core import worker_io
 from self.core.data_io import ensure_dir
-from self.core.slurm import cancel_job, slurm_job_active, submit_sbatch
-
-
-CollectMetricsFn = Callable[..., List[Any]]
 
 
 def candidate_metric_path(round_dir: Path, item: Any) -> Path:
@@ -1816,122 +1667,6 @@ def candidate_metric_path(round_dir: Path, item: Any) -> Path:
 
 def candidate_worker_failure_path(round_dir: Path, item: Any) -> Path:
     return worker_io.candidate_worker_failure_path(round_dir, item.index)
-
-
-def train_candidates_slurm_array_from_specs(
-    *,
-    args: Any,
-    round_dir: Path,
-    work_items: Sequence[Any],
-    spec_paths: Sequence[Path],
-    current_final_accuracy: float,
-    current_per_size_accuracy: Mapping[int, float],
-    init_final_accuracy: float,
-    collect_metrics_fn: CollectMetricsFn,
-    submit_candidate_array_fn: Optional[Callable[..., str]] = None,
-    wait_for_candidate_array_fn: Optional[Callable[..., None]] = None,
-) -> List[Any]:
-    submit_candidate_array_fn = submit_candidate_array_fn or _submit_candidate_array_impl
-    wait_for_candidate_array_fn = wait_for_candidate_array_fn or _wait_for_candidate_array_impl
-    job_id = submit_candidate_array_fn(args=args, round_dir=round_dir, spec_paths=spec_paths)
-    print(
-        f"[INFO] Submitted candidate worker array {job_id} with {len(spec_paths)} tasks "
-        f"(max_parallel={args.candidate_array_max_parallel or 'unlimited'}).",
-        flush=True,
-    )
-    wait_for_candidate_array_fn(args=args, round_dir=round_dir, work_items=work_items, job_id=job_id)
-    return collect_metrics_fn(
-        round_dir=round_dir,
-        work_items=work_items,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-    )
-
-
-def _submit_candidate_array_impl(
-    *,
-    args: Any,
-    round_dir: Path,
-    spec_paths: Sequence[Path],
-    submit_sbatch_fn: Callable[..., Any] = submit_sbatch,
-    executable: str | None = None,
-    cwd_fn: Callable[[], Path] = Path.cwd,
-) -> str:
-    script = args.candidate_array_sbatch_script
-    job_dir = round_dir / "candidate_jobs"
-    logs_dir = job_dir / "logs"
-    ensure_dir(logs_dir)
-    throttle = f"%{args.candidate_array_max_parallel}" if args.candidate_array_max_parallel > 0 else ""
-    array_spec = f"0-{len(spec_paths) - 1}{throttle}"
-    submission = submit_sbatch_fn(
-        script=script,
-        job_name=f"adaptive-cand-{round_dir.name}",
-        output_path=logs_dir / "candidate-%A_%a.out",
-        error_path=logs_dir / "candidate-%A_%a.err",
-        time_limit=str(args.candidate_array_time_limit),
-        exports={
-            "CANDIDATE_SPEC_DIR": round_dir / "candidate_jobs" / "specs",
-            "PYTHON_BIN": executable or sys.executable,
-            "ROOT_DIR": cwd_fn(),
-        },
-        array_spec=array_spec,
-    )
-    write_json(
-        job_dir / "slurm_dispatch.json",
-        {
-            "job_id": submission.job_id,
-            "array_spec": array_spec,
-            "command": list(submission.command),
-            "stdout": submission.stdout,
-            "stderr": submission.stderr,
-        },
-    )
-    return submission.job_id
-
-
-def _wait_for_candidate_array_impl(
-    *,
-    args: Any,
-    round_dir: Path,
-    work_items: Sequence[Any],
-    job_id: str,
-    cancel_job_fn: Callable[[str], None] = cancel_job,
-    slurm_job_active_fn: Callable[[str], bool] = slurm_job_active,
-    monotonic_fn: Callable[[], float] = time.monotonic,
-    sleep_fn: Callable[[float], None] = time.sleep,
-) -> None:
-    start = monotonic_fn()
-    last_reported_done = -1
-    while True:
-        done_count = 0
-        for item in work_items:
-            if candidate_metric_path(round_dir, item).exists() or candidate_worker_failure_path(round_dir, item).exists():
-                done_count += 1
-        if done_count == len(work_items):
-            return
-        if done_count != last_reported_done:
-            print(
-                f"[INFO] Candidate worker array {job_id}: {done_count}/{len(work_items)} workers finished.",
-                flush=True,
-            )
-            last_reported_done = done_count
-        if args.candidate_array_timeout_seconds > 0.0:
-            elapsed = monotonic_fn() - start
-            if elapsed >= args.candidate_array_timeout_seconds:
-                cancel_job_fn(job_id)
-                write_json(
-                    round_dir / "candidate_jobs" / "slurm_timeout.json",
-                    {
-                        "job_id": job_id,
-                        "elapsed_seconds": elapsed,
-                        "timeout_seconds": args.candidate_array_timeout_seconds,
-                    },
-                )
-                return
-        if not slurm_job_active_fn(job_id):
-            return
-        sleep_fn(float(args.candidate_array_poll_seconds))
 
 
 # --- from workers.py ---
@@ -2082,67 +1817,13 @@ def prepare_candidate_worker_pack_specs(
 import argparse
 import subprocess
 import sys
-import time
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Sequence
 
 from self.adaptive.proposal import PromptBundle
-from self.core.slurm import cancel_job, slurm_job_active, submit_sbatch
 
 
 CollectMetricsFn = Callable[..., List[Any]]
-
-
-def train_candidates_slurm_array(
-    *,
-    args: argparse.Namespace,
-    task: Any,
-    current_checkpoint: str,
-    source_examples: Sequence[Any],
-    proposal_trace_buffer: Sequence[Any],
-    outcome_trace_buffer: Sequence[Any],
-    proposal_prompt: PromptBundle,
-    round_index: int,
-    work_items: Sequence[Any],
-    round_dir: Path,
-    eval_examples: Sequence[Any],
-    current_final_accuracy: float,
-    current_per_size_accuracy: Mapping[int, float],
-    init_final_accuracy: float,
-    attempt_index: int,
-    collect_metrics_fn: CollectMetricsFn,
-) -> List[Any]:
-    if not work_items:
-        return []
-    spec_paths = prepare_candidate_worker_specs(
-        args=args,
-        task=task,
-        current_checkpoint=current_checkpoint,
-        source_examples=source_examples,
-        proposal_trace_buffer=proposal_trace_buffer,
-        outcome_trace_buffer=outcome_trace_buffer,
-        proposal_prompt=proposal_prompt,
-        round_index=round_index,
-        work_items=work_items,
-        round_dir=round_dir,
-        eval_examples=eval_examples,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-        attempt_index=attempt_index,
-    )
-    return train_candidates_slurm_array_from_specs(
-        args=args,
-        round_dir=round_dir,
-        work_items=work_items,
-        spec_paths=spec_paths,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-        collect_metrics_fn=collect_metrics_fn,
-        submit_candidate_array_fn=submit_candidate_array,
-        wait_for_candidate_array_fn=wait_for_candidate_array,
-    )
 
 
 def train_candidates_local_parallel(
@@ -2193,50 +1874,9 @@ def train_candidates_local_parallel(
         init_final_accuracy=init_final_accuracy,
         collect_metrics_fn=collect_metrics_fn,
         prepare_pack_specs_fn=prepare_candidate_worker_pack_specs,
-        subprocess_module=subprocess,
     )
 
 
-def submit_candidate_array(
-    *,
-    args: argparse.Namespace,
-    round_dir: Path,
-    spec_paths: Sequence[Path],
-) -> str:
-    return _submit_candidate_array_impl(
-        args=args,
-        round_dir=round_dir,
-        spec_paths=spec_paths,
-        submit_sbatch_fn=submit_sbatch,
-        executable=sys.executable,
-        cwd_fn=Path.cwd,
-    )
-
-
-def wait_for_candidate_array(
-    *,
-    args: argparse.Namespace,
-    round_dir: Path,
-    work_items: Sequence[Any],
-    job_id: str,
-    cancel_job_fn: Callable[[str], None] | None = None,
-    slurm_job_active_fn: Callable[[str], bool] | None = None,
-    monotonic_fn: Callable[[], float] | None = None,
-    sleep_fn: Callable[[float], None] | None = None,
-) -> None:
-    return _wait_for_candidate_array_impl(
-        args=args,
-        round_dir=round_dir,
-        work_items=work_items,
-        job_id=job_id,
-        cancel_job_fn=cancel_job_fn or cancel_job,
-        slurm_job_active_fn=slurm_job_active_fn or slurm_job_active,
-        monotonic_fn=monotonic_fn or time.monotonic,
-        sleep_fn=sleep_fn or time.sleep,
-    )
-
-
-_worker_train_candidates_slurm_array = train_candidates_slurm_array
 _worker_train_candidates_local_parallel = train_candidates_local_parallel
 
 
@@ -2294,7 +1934,7 @@ def _candidate_failure_metrics_impl(
     )
 
 
-def _collect_candidate_array_metrics_impl(
+def _collect_candidate_worker_metrics_impl(
     *,
     round_dir: Path,
     work_items: Sequence[CandidateWorkItem],
@@ -2435,45 +2075,6 @@ from self.core.models import CandidateMetrics, CandidateWorkItem
 from self.adaptive.proposal import PromptBundle
 
 
-def train_candidates_slurm_array(
-    *,
-    args: argparse.Namespace,
-    task: Any,
-    current_checkpoint: str,
-    source_examples: Sequence[Any],
-    proposal_trace_buffer: Sequence[ProposalTraceExample],
-    outcome_trace_buffer: Sequence[OutcomeTraceExample],
-    proposal_prompt: PromptBundle,
-    round_index: int,
-    work_items: Sequence[CandidateWorkItem],
-    round_dir: Path,
-    eval_examples: Sequence[Any],
-    current_final_accuracy: float,
-    current_per_size_accuracy: Mapping[int, float],
-    init_final_accuracy: float,
-    attempt_index: int,
-    collect_metrics_fn: Callable[..., list[CandidateMetrics]],
-) -> list[CandidateMetrics]:
-    return _worker_train_candidates_slurm_array(
-        args=args,
-        task=task,
-        current_checkpoint=current_checkpoint,
-        source_examples=source_examples,
-        proposal_trace_buffer=proposal_trace_buffer,
-        outcome_trace_buffer=outcome_trace_buffer,
-        proposal_prompt=proposal_prompt,
-        round_index=round_index,
-        work_items=work_items,
-        round_dir=round_dir,
-        eval_examples=eval_examples,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-        attempt_index=attempt_index,
-        collect_metrics_fn=collect_metrics_fn,
-    )
-
-
 def train_candidates_local_parallel(
     *,
     args: argparse.Namespace,
@@ -2546,7 +2147,7 @@ def candidate_failure_metrics(
     )
 
 
-def collect_candidate_array_metrics(
+def collect_candidate_worker_metrics(
     *,
     round_dir: Path,
     work_items: Sequence[CandidateWorkItem],
@@ -2555,7 +2156,7 @@ def collect_candidate_array_metrics(
     init_final_accuracy: float,
     failure_metrics_fn: Callable[..., CandidateMetrics] | None = None,
 ) -> list[CandidateMetrics]:
-    return _collect_candidate_array_metrics_impl(
+    return _collect_candidate_worker_metrics_impl(
         round_dir=round_dir,
         work_items=work_items,
         current_final_accuracy=current_final_accuracy,
@@ -2585,7 +2186,6 @@ def train_candidate_metrics(
     attempt_index: int,
     serial_fn: Callable[..., list[CandidateMetrics]],
     local_parallel_fn: Callable[..., list[CandidateMetrics]],
-    slurm_array_fn: Callable[..., list[CandidateMetrics]],
 ) -> list[CandidateMetrics]:
     if args.candidate_execution_mode == "serial":
         return serial_fn(
@@ -2624,24 +2224,6 @@ def train_candidate_metrics(
             init_final_accuracy=init_final_accuracy,
             attempt_index=attempt_index,
         )
-    if args.candidate_execution_mode == "slurm_array":
-        return slurm_array_fn(
-            args=args,
-            task=task,
-            current_checkpoint=current_checkpoint,
-            source_examples=source_examples,
-            proposal_trace_buffer=proposal_trace_buffer,
-            outcome_trace_buffer=outcome_trace_buffer,
-            proposal_prompt=proposal_prompt,
-            round_index=round_index,
-            work_items=work_items,
-            round_dir=round_dir,
-            eval_examples=eval_examples,
-            current_final_accuracy=current_final_accuracy,
-            current_per_size_accuracy=current_per_size_accuracy,
-            init_final_accuracy=init_final_accuracy,
-            attempt_index=attempt_index,
-        )
     raise ValueError(f"Unsupported candidate_execution_mode={args.candidate_execution_mode!r}.")
 
 
@@ -2661,10 +2243,9 @@ from self.core.training import TrainingConfig
 class CandidateDispatchEntrypointDeps:
     train_and_score_candidate: Callable[..., CandidateMetrics]
     candidate_failure_metrics: Callable[..., CandidateMetrics]
-    collect_candidate_array_metrics: Callable[..., List[CandidateMetrics]]
+    collect_candidate_worker_metrics: Callable[..., List[CandidateMetrics]]
     train_candidates_serial: Callable[..., List[CandidateMetrics]]
     train_candidates_local_parallel: Callable[..., List[CandidateMetrics]]
-    train_candidates_slurm_array: Callable[..., List[CandidateMetrics]]
     subprocess_module: Any
 
 
@@ -2672,10 +2253,9 @@ def build_candidate_dispatch_deps(bindings: Any) -> CandidateDispatchEntrypointD
     return CandidateDispatchEntrypointDeps(
         train_and_score_candidate=bindings.train_and_score_candidate,
         candidate_failure_metrics=bindings._candidate_failure_metrics,
-        collect_candidate_array_metrics=bindings._collect_candidate_array_metrics,
+        collect_candidate_worker_metrics=bindings._collect_candidate_worker_metrics,
         train_candidates_serial=bindings.train_candidates_serial,
         train_candidates_local_parallel=bindings.train_candidates_local_parallel,
-        train_candidates_slurm_array=bindings.train_candidates_slurm_array,
         subprocess_module=bindings.subprocess,
     )
 
@@ -2740,7 +2320,7 @@ def train_candidates_serial_with_deps(
     )
 
 
-def collect_candidate_array_metrics_with_deps(
+def collect_candidate_worker_metrics_with_deps(
     *,
     round_dir: Path,
     work_items: Sequence[CandidateWorkItem],
@@ -2749,52 +2329,13 @@ def collect_candidate_array_metrics_with_deps(
     init_final_accuracy: float,
     deps: CandidateDispatchEntrypointDeps,
 ) -> List[CandidateMetrics]:
-    return collect_candidate_array_metrics(
+    return collect_candidate_worker_metrics(
         round_dir=round_dir,
         work_items=work_items,
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
         failure_metrics_fn=deps.candidate_failure_metrics,
-    )
-
-
-def train_candidates_slurm_array_with_deps(
-    *,
-    args: argparse.Namespace,
-    task: Any,
-    current_checkpoint: str,
-    source_examples: Sequence[Any],
-    proposal_trace_buffer: Sequence[ProposalTraceExample],
-    outcome_trace_buffer: Sequence[OutcomeTraceExample],
-    proposal_prompt: PromptBundle,
-    round_index: int,
-    work_items: Sequence[CandidateWorkItem],
-    round_dir: Path,
-    eval_examples: Sequence[Any],
-    current_final_accuracy: float,
-    current_per_size_accuracy: Mapping[int, float],
-    init_final_accuracy: float,
-    attempt_index: int,
-    deps: CandidateDispatchEntrypointDeps,
-) -> List[CandidateMetrics]:
-    return train_candidates_slurm_array(
-        args=args,
-        task=task,
-        current_checkpoint=current_checkpoint,
-        source_examples=source_examples,
-        proposal_trace_buffer=proposal_trace_buffer,
-        outcome_trace_buffer=outcome_trace_buffer,
-        proposal_prompt=proposal_prompt,
-        round_index=round_index,
-        work_items=work_items,
-        round_dir=round_dir,
-        eval_examples=eval_examples,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
-        init_final_accuracy=init_final_accuracy,
-        attempt_index=attempt_index,
-        collect_metrics_fn=deps.collect_candidate_array_metrics,
     )
 
 
@@ -2833,7 +2374,7 @@ def train_candidates_local_parallel_with_deps(
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
         attempt_index=attempt_index,
-        collect_metrics_fn=deps.collect_candidate_array_metrics,
+        collect_metrics_fn=deps.collect_candidate_worker_metrics,
         subprocess_module=deps.subprocess_module,
     )
 
@@ -2877,5 +2418,4 @@ def train_candidate_metrics_with_deps(
         attempt_index=attempt_index,
         serial_fn=deps.train_candidates_serial,
         local_parallel_fn=deps.train_candidates_local_parallel,
-        slurm_array_fn=deps.train_candidates_slurm_array,
     )

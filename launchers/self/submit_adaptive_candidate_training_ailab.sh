@@ -38,16 +38,6 @@ ADAPTIVE_CONFIG_EXPORT="${ADAPTIVE_CONFIG_FILES:-${ADAPTIVE_CONFIG_FILE:-${ROOT_
 CANDIDATE_LOCAL_PARALLELISM="${CANDIDATE_LOCAL_PARALLELISM:-2}"
 CANDIDATE_LOCAL_PACK_SIZE="${CANDIDATE_LOCAL_PACK_SIZE:-2}"
 CANDIDATE_LOCAL_CACHE_BASE_STATE="${CANDIDATE_LOCAL_CACHE_BASE_STATE:-1}"
-CANDIDATE_EVAL_BACKEND="${CANDIDATE_EVAL_BACKEND:-transformers}"
-VLLM_PYTHON_BIN="${VLLM_PYTHON_BIN:-}"
-VLLM_GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.80}"
-VLLM_DTYPE="${VLLM_DTYPE:-auto}"
-VLLM_FLASHINFER_SAMPLER="${VLLM_FLASHINFER_SAMPLER:-off}"
-VLLM_ENFORCE_EAGER="${VLLM_ENFORCE_EAGER:-0}"
-VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-0}"
-VLLM_MAX_NUM_SEQS="${VLLM_MAX_NUM_SEQS:-0}"
-VLLM_MAX_NUM_BATCHED_TOKENS="${VLLM_MAX_NUM_BATCHED_TOKENS:-0}"
-PROPOSAL_UPDATE_LOSS_MODE="${PROPOSAL_UPDATE_LOSS_MODE:-merged_agent}"
 PROPOSAL_OBSERVATION_LOSS_WEIGHT="${PROPOSAL_OBSERVATION_LOSS_WEIGHT:-0.2}"
 PROPOSAL_FORMAT_LOSS_WEIGHT="${PROPOSAL_FORMAT_LOSS_WEIGHT:-0.02}"
 PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES="${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES:-256}"
@@ -60,14 +50,6 @@ PROPOSAL_GRPO_NOVELTY_BONUS_BETA="${PROPOSAL_GRPO_NOVELTY_BONUS_BETA:-0.05}"
 SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD="${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD:-0.80}"
 PROPOSAL_UPDATE_MICROBATCH_SIZE="${PROPOSAL_UPDATE_MICROBATCH_SIZE:-8}"
 PROPOSAL_SAMPLING_BATCH_SIZE="${PROPOSAL_SAMPLING_BATCH_SIZE:-8}"
-if [[ -z "${POST_TASK_PROPOSAL_REHEARSAL:-}" ]]; then
-  if [[ "${PROPOSAL_UPDATE_LOSS_MODE}" == "merged_agent" ]]; then
-    POST_TASK_PROPOSAL_REHEARSAL="0"
-  else
-    POST_TASK_PROPOSAL_REHEARSAL="1"
-  fi
-fi
-
 adaptive_resolve_python
 
 mkdir -p "${OUT_ROOT}" "${LOG_DIR}"
@@ -90,13 +72,11 @@ submit_cell() {
   reward_slug="${reward_mode//_/-}"
   local zero_slug
   zero_slug="${zero_variance//_/-}"
-  local backend_slug
-  backend_slug="${CANDIDATE_EVAL_BACKEND//_/-}"
   local lr_slug
   lr_slug="${proposal_lr//./p}"
   lr_slug="${lr_slug//-/m}"
   local sweep_slug="lr-${lr_slug}"
-  local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-eval-${backend_slug}"
+  local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}"
   local -a sbatch_resources
   sbatch_resources=(--mem "${SBATCH_MEM}")
   if [[ -n "${SBATCH_TIME}" ]]; then
@@ -136,16 +116,6 @@ submit_cell() {
       "CANDIDATE_LOCAL_PARALLELISM=${CANDIDATE_LOCAL_PARALLELISM}" \
       "CANDIDATE_LOCAL_PACK_SIZE=${CANDIDATE_LOCAL_PACK_SIZE}" \
       "CANDIDATE_LOCAL_CACHE_BASE_STATE=${CANDIDATE_LOCAL_CACHE_BASE_STATE}" \
-      "CANDIDATE_EVAL_BACKEND=${CANDIDATE_EVAL_BACKEND}" \
-      "VLLM_PYTHON_BIN=${VLLM_PYTHON_BIN}" \
-      "VLLM_GPU_MEMORY_UTILIZATION=${VLLM_GPU_MEMORY_UTILIZATION}" \
-      "VLLM_DTYPE=${VLLM_DTYPE}" \
-      "VLLM_FLASHINFER_SAMPLER=${VLLM_FLASHINFER_SAMPLER}" \
-      "VLLM_ENFORCE_EAGER=${VLLM_ENFORCE_EAGER}" \
-      "VLLM_MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN}" \
-      "VLLM_MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS}" \
-      "VLLM_MAX_NUM_BATCHED_TOKENS=${VLLM_MAX_NUM_BATCHED_TOKENS}" \
-      "PROPOSAL_UPDATE_LOSS_MODE=${PROPOSAL_UPDATE_LOSS_MODE}" \
       "PROPOSAL_OBSERVATION_LOSS_WEIGHT=${PROPOSAL_OBSERVATION_LOSS_WEIGHT}" \
       "PROPOSAL_FORMAT_LOSS_WEIGHT=${PROPOSAL_FORMAT_LOSS_WEIGHT}" \
       "PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES=${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES}" \
@@ -157,7 +127,6 @@ submit_cell() {
       "SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD=${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}" \
       "PROPOSAL_UPDATE_MICROBATCH_SIZE=${PROPOSAL_UPDATE_MICROBATCH_SIZE}" \
       "PROPOSAL_SAMPLING_BATCH_SIZE=${PROPOSAL_SAMPLING_BATCH_SIZE}" \
-      "POST_TASK_PROPOSAL_REHEARSAL=${POST_TASK_PROPOSAL_REHEARSAL}" \
       "ADAPTIVE_CONFIG_FILES=${ADAPTIVE_CONFIG_EXPORT}")" \
     "${sbatch_resources[@]}" \
     "${SBATCH_SCRIPT}"
@@ -184,12 +153,11 @@ for task in ${TASKS}; do
                   "${outcome_mode}"
                   "${reward_mode}"
                   "${zero_variance}"
-                  "${CANDIDATE_EVAL_BACKEND}"
                   "${num_candidates}"
                   "${proposal_lr}"
                   "${PROPOSAL_GRPO_KL_COEF}"
                   "${job_id}"
-                  "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-eval-${CANDIDATE_EVAL_BACKEND//_/-}"
+                  "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}"
                 )
             done
           done
@@ -208,7 +176,6 @@ MANIFEST="${OUT_ROOT}/submission_manifest.json"
   --outcome-trace-target-modes "${OUTCOME_TRACE_TARGET_MODES}" \
   --proposal-grpo-reward-modes "${PROPOSAL_GRPO_REWARD_MODES}" \
   --proposal-grpo-zero-variance-modes "${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}" \
-  --candidate-eval-backends "${CANDIDATE_EVAL_BACKEND}" \
   --num-candidates-list "${NUM_CANDIDATES_LIST}" \
   --proposal-grpo-learning-rates "${PROPOSAL_GRPO_LEARNING_RATES}" \
   --proposal-grpo-kl-coef "${PROPOSAL_GRPO_KL_COEF}" \

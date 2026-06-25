@@ -6,7 +6,7 @@ from pathlib import Path
 from self.core import worker_io
 from self.adaptive.candidate import (
     candidate_failure_metrics,
-    collect_candidate_array_metrics,
+    collect_candidate_worker_metrics,
 )
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.adaptive.proposal import ConfigProposal
@@ -76,7 +76,7 @@ def test_candidate_failure_metrics_preserves_candidate_context():
     assert metric.proposal_prediction == item.proposal_prediction
 
 
-def test_collect_candidate_array_metrics_loads_existing_metric(tmp_path: Path):
+def test_collect_candidate_worker_metrics_loads_existing_metric(tmp_path: Path):
     round_dir = tmp_path / "attempt_0001"
     item = _work_item(index=0)
     expected = _metric(item)
@@ -85,7 +85,7 @@ def test_collect_candidate_array_metrics_loads_existing_metric(tmp_path: Path):
         expected.to_json_dict(),
     )
 
-    metrics = collect_candidate_array_metrics(
+    metrics = collect_candidate_worker_metrics(
         round_dir=round_dir,
         work_items=[item],
         current_final_accuracy=0.5,
@@ -100,7 +100,7 @@ def test_collect_candidate_array_metrics_loads_existing_metric(tmp_path: Path):
     assert not (round_dir / "candidate_jobs" / "gather_failures.json").exists()
 
 
-def test_collect_candidate_array_metrics_writes_failure_metric_and_manifest(tmp_path: Path):
+def test_collect_candidate_worker_metrics_writes_failure_metric_and_manifest(tmp_path: Path):
     round_dir = tmp_path / "attempt_0001"
     item = _work_item(index=2)
     trained_model_dir = round_dir / "candidates" / "candidate_02" / "training" / "model"
@@ -110,7 +110,7 @@ def test_collect_candidate_array_metrics_writes_failure_metric_and_manifest(tmp_
         {"error": "CUDA out of memory"},
     )
 
-    metrics = collect_candidate_array_metrics(
+    metrics = collect_candidate_worker_metrics(
         round_dir=round_dir,
         work_items=[item],
         current_final_accuracy=0.5,
