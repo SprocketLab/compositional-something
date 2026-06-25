@@ -12,7 +12,11 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "${SLURM_SUBMIT_DIR}/launchers/self/lib/adaptive_common.sh" ]]; then
+  SCRIPT_DIR="${SLURM_SUBMIT_DIR}/launchers/self"
+else
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 source "${SCRIPT_DIR}/lib/adaptive_common.sh"
 adaptive_cd_repo_root
 
@@ -26,15 +30,23 @@ adaptive_source_config_files
 
 MODEL_NAME="${MODEL_NAME:-Qwen/Qwen3-1.7B}"
 PROPOSAL_MODEL_NAME="${PROPOSAL_MODEL_NAME:-current}"
+TREAT_SEED_AS_ROUND_ZERO="${TREAT_SEED_AS_ROUND_ZERO:-0}"
 CONDITION="${CONDITION:-config}"
-PROPOSAL_OUTPUT_SCHEMA="${PROPOSAL_OUTPUT_SCHEMA:-action_prediction}"
-NUM_ROUNDS="${NUM_ROUNDS:-100}"
-MAX_ATTEMPT_ROUNDS="${MAX_ATTEMPT_ROUNDS:-$((NUM_ROUNDS * 10))}"
+PROPOSAL_OUTPUT_SCHEMA="${PROPOSAL_OUTPUT_SCHEMA:-action_observation}"
+PROPOSAL_PROMPT_ACTION_HISTORY="${PROPOSAL_PROMPT_ACTION_HISTORY:-0}"
+PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS="${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS:-5}"
+MAX_ATTEMPT_ROUNDS="${MAX_ATTEMPT_ROUNDS:-100}"
+MAX_SELECTED_ROUNDS="${MAX_SELECTED_ROUNDS:-0}"
 NO_SELECTION_PATIENCE="${NO_SELECTION_PATIENCE:-${MAX_ATTEMPT_ROUNDS}}"
 NUM_CANDIDATES="${NUM_CANDIDATES:-8}"
-MAX_STEPS="${MAX_STEPS:-0}"
+PROPOSAL_TEMPERATURE="${PROPOSAL_TEMPERATURE:-0.9}"
+PROPOSAL_TOP_P="${PROPOSAL_TOP_P:-0.95}"
+FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
+PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
+MAX_STEPS="${MAX_STEPS:-100}"
+SEED_MAX_STEPS="${SEED_MAX_STEPS:-0}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-16}"
-EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-16}"
+EVAL_BATCH_SIZE="${EVAL_BATCH_SIZE:-128}"
 GRAD_ACCUM_STEPS="${GRAD_ACCUM_STEPS:-1}"
 LEARNING_RATE="${LEARNING_RATE:-5e-6}"
 CONTROLLER_EXECUTION_MODE="${CONTROLLER_EXECUTION_MODE:-local}"
@@ -57,7 +69,7 @@ fi
 CONTROLLER_ROUND_WORKER_TIME_LIMIT="${CONTROLLER_ROUND_WORKER_TIME_LIMIT:-01:00:00}"
 CONTROLLER_GRPO_WORKER_TIME_LIMIT="${CONTROLLER_GRPO_WORKER_TIME_LIMIT:-01:00:00}"
 CANDIDATE_EXECUTION_MODE="${CANDIDATE_EXECUTION_MODE:-local_parallel}"
-CANDIDATE_LOCAL_PARALLELISM="${CANDIDATE_LOCAL_PARALLELISM:-4}"
+CANDIDATE_LOCAL_PARALLELISM="${CANDIDATE_LOCAL_PARALLELISM:-2}"
 CANDIDATE_LOCAL_PACK_SIZE="${CANDIDATE_LOCAL_PACK_SIZE:-1}"
 CANDIDATE_LOCAL_CACHE_BASE_STATE="${CANDIDATE_LOCAL_CACHE_BASE_STATE:-0}"
 CANDIDATE_ARRAY_SBATCH_SCRIPT="${CANDIDATE_ARRAY_SBATCH_SCRIPT:-${ROOT_DIR}/launchers/self/run_adaptive_candidate_worker_ailab.sbatch}"
@@ -77,11 +89,35 @@ if [[ -z "${CANDIDATE_ARRAY_TIME_LIMIT:-}" ]]; then
       ;;
   esac
 fi
+CANDIDATE_EVAL_BACKEND="${CANDIDATE_EVAL_BACKEND:-transformers}"
+VLLM_PYTHON_BIN="${VLLM_PYTHON_BIN:-}"
+VLLM_GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.80}"
+VLLM_DTYPE="${VLLM_DTYPE:-auto}"
+VLLM_FLASHINFER_SAMPLER="${VLLM_FLASHINFER_SAMPLER:-off}"
+VLLM_ENFORCE_EAGER="${VLLM_ENFORCE_EAGER:-0}"
+VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-0}"
+VLLM_MAX_NUM_SEQS="${VLLM_MAX_NUM_SEQS:-0}"
+VLLM_MAX_NUM_BATCHED_TOKENS="${VLLM_MAX_NUM_BATCHED_TOKENS:-0}"
 LAMBDA_FINAL="${LAMBDA_FINAL:-0.1}"
 SELECTION_MIN_REWARD="${SELECTION_MIN_REWARD:-0.0}"
+SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD="${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD:-0.80}"
 PROPOSAL_TRACE_REPLAY_RATIO="${PROPOSAL_TRACE_REPLAY_RATIO:-0.0}"
 PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES="${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES:-256}"
-POST_TASK_PROPOSAL_REHEARSAL="${POST_TASK_PROPOSAL_REHEARSAL:-1}"
+PROPOSAL_UPDATE_LOSS_MODE="${PROPOSAL_UPDATE_LOSS_MODE:-merged_agent}"
+PROPOSAL_OBSERVATION_LOSS_WEIGHT="${PROPOSAL_OBSERVATION_LOSS_WEIGHT:-0.2}"
+PROPOSAL_FORMAT_LOSS_WEIGHT="${PROPOSAL_FORMAT_LOSS_WEIGHT:-0.02}"
+PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES="${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES:-256}"
+PROPOSAL_GRPO_DEDUPLICATE_ACTIONS="${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS:-1}"
+PROPOSAL_GRPO_SPAN="${PROPOSAL_GRPO_SPAN:-reasoning_action}"
+PROPOSAL_UPDATE_MICROBATCH_SIZE="${PROPOSAL_UPDATE_MICROBATCH_SIZE:-8}"
+PROPOSAL_SAMPLING_BATCH_SIZE="${PROPOSAL_SAMPLING_BATCH_SIZE:-8}"
+if [[ -z "${POST_TASK_PROPOSAL_REHEARSAL:-}" ]]; then
+  if [[ "${PROPOSAL_UPDATE_LOSS_MODE}" == "merged_agent" ]]; then
+    POST_TASK_PROPOSAL_REHEARSAL="0"
+  else
+    POST_TASK_PROPOSAL_REHEARSAL="1"
+  fi
+fi
 POST_TASK_PROPOSAL_REHEARSAL_REPEAT_COUNT="${POST_TASK_PROPOSAL_REHEARSAL_REPEAT_COUNT:-64}"
 POST_TASK_PROPOSAL_REHEARSAL_MAX_EXAMPLES="${POST_TASK_PROPOSAL_REHEARSAL_MAX_EXAMPLES:-256}"
 OUTCOME_TRACE_TARGET_MODE="${OUTCOME_TRACE_TARGET_MODE:-numeric}"
@@ -96,12 +132,17 @@ if [[ -z "${PROPOSAL_GRPO_STEPS:-}" ]]; then
   fi
 fi
 PROPOSAL_GRPO_LEARNING_RATE="${PROPOSAL_GRPO_LEARNING_RATE:-1e-6}"
+PROPOSAL_GRPO_OBJECTIVE="${PROPOSAL_GRPO_OBJECTIVE:-grpo}"
 PROPOSAL_GRPO_KL_COEF="${PROPOSAL_GRPO_KL_COEF:-0.01}"
+PROPOSAL_GRPO_ANCHOR_KL_COEF="${PROPOSAL_GRPO_ANCHOR_KL_COEF:-0.01}"
+PROPOSAL_GRPO_ANCHOR_KL_REFERENCE="${PROPOSAL_GRPO_ANCHOR_KL_REFERENCE:-adaptive_init}"
 PROPOSAL_GRPO_GRAD_CLIP="${PROPOSAL_GRPO_GRAD_CLIP:-1.0}"
-PROPOSAL_GRPO_ZERO_VARIANCE="${PROPOSAL_GRPO_ZERO_VARIANCE:-fixed_baseline}"
+PROPOSAL_GRPO_ZERO_VARIANCE="${PROPOSAL_GRPO_ZERO_VARIANCE:-skip}"
 PROPOSAL_GRPO_REWARD_MODE="${PROPOSAL_GRPO_REWARD_MODE:-outcome}"
 PROPOSAL_GRPO_OUTCOME_SCALE="${PROPOSAL_GRPO_OUTCOME_SCALE:-0.05}"
 PROPOSAL_GRPO_FIXED_BASELINE="${PROPOSAL_GRPO_FIXED_BASELINE:-0.5}"
+PROPOSAL_GRPO_NOVELTY_BONUS_BETA="${PROPOSAL_GRPO_NOVELTY_BONUS_BETA:-0.05}"
+KEEP_FINAL_MODEL_CHECKPOINT="${KEEP_FINAL_MODEL_CHECKPOINT:-0}"
 KEEP_ALL_PROPOSAL_GRPO_CHECKPOINTS="${KEEP_ALL_PROPOSAL_GRPO_CHECKPOINTS:-0}"
 INITIAL_EVAL_PER_SIZE="${INITIAL_EVAL_PER_SIZE:-50}"
 EVAL_PER_SIZE="${EVAL_PER_SIZE:-100}"
@@ -113,7 +154,7 @@ PROGRAM_TIMEOUT_SECONDS="${PROGRAM_TIMEOUT_SECONDS:-1.0}"
 PROGRAM_BATCH_TIMEOUT_SECONDS="${PROGRAM_BATCH_TIMEOUT_SECONDS:-30.0}"
 if [[ -z "${PROPOSAL_MAX_NEW_TOKENS:-}" ]]; then
   if [[ "${CONDITION}" == "config" ]]; then
-    PROPOSAL_MAX_NEW_TOKENS="256"
+    PROPOSAL_MAX_NEW_TOKENS="160"
   else
     PROPOSAL_MAX_NEW_TOKENS="512"
   fi
@@ -135,6 +176,22 @@ case "${CANDIDATE_EXECUTION_MODE}" in
     ;;
 esac
 
+case "${CANDIDATE_EVAL_BACKEND}" in
+  transformers|vllm) ;;
+  *)
+    echo "[ERROR] Unsupported CANDIDATE_EVAL_BACKEND=${CANDIDATE_EVAL_BACKEND}" >&2
+    exit 2
+    ;;
+esac
+
+case "${VLLM_FLASHINFER_SAMPLER}" in
+  auto|on|off) ;;
+  *)
+    echo "[ERROR] Unsupported VLLM_FLASHINFER_SAMPLER=${VLLM_FLASHINFER_SAMPLER}" >&2
+    exit 2
+    ;;
+esac
+
 case "${CONTROLLER_EXECUTION_MODE}" in
   local|slurm) ;;
   *)
@@ -152,9 +209,25 @@ case "${OUTCOME_TRACE_TARGET_MODE}" in
 esac
 
 case "${PROPOSAL_OUTPUT_SCHEMA}" in
-  plain|action_prediction) ;;
+  plain|action_observation) ;;
   *)
     echo "[ERROR] Unsupported PROPOSAL_OUTPUT_SCHEMA=${PROPOSAL_OUTPUT_SCHEMA}" >&2
+    exit 2
+    ;;
+esac
+
+case "${PROPOSAL_PROMPT_ACTION_HISTORY}" in
+  0|1) ;;
+  *)
+    echo "[ERROR] PROPOSAL_PROMPT_ACTION_HISTORY must be 0 or 1, got ${PROPOSAL_PROMPT_ACTION_HISTORY}" >&2
+    exit 2
+    ;;
+esac
+
+case "${FORCE_UNIQUE_PROPOSALS}" in
+  0|1) ;;
+  *)
+    echo "[ERROR] FORCE_UNIQUE_PROPOSALS must be 0 or 1, got ${FORCE_UNIQUE_PROPOSALS}" >&2
     exit 2
     ;;
 esac
@@ -168,9 +241,25 @@ case "${PROPOSAL_GRPO_ZERO_VARIANCE}" in
 esac
 
 case "${PROPOSAL_GRPO_REWARD_MODE}" in
-  outcome|validity) ;;
+  outcome|rank|validity) ;;
   *)
     echo "[ERROR] Unsupported PROPOSAL_GRPO_REWARD_MODE=${PROPOSAL_GRPO_REWARD_MODE}" >&2
+    exit 2
+    ;;
+esac
+
+case "${PROPOSAL_GRPO_OBJECTIVE}" in
+  grpo|dr_grpo) ;;
+  *)
+    echo "[ERROR] Unsupported PROPOSAL_GRPO_OBJECTIVE=${PROPOSAL_GRPO_OBJECTIVE}" >&2
+    exit 2
+    ;;
+esac
+
+case "${PROPOSAL_UPDATE_LOSS_MODE}" in
+  legacy_grpo|merged_agent) ;;
+  *)
+    echo "[ERROR] Unsupported PROPOSAL_UPDATE_LOSS_MODE=${PROPOSAL_UPDATE_LOSS_MODE}" >&2
     exit 2
     ;;
 esac
@@ -217,17 +306,41 @@ fi
 if [[ "${KEEP_ALL_CANDIDATE_MODELS:-0}" == "1" ]]; then
   OPTIONAL_ARGS+=(--keep-all-candidate-models)
 fi
+if [[ "${KEEP_FINAL_MODEL_CHECKPOINT}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--keep-final-model-checkpoint)
+fi
 if [[ "${KEEP_ALL_PROPOSAL_GRPO_CHECKPOINTS}" == "1" ]]; then
   OPTIONAL_ARGS+=(--keep-all-proposal-grpo-checkpoints)
 fi
 if [[ "${CANDIDATE_LOCAL_CACHE_BASE_STATE}" == "1" ]]; then
   OPTIONAL_ARGS+=(--candidate-local-cache-base-state)
 fi
+if [[ -n "${VLLM_PYTHON_BIN}" ]]; then
+  OPTIONAL_ARGS+=(--vllm-python-bin "${VLLM_PYTHON_BIN}")
+fi
+if [[ "${VLLM_ENFORCE_EAGER}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--vllm-enforce-eager)
+fi
 if [[ "${BUCKET_TRAIN_BATCHES_BY_SIZE:-0}" == "1" ]]; then
   OPTIONAL_ARGS+=(--bucket-train-batches-by-size)
 fi
 if [[ "${ALLOW_REPEAT_TARGETS:-0}" == "1" ]]; then
   OPTIONAL_ARGS+=(--allow-repeat-targets)
+fi
+if [[ "${FORCE_UNIQUE_PROPOSALS}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--force-unique-proposals)
+else
+  OPTIONAL_ARGS+=(--no-force-unique-proposals)
+fi
+if [[ "${PROPOSAL_PROMPT_ACTION_HISTORY}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--proposal-prompt-action-history)
+else
+  OPTIONAL_ARGS+=(--no-proposal-prompt-action-history)
+fi
+if [[ "${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--proposal-grpo-deduplicate-actions)
+else
+  OPTIONAL_ARGS+=(--no-proposal-grpo-deduplicate-actions)
 fi
 if [[ "${POST_TASK_PROPOSAL_REHEARSAL}" == "1" ]]; then
   OPTIONAL_ARGS+=(--post-task-proposal-rehearsal)
@@ -247,12 +360,16 @@ echo "[INFO] Adaptive candidate loop"
 echo "[INFO] Task: ${TASK}"
 echo "[INFO] Condition: ${CONDITION}"
 echo "[INFO] Proposal output schema: ${PROPOSAL_OUTPUT_SCHEMA}"
+echo "[INFO] Proposal prompt action history/max items: ${PROPOSAL_PROMPT_ACTION_HISTORY}/${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS}"
 echo "[INFO] Output dir: ${OUT_DIR}"
 echo "[INFO] Model: ${MODEL_NAME}"
 echo "[INFO] Proposal model: ${PROPOSAL_MODEL_NAME}"
-echo "[INFO] Rounds/candidates: ${NUM_ROUNDS}/${NUM_CANDIDATES}"
+echo "[INFO] Treat seed as round zero: ${TREAT_SEED_AS_ROUND_ZERO}"
+echo "[INFO] Proposal sampling temp/top_p/force-unique/max-draws/batch-size: ${PROPOSAL_TEMPERATURE}/${PROPOSAL_TOP_P}/${FORCE_UNIQUE_PROPOSALS}/${PROPOSAL_UNIQUE_MAX_DRAWS}/${PROPOSAL_SAMPLING_BATCH_SIZE}"
+echo "[INFO] Attempts/candidates: ${MAX_ATTEMPT_ROUNDS}/${NUM_CANDIDATES}"
+echo "[INFO] Max selected candidates: ${MAX_SELECTED_ROUNDS}"
 echo "[INFO] Max attempts / no-selection patience: ${MAX_ATTEMPT_ROUNDS}/${NO_SELECTION_PATIENCE}"
-echo "[INFO] Train epochs/max steps: ${NUM_EPOCHS:-1}/${MAX_STEPS} (MAX_STEPS=0 uses epoch-based training)"
+echo "[INFO] Train epochs/candidate max steps/seed max steps: ${NUM_EPOCHS:-1}/${MAX_STEPS}/${SEED_MAX_STEPS} (0 uses epoch-based training)"
 echo "[INFO] Learning rate: ${LEARNING_RATE}"
 echo "[INFO] Train/eval batch size: ${TRAIN_BATCH_SIZE}/${EVAL_BATCH_SIZE}"
 echo "[INFO] Gradient accumulation steps: ${GRAD_ACCUM_STEPS}"
@@ -262,14 +379,22 @@ echo "[INFO] Controller seed/round/GRPO time limits: ${CONTROLLER_SEED_WORKER_TI
 echo "[INFO] Candidate execution mode: ${CANDIDATE_EXECUTION_MODE}"
 echo "[INFO] Candidate local parallelism/pack/cache-base-state: ${CANDIDATE_LOCAL_PARALLELISM}/${CANDIDATE_LOCAL_PACK_SIZE}/${CANDIDATE_LOCAL_CACHE_BASE_STATE}"
 echo "[INFO] Candidate array max parallel/poll/time limit: ${CANDIDATE_ARRAY_MAX_PARALLEL}/${CANDIDATE_ARRAY_POLL_SECONDS}/${CANDIDATE_ARRAY_TIME_LIMIT}"
+echo "[INFO] Candidate eval backend: ${CANDIDATE_EVAL_BACKEND}"
+echo "[INFO] vLLM python/gpu-memory-utilization/dtype: ${VLLM_PYTHON_BIN:-<current-python>}/${VLLM_GPU_MEMORY_UTILIZATION}/${VLLM_DTYPE}"
+echo "[INFO] vLLM flashinfer/eager/max-model-len/max-seqs/max-batched-tokens: ${VLLM_FLASHINFER_SAMPLER}/${VLLM_ENFORCE_EAGER}/${VLLM_MAX_MODEL_LEN}/${VLLM_MAX_NUM_SEQS}/${VLLM_MAX_NUM_BATCHED_TOKENS}"
 echo "[INFO] Proposal trace replay ratio/max examples: ${PROPOSAL_TRACE_REPLAY_RATIO}/${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES}"
 echo "[INFO] Post-task proposal rehearsal/repeats/max examples: ${POST_TASK_PROPOSAL_REHEARSAL}/${POST_TASK_PROPOSAL_REHEARSAL_REPEAT_COUNT}/${POST_TASK_PROPOSAL_REHEARSAL_MAX_EXAMPLES}"
 echo "[INFO] Outcome trace mode: ${OUTCOME_TRACE_TARGET_MODE}"
 echo "[INFO] Outcome trace replay ratio/max examples: ${OUTCOME_TRACE_REPLAY_RATIO}/${OUTCOME_TRACE_REPLAY_MAX_EXAMPLES}"
 echo "[INFO] Invalid outcome reward: ${INVALID_OUTCOME_REWARD}"
-echo "[INFO] Proposal GRPO steps/lr/kl: ${PROPOSAL_GRPO_STEPS}/${PROPOSAL_GRPO_LEARNING_RATE}/${PROPOSAL_GRPO_KL_COEF}"
+echo "[INFO] Proposal GRPO objective: ${PROPOSAL_GRPO_OBJECTIVE}"
+echo "[INFO] Proposal GRPO steps/lr/kl/anchor-kl/ref: ${PROPOSAL_GRPO_STEPS}/${PROPOSAL_GRPO_LEARNING_RATE}/${PROPOSAL_GRPO_KL_COEF}/${PROPOSAL_GRPO_ANCHOR_KL_COEF}/${PROPOSAL_GRPO_ANCHOR_KL_REFERENCE}"
 echo "[INFO] Proposal GRPO grad clip/zero variance/baseline: ${PROPOSAL_GRPO_GRAD_CLIP}/${PROPOSAL_GRPO_ZERO_VARIANCE}/${PROPOSAL_GRPO_FIXED_BASELINE}"
-echo "[INFO] Proposal GRPO reward mode/outcome scale: ${PROPOSAL_GRPO_REWARD_MODE}/${PROPOSAL_GRPO_OUTCOME_SCALE}"
+echo "[INFO] Proposal GRPO reward mode/outcome scale/dedup/novelty beta: ${PROPOSAL_GRPO_REWARD_MODE}/${PROPOSAL_GRPO_OUTCOME_SCALE}/${PROPOSAL_GRPO_DEDUPLICATE_ACTIONS}/${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}"
+echo "[INFO] Source admission target-accuracy threshold: ${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}"
+echo "[INFO] Proposal update loss/observation/format/replay/microbatch: ${PROPOSAL_UPDATE_LOSS_MODE}/${PROPOSAL_OBSERVATION_LOSS_WEIGHT}/${PROPOSAL_FORMAT_LOSS_WEIGHT}/${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES}/${PROPOSAL_UPDATE_MICROBATCH_SIZE}"
+echo "[INFO] Proposal GRPO span: ${PROPOSAL_GRPO_SPAN}"
+echo "[INFO] Keep final model checkpoint: ${KEEP_FINAL_MODEL_CHECKPOINT}"
 echo "[INFO] Keep all proposal-GRPO checkpoints: ${KEEP_ALL_PROPOSAL_GRPO_CHECKPOINTS}"
 echo "[INFO] HF_HOME: ${HF_HOME}"
 echo "[INFO] HF_HUB_OFFLINE: ${HF_HUB_OFFLINE}"
@@ -285,7 +410,8 @@ if [[ "${RUN_COMPILE_CHECK}" == "1" ]]; then
     self/adaptive/proposal.py \
     self/adaptive/program_sandbox.py \
     self/core/composition.py \
-    self/core/models.py
+    self/core/models.py \
+    self/core/vllm_evaluation.py
 fi
 
 "${PYTHON_BIN}" -m self.adaptive.driver \
@@ -294,13 +420,15 @@ fi
   --model-name "${MODEL_NAME}" \
   --proposal-model-name "${PROPOSAL_MODEL_NAME}" \
   --proposal-output-schema "${PROPOSAL_OUTPUT_SCHEMA}" \
+  --proposal-prompt-action-history-max-items "${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS}" \
   --output-dir "${OUT_DIR}" \
-  --num-rounds "${NUM_ROUNDS}" \
+  --max-selected-rounds "${MAX_SELECTED_ROUNDS}" \
   --max-attempt-rounds "${MAX_ATTEMPT_ROUNDS}" \
   --no-selection-patience "${NO_SELECTION_PATIENCE}" \
   --num-candidates "${NUM_CANDIDATES}" \
   --num-epochs "${NUM_EPOCHS:-1}" \
   --max-steps "${MAX_STEPS}" \
+  --seed-max-steps "${SEED_MAX_STEPS}" \
   --learning-rate "${LEARNING_RATE}" \
   --per-device-train-batch-size "${TRAIN_BATCH_SIZE}" \
   --per-device-eval-batch-size "${EVAL_BATCH_SIZE}" \
@@ -320,10 +448,21 @@ fi
   --candidate-array-poll-seconds "${CANDIDATE_ARRAY_POLL_SECONDS}" \
   --candidate-array-timeout-seconds "${CANDIDATE_ARRAY_TIMEOUT_SECONDS}" \
   --candidate-array-time-limit "${CANDIDATE_ARRAY_TIME_LIMIT}" \
+  --candidate-eval-backend "${CANDIDATE_EVAL_BACKEND}" \
+  --vllm-gpu-memory-utilization "${VLLM_GPU_MEMORY_UTILIZATION}" \
+  --vllm-dtype "${VLLM_DTYPE}" \
+  --vllm-flashinfer-sampler "${VLLM_FLASHINFER_SAMPLER}" \
+  --vllm-max-model-len "${VLLM_MAX_MODEL_LEN}" \
+  --vllm-max-num-seqs "${VLLM_MAX_NUM_SEQS}" \
+  --vllm-max-num-batched-tokens "${VLLM_MAX_NUM_BATCHED_TOKENS}" \
   --initial-eval-per-size "${INITIAL_EVAL_PER_SIZE}" \
   --eval-per-size "${EVAL_PER_SIZE}" \
   --composed-eval-per-size "${COMPOSED_EVAL_PER_SIZE}" \
   --proposal-max-new-tokens "${PROPOSAL_MAX_NEW_TOKENS}" \
+  --proposal-temperature "${PROPOSAL_TEMPERATURE}" \
+  --proposal-top-p "${PROPOSAL_TOP_P}" \
+  --proposal-sampling-batch-size "${PROPOSAL_SAMPLING_BATCH_SIZE}" \
+  --proposal-unique-max-draws "${PROPOSAL_UNIQUE_MAX_DRAWS}" \
   --repair-attempts "${REPAIR_ATTEMPTS}" \
   --proposal-trace-replay-ratio "${PROPOSAL_TRACE_REPLAY_RATIO}" \
   --proposal-trace-replay-max-examples "${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES}" \
@@ -334,17 +473,28 @@ fi
   --outcome-trace-replay-max-examples "${OUTCOME_TRACE_REPLAY_MAX_EXAMPLES}" \
   --invalid-outcome-reward "${INVALID_OUTCOME_REWARD}" \
   --proposal-grpo-steps "${PROPOSAL_GRPO_STEPS}" \
+  --proposal-update-loss-mode "${PROPOSAL_UPDATE_LOSS_MODE}" \
+  --proposal-observation-loss-weight "${PROPOSAL_OBSERVATION_LOSS_WEIGHT}" \
+  --proposal-format-loss-weight "${PROPOSAL_FORMAT_LOSS_WEIGHT}" \
+  --proposal-format-replay-max-examples "${PROPOSAL_FORMAT_REPLAY_MAX_EXAMPLES}" \
+  --proposal-grpo-span "${PROPOSAL_GRPO_SPAN}" \
+  --proposal-update-microbatch-size "${PROPOSAL_UPDATE_MICROBATCH_SIZE}" \
   --proposal-grpo-learning-rate "${PROPOSAL_GRPO_LEARNING_RATE}" \
+  --proposal-grpo-objective "${PROPOSAL_GRPO_OBJECTIVE}" \
   --proposal-grpo-kl-coef "${PROPOSAL_GRPO_KL_COEF}" \
+  --proposal-grpo-anchor-kl-coef "${PROPOSAL_GRPO_ANCHOR_KL_COEF}" \
+  --proposal-grpo-anchor-kl-reference "${PROPOSAL_GRPO_ANCHOR_KL_REFERENCE}" \
   --proposal-grpo-grad-clip "${PROPOSAL_GRPO_GRAD_CLIP}" \
   --proposal-grpo-zero-variance "${PROPOSAL_GRPO_ZERO_VARIANCE}" \
   --proposal-grpo-reward-mode "${PROPOSAL_GRPO_REWARD_MODE}" \
   --proposal-grpo-outcome-scale "${PROPOSAL_GRPO_OUTCOME_SCALE}" \
   --proposal-grpo-fixed-baseline "${PROPOSAL_GRPO_FIXED_BASELINE}" \
+  --proposal-grpo-novelty-bonus-beta "${PROPOSAL_GRPO_NOVELTY_BONUS_BETA}" \
   --program-timeout-seconds "${PROGRAM_TIMEOUT_SECONDS}" \
   --program-batch-timeout-seconds "${PROGRAM_BATCH_TIMEOUT_SECONDS}" \
   --lambda-final "${LAMBDA_FINAL}" \
   --selection-min-reward "${SELECTION_MIN_REWARD}" \
+  --source-admission-target-accuracy-threshold "${SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD}" \
   --seed "${SEED:-42}" \
   --plan-log-path "${PLAN_LOG_PATH}" \
   "${TASK_ARGS[@]}" \

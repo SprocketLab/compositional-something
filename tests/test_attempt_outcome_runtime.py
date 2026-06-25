@@ -22,7 +22,15 @@ class _Trace:
 
 
 class _CheckpointManager:
-    def cleanup_replaced_checkpoint(self, *, old_checkpoint: str, new_checkpoint: str) -> list[str]:
+    def cleanup_replaced_checkpoint(
+        self,
+        *,
+        old_checkpoint: str,
+        new_checkpoint: str,
+        protected_checkpoints: Sequence[str] = (),
+    ) -> list[str]:
+        if old_checkpoint in protected_checkpoints:
+            return []
         return [f"deleted:{old_checkpoint}->{new_checkpoint}"]
 
 
@@ -89,7 +97,7 @@ def test_no_selection_attempt_writes_summary_and_updates_proposal_model(tmp_path
         selection_min_reward=0.0,
         no_selection_patience=3,
         max_attempt_rounds=5,
-        num_rounds=2,
+        max_selected_rounds=2,
         seed=11,
     )
     metrics: Sequence[CandidateMetrics] = [_candidate_metric()]
@@ -193,13 +201,15 @@ def test_selected_attempt_updates_source_pool_and_writes_artifacts(tmp_path: Pat
         selection_min_reward=0.0,
         no_selection_patience=3,
         max_attempt_rounds=5,
-        num_rounds=1,
+        max_selected_rounds=1,
+        source_admission_target_accuracy_threshold=0.80,
         seed=11,
     )
     selected = replace(
         _candidate_metric(),
         reward=0.25,
         frontier_delta=0.25,
+        target_accuracy=0.85,
         final_accuracy=0.60,
         per_size_accuracy={1: 1.0, 3: 0.60},
         model_dir=selected_model_dir,
@@ -276,6 +286,13 @@ def test_selected_attempt_updates_source_pool_and_writes_artifacts(tmp_path: Pat
     assert round_summary["selected_round"] == 1
     assert round_summary["source_sizes_after"] == [1, 2, 3]
     assert round_summary["source_example_count_after"] == 1
+    assert round_summary["source_admission"] == {
+        "admitted": True,
+        "reason": "target_accuracy_clears_threshold",
+        "target": 3,
+        "target_accuracy": 0.85,
+        "threshold": 0.8,
+    }
     assert round_summary["current_checkpoint"] == str(selected_model_dir)
     assert round_summary["proposal_grpo"] is None
     assert round_summary["deleted_replaced_model_dirs"] == [
@@ -287,3 +304,102 @@ def test_selected_attempt_updates_source_pool_and_writes_artifacts(tmp_path: Pat
 
     with (output_dir / "selected_proposal_trace_buffer.jsonl").open("r", encoding="utf-8") as handle:
         assert json.loads(handle.readline()) == {"label": "selected"}
+
+
+def test_selected_attempt_does_not_admit_low_accuracy_target_to_source_pool(tmp_path: Path) -> None:
+    output_dir = tmp_path / "run"
+    round_dir = output_dir / "attempt_0001"
+    selected_model_dir = output_dir / "selected_model"
+
+    deps = AttemptOutcomeDeps(
+        build_round_outcome_trace_examples=lambda **_: [],
+        build_selected_proposal_trace_example=lambda **_: _Trace("selected"),
+        apply_or_dispatch_proposal_grpo_update=lambda **_: ("unused", {"skipped": True}),
+        write_json=write_json,
+        write_trace_jsonl=write_trace_jsonl,
+        save_examples=save_examples,
+    )
+    args = argparse.Namespace(
+        task="addition",
+        condition="config",
+        frontier_min_size=3,
+        frontier_max_size=5,
+        selection_min_reward=0.0,
+        no_selection_patience=3,
+        max_attempt_rounds=5,
+        max_selected_rounds=1,
+        source_admission_target_accuracy_threshold=0.80,
+        seed=11,
+    )
+    selected = replace(
+        _candidate_metric(),
+        reward=0.25,
+        frontier_delta=0.25,
+        target_accuracy=0.60,
+        final_accuracy=0.60,
+        per_size_accuracy={1: 1.0, 3: 0.60},
+        model_dir=selected_model_dir,
+        failure_reason=None,
+    )
+    work_items = [
+        CandidateWorkItem(
+            index=selected.index,
+            row_id=selected.row_id,
+            proposal=selected.proposal,
+            completion=selected.proposal.to_completion(),
+            raw_output=selected.proposal.to_completion(),
+            composed=ExactPairDataset(
+                examples=[],
+                component_map={},
+                keys={("addition", selected.proposal.target)},
+                diagnostics={},
+            ),
+            pseudo_examples=[{"input": "1+2", "target": "3"}],
+            pseudo_diagnostics={},
+        )
+    ]
+    source_examples: list[Any] = []
+    exclude_keys: set[Any] = set()
+    source_sizes = {1, 2}
+
+    result = handle_attempt_outcome(
+        args=args,
+        task=_Task(),
+        output_dir=output_dir,
+        round_dir=round_dir,
+        attempt_index=1,
+        selected_round_for_prompt=0,
+        selected_rounds=0,
+        consecutive_no_selection=0,
+        current_checkpoint="checkpoint-current",
+        current_final_accuracy=0.42,
+        current_per_size_accuracy={1: 1.0, 3: 0.35},
+        init_final_accuracy=0.30,
+        source_sizes=source_sizes,
+        source_examples=source_examples,
+        exclude_keys=exclude_keys,
+        proposal_trace_buffer=[],
+        outcome_trace_buffer=[],
+        proposal_grpo_update_count=0,
+        deleted_replaced_model_dirs=[],
+        summary_records=[],
+        prompt=PromptBundle(system="system", user="user"),
+        proposal_results=[{"raw_completion": "{}"}],
+        metrics=[selected],
+        work_items=work_items,
+        selected=selected,
+        trace_rows=[],
+        checkpoint_manager=_CheckpointManager(),
+        deps=deps,
+    )
+
+    assert result.current_checkpoint == str(selected_model_dir)
+    assert source_examples == []
+    assert source_sizes == {1, 2}
+    assert exclude_keys == set()
+    with (round_dir / "round_summary.json").open("r", encoding="utf-8") as handle:
+        round_summary = json.load(handle)
+    assert round_summary["source_sizes_after"] == [1, 2]
+    assert round_summary["source_example_count_after"] == 0
+    assert round_summary["source_admission"]["admitted"] is False
+    assert round_summary["source_admission"]["reason"] == "target_accuracy_below_threshold"

@@ -1,5 +1,7 @@
 import argparse
+import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Sequence
 
 from self.adaptive.attempts import CandidateAttemptDeps, run_candidate_attempt
@@ -7,6 +9,7 @@ from self.adaptive.attempts import AttemptOutcomeResult
 from self.core.models import CandidateMetrics, CandidateWorkItem, ExactPairDataset
 from self.adaptive.proposal import ConfigProposal
 from self.adaptive.proposal import PromptBundle
+from self.adaptive.run import RoundModelDispatchDeps, run_round_model_dispatch
 from self.adaptive.run import RoundModelDispatchResult
 
 
@@ -69,6 +72,7 @@ def test_candidate_attempt_dispatches_training_selection_trace_and_outcome(tmp_p
         assert kwargs["deps"] is round_model_dispatch_deps
         assert kwargs["current_checkpoint"] == "checkpoint-current"
         assert kwargs["selected_round_for_prompt"] == 1
+        assert kwargs["extra_aggregate_metrics"] == {}
         return RoundModelDispatchResult(
             current_final_accuracy=0.56,
             current_per_size_accuracy={3: 0.56},
@@ -111,7 +115,10 @@ def test_candidate_attempt_dispatches_training_selection_trace_and_outcome(tmp_p
         )
 
     result = run_candidate_attempt(
-        args=argparse.Namespace(task="addition", selection_min_reward=0.25),
+        args=argparse.Namespace(
+            task="addition",
+            selection_min_reward=0.25,
+        ),
         task=object(),
         config=object(),
         output_dir=tmp_path / "run",
@@ -128,7 +135,15 @@ def test_candidate_attempt_dispatches_training_selection_trace_and_outcome(tmp_p
         proposal_trace_buffer=[],
         outcome_trace_buffer=[],
         proposal_grpo_update_count=1,
-        summary_records=[],
+        summary_records=[
+            {
+                "attempt": 0,
+                "attempt_actions": [
+                    {"attempt": 0, "left": 1, "right": 1, "target": 2, "reward": 0.2},
+                    {"attempt": 0, "left": 1, "right": 2, "target": 3, "reward": 0.1},
+                ],
+            }
+        ],
         selected_round_for_prompt=1,
         attempt_index=1,
         selected_rounds=0,
@@ -156,3 +171,105 @@ def test_candidate_attempt_dispatches_training_selection_trace_and_outcome(tmp_p
     assert captured["trace_rows"] == [{"completion": "{}"}]
     assert captured["deleted_replaced_model_dirs"] == []
     assert captured["deps"] is attempt_outcome_deps
+
+
+def test_round_model_dispatch_forwards_prompt_extras_to_serial_phase(tmp_path: Path) -> None:
+    prompt = PromptBundle(system="system", user="user")
+    captured: dict[str, Any] = {}
+
+    def _run_round_model_phase(**kwargs: Any) -> Any:
+        captured.update(kwargs)
+        return SimpleNamespace(
+            current_final_accuracy=0.5,
+            current_per_size_accuracy={2: 0.5},
+            prompt=prompt,
+            proposal_results=[],
+            work_items=[],
+        )
+
+    result = run_round_model_dispatch(
+        args=argparse.Namespace(controller_execution_mode="local", seed=11),
+        task=object(),
+        config=object(),
+        current_checkpoint="checkpoint",
+        round_dir=tmp_path,
+        source_examples=[],
+        eval_examples=[],
+        exclude_keys=set(),
+        source_sizes={1},
+        selected_round_for_prompt=1,
+        attempt_index=2,
+        selected_rounds=0,
+        consecutive_no_selection=0,
+        init_final_accuracy=0.1,
+        extra_aggregate_metrics={"custom_metric": [{"target": 2}]},
+        deps=RoundModelDispatchDeps(
+            save_examples=lambda *args, **kwargs: None,
+            write_key_set=lambda *args, **kwargs: None,
+            run_controller_worker_slurm=lambda *args, **kwargs: {},
+            float_or_nan=float,
+            load_json=lambda path: [],
+            work_item_from_worker_payload=lambda **kwargs: None,
+            run_round_model_phase=_run_round_model_phase,
+        ),
+    )
+
+    assert result.prompt is prompt
+    assert captured["extra_aggregate_metrics"] == {"custom_metric": [{"target": 2}]}
+
+
+def test_round_model_dispatch_forwards_prompt_extras_to_slurm_payload(tmp_path: Path) -> None:
+    prompt_path = tmp_path / "proposal_prompt.json"
+    proposal_results_path = tmp_path / "proposal_results.json"
+    captured: dict[str, Any] = {}
+
+    class _Task:
+        @staticmethod
+        def serialize_example(example: Any) -> dict[str, Any]:
+            return dict(example)
+
+    def _write_json(path: Path, payload: Any) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    def _run_controller_worker_slurm(**kwargs: Any) -> dict[str, Any]:
+        captured.update(kwargs)
+        _write_json(prompt_path, {"system": "system", "user": "user"})
+        _write_json(proposal_results_path, [])
+        return {
+            "current_final_accuracy": 0.5,
+            "current_per_size_accuracy": {"2": 0.5},
+            "prompt_path": str(prompt_path),
+            "proposal_results_path": str(proposal_results_path),
+            "work_items": [],
+        }
+
+    result = run_round_model_dispatch(
+        args=argparse.Namespace(controller_execution_mode="slurm", seed=11),
+        task=_Task(),
+        config=object(),
+        current_checkpoint="checkpoint",
+        round_dir=tmp_path,
+        source_examples=[],
+        eval_examples=[],
+        exclude_keys=set(),
+        source_sizes={1},
+        selected_round_for_prompt=1,
+        attempt_index=2,
+        selected_rounds=0,
+        consecutive_no_selection=0,
+        init_final_accuracy=0.1,
+        extra_aggregate_metrics={"custom_metric": [{"target": 2}]},
+        deps=RoundModelDispatchDeps(
+            save_examples=lambda path, examples, serializer: _write_json(path, [serializer(ex) for ex in examples]),
+            write_key_set=lambda path, values: _write_json(path, sorted(values)),
+            run_controller_worker_slurm=_run_controller_worker_slurm,
+            float_or_nan=float,
+            load_json=lambda path: json.loads(Path(path).read_text(encoding="utf-8")),
+            work_item_from_worker_payload=lambda **kwargs: None,
+            run_round_model_phase=lambda **kwargs: None,
+        ),
+    )
+
+    assert result.prompt.user == "user"
+    assert captured["payload"]["extra_aggregate_metrics"] == {"custom_metric": [{"target": 2}]}

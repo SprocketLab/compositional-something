@@ -67,7 +67,7 @@ def test_no_pseudo_candidate_metrics_preserve_failure_contract():
     assert metrics.proposal_prediction["expected_frontier_delta"] == 0.2
 
 
-def test_trained_candidate_metrics_use_static_frontier_and_final_delta_reward():
+def test_trained_candidate_metrics_use_avg_delta_from_current_reward():
     item = _item(pseudo_examples=["p0", "p1"])
     metrics = build_trained_candidate_metrics(
         args=_args(lambda_final=0.5),
@@ -93,7 +93,7 @@ def test_trained_candidate_metrics_use_static_frontier_and_final_delta_reward():
     assert metrics.frontier_delta == pytest.approx(0.4)
     assert metrics.final_accuracy_delta == pytest.approx(0.5)
     assert metrics.final_accuracy_delta_from_current == pytest.approx(0.3)
-    assert metrics.reward == pytest.approx(0.4 + 0.5 * 0.5)
+    assert metrics.reward == pytest.approx(0.3)
     assert metrics.pseudo_count == 2
     assert metrics.proposal_trace_replay_count == 3
     assert metrics.candidate_proposal_trace_count == 1

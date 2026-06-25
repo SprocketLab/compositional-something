@@ -4756,3 +4756,1774 @@ Acceptance criteria for first pilot:
 - Verification so far: `compileall -q self/adaptive tests`, import smoke, CLI
   help smoke, and focused adaptive suite (`108 passed`, with existing
   multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-19 03:45 UTC
+
+- Implemented the cleaner config proposal update as a merged proposal optimizer:
+  `policy_GRPO + 0.01 * KL + 0.2 * realized_outcome_CE + 0.1 * format_CE`.
+- Kept legacy full-completion GRPO available via
+  `--proposal-update-loss-mode legacy_grpo`; config runs now default to
+  `merged_agent`.
+- In merged mode, policy GRPO masks only the executable `proposal` JSON value
+  inside the full `action_prediction` completion, world CE masks the
+  `prediction` value using realized frontier/final deltas, and format CE trains
+  full valid `action_prediction` JSON from current valid proposals plus bounded
+  selected proposal-trace replay.
+- Disabled post-task proposal rehearsal by default for `merged_agent`, so
+  selected proposal traces are learned in the merged proposal update instead of
+  a separate second SFT pass after candidate task training.
+- Wired selected proposal trace buffers through local and SLURM controller
+  proposal-update paths and wrote `proposal_world_targets.jsonl` /
+  `proposal_format_targets.jsonl` when those terms have trainable examples.
+- Reduced config proposal generation default from 256 to 160 new tokens and
+  exported merged-loss settings from the ailab submitter.
+- Broke two import-time cycles in the flattened proposal module by removing
+  runtime-only `core.models` imports.
+- Verification so far: focused py_compile and bash syntax checks; focused
+  launcher/arg/proposal tests (`5 passed`); adaptive candidate training tests
+  (`41 passed`, with existing multiprocessing fork warnings).
+
+### Submission Log: 2026-06-19 03:45 UTC
+
+- Submitted the cleaner merged config matrix to ailab:
+  addition/run_length x `num_candidates={8,16}` x
+  `proposal_grpo_zero_variance={fixed_baseline,skip}`.
+- Submission manifest:
+  `artifacts/runs/adaptive_candidate_training_ailab_20260618_214438/submission_manifest.json`.
+- Job IDs:
+  `9934720` addition n8 fixed_baseline,
+  `9934721` addition n16 fixed_baseline,
+  `9934722` addition n8 skip,
+  `9934723` addition n16 skip,
+  `9934724` run_length n8 fixed_baseline,
+  `9934725` run_length n16 fixed_baseline,
+  `9934726` run_length n8 skip,
+  `9934727` run_length n16 skip.
+- Initial monitoring after roughly one minute: all jobs were still pending on
+  ailab and no stdout/stderr logs had been created yet.
+
+### Submission Log: 2026-06-19 03:50 UTC
+
+- Dropped the `proposal_grpo_zero_variance=skip` condition before any skip job
+  started.
+- Canceled skip jobs: `9934722`, `9934723`, `9934726`, `9934727`.
+- Remaining cleaner merged config jobs are the fixed-baseline runs:
+  `9934720`, `9934721`, `9934724`, `9934725`.
+
+### Submission Log: 2026-06-19 19:40 UTC
+
+- The fixed-baseline jobs `9934720`, `9934721`, `9934724`, and `9934725`
+  failed before Python startup with exit code `1:0` after roughly 2 seconds.
+- Root cause: SLURM executes a copied script from `/var/spool/slurmd/...`;
+  the adaptive SBATCH runners used `${BASH_SOURCE[0]}` to locate
+  `lib/adaptive_common.sh`, so they looked for the helper under the SLURM
+  spool directory instead of the repo.
+- Patched the adaptive candidate main, candidate-worker, and controller-worker
+  SBATCH scripts to prefer `${SLURM_SUBMIT_DIR}/launchers/self` when the helper
+  exists, with the old `${BASH_SOURCE[0]}` behavior as fallback.
+- Verification: `bash -n` for the patched SBATCH scripts and
+  `tests/test_adaptive_candidate_launcher.py` passed.
+- Resubmitted fixed-baseline-only matrix to
+  `artifacts/runs/adaptive_candidate_training_ailab_20260619_153743`:
+  `9978744` addition n8,
+  `9978745` addition n16,
+  `9978746` run_length n8,
+  `9978747` run_length n16.
+- Initial monitoring: all four resubmitted jobs were pending on ailab; no
+  stdout/stderr logs had been created yet.
+
+### Runtime Issue Log: 2026-06-19 21:50 UTC
+
+- Job `9978745` (`addition`, `num_candidates=16`) failed in attempt 1 during
+  the merged proposal update, after seed training and candidate training had
+  completed.
+- Failure was CUDA OOM in `apply_proposal_grpo_update` while computing
+  `format_loss`; this is not a different experimental pipeline from the
+  surviving `9978744` (`addition`, `num_candidates=8`), except that n16 doubled
+  proposal traces and valid format/world targets.
+- Diagnosis: the merged update currently does policy, world, and format
+  forwards before one combined backward, so all three activation graphs are
+  resident at once. n16 attempt 1 had 16 policy traces, 8 world targets, and 9
+  format targets; n8 had 8/4/5 and survived.
+- Planned fix: keep the exact same objective and one optimizer step, but
+  compute proposal-update losses with gradient-accumulated microbatches:
+  backward policy microbatches, backward world microbatches, backward format
+  microbatches, then clip and step once. This should preserve the pipeline and
+  only change memory scheduling, aside from minor floating-point ordering
+  differences.
+- Do not patch while currently running jobs may still import repo files; apply
+  after the active runs finish or after intentionally canceling/restarting them.
+
+### Implementation Log: 2026-06-20 OOM Fix
+
+- Implemented the planned merged proposal-update memory fix.
+- Added `--proposal-update-microbatch-size` with default `8`; launchers and
+  `adaptive_candidate_base.env` now pass and log it explicitly.
+- The update still performs one optimizer step per proposal update. It now
+  backprops policy microbatches, world-model CE microbatches, and format CE
+  microbatches before gradient clipping and stepping, instead of retaining all
+  graphs at once.
+- Also changed proposal log-prob computation from explicit full-vocab
+  `log_softmax(...).gather(...)` to unreduced cross entropy, reducing the
+  transient fp32 memory spike.
+- Expected runtime impact: modest, because this only affects the small proposal
+  update after candidate evaluation, not seed/candidate task SFT. Use
+  microbatch `8` by default; if OOM persists, try `4` or `2`.
+- Verification: focused parser/launcher/proposal-microbatch tests passed, and
+  `tests/test_adaptive_candidate_training.py` passed (`42 passed`) under the
+  torch environment.
+
+### Implementation Log: 2026-06-20 Repeated-Candidate Mitigations
+
+- Added proposal-action deduplication before proposal-policy GRPO advantage
+  computation. Duplicate actions remain valid candidates, but only the best
+  measured instance contributes policy-gradient credit.
+- Changed the default zero-variance proposal-GRPO behavior from
+  `fixed_baseline` to `skip`, so batches with no reward contrast do not
+  reinforce every sampled action.
+- Added compact prompt history under aggregate diagnostics as `recent_actions`.
+  Defaults: last `4` attempts, top `3` actions per attempt, with rounded reward
+  and frontier-delta fields.
+- Added rank-based proposal rewards via `--proposal-grpo-reward-mode rank`.
+  Invalid proposals keep verifier penalties, valid-untrained proposals get
+  `0`, and trained valid candidates are ranked into `[0, 1]`.
+- Updated the adaptive candidate submitter/manifest schema to support reward
+  ablations through `PROPOSAL_GRPO_REWARD_MODES`, e.g. `outcome rank`.
+- Verification: bash syntax, Python compile, focused proposal/launcher tests
+  (`13 passed`), and broader adaptive candidate/launcher/manifest suite
+  (`53 passed`, only existing multiprocessing fork warnings).
+
+### Submission Log: 2026-06-20 History/Rank Quick Ablation
+
+- Added a history axis to the adaptive candidate submitter/manifest so history
+  on/off runs get distinct output directories and manifest metadata.
+- Submitted an 8-job quick matrix to ailab:
+  `task={addition,run_length}` x `proposal_grpo_reward_mode={outcome,rank}` x
+  `proposal_history_max_attempts={0,4}`.
+- Common settings: config condition, `num_candidates=8`,
+  `proposal_grpo_zero_variance=skip`, `proposal_grpo_deduplicate_actions=1`,
+  `proposal_history_max_actions=3`, `max_attempt_rounds=10`,
+  `no_selection_patience=10`.
+- Manifest:
+  `artifacts/runs/adaptive_candidate_history_rank_ablation_20260620_111035/submission_manifest.json`.
+- Job IDs:
+  `10009446` addition outcome history-off,
+  `10009447` addition outcome history-4,
+  `10009448` addition rank history-off,
+  `10009449` addition rank history-4,
+  `10009450` run_length outcome history-off,
+  `10009451` run_length outcome history-4,
+  `10009452` run_length rank history-off,
+  `10009453` run_length rank history-4.
+- Initial monitoring: all eight jobs were accepted by SLURM and pending on
+  ailab with reason `Priority`; no stdout/stderr logs had been created yet.
+- Follow-up: all eight jobs failed before entering the adaptive loop. Root
+  cause was a stale Python validation requiring
+  `max_attempt_rounds >= num_rounds`; the quick ablation intentionally used
+  `num_rounds=100` and `max_attempt_rounds=10`.
+- Fixed the validation to allow attempt-capped smoke/diagnostic runs while
+  still rejecting negative `max_attempt_rounds`. No resubmission was performed
+  after this fix.
+
+### Implementation Log: 2026-06-20 Attempt-Based Adaptive Control
+
+- Removed the workshop-era adaptive default that treated `--num-rounds` as the
+  primary run budget. New adaptive runs are bounded by `--max-attempt-rounds`
+  by default, currently `100`.
+- Added `--max-selected-rounds` as an explicit optional cap on selected
+  candidates. The default is `0`, meaning unlimited selected candidates within
+  the attempt/no-selection budget.
+- Kept `--num-rounds` as a deprecated compatibility alias: when it is provided
+  and `--max-selected-rounds` is not, it sets the selected-candidate cap; when
+  it is provided and `--max-attempt-rounds` is not, attempts default to
+  `10 * num_rounds`.
+- Removed `target_selected_rounds` from proposal prompts so the proposer sees
+  current attempt/selection state but is not encouraged to imitate a fixed
+  selected-round schedule.
+- Updated AILab adaptive launchers/configs to stop exporting `NUM_ROUNDS`; they
+  now export `MAX_ATTEMPT_ROUNDS` and `MAX_SELECTED_ROUNDS`.
+- No failed history/rank ablation jobs were resubmitted as part of this cleanup.
+- Verification: bash syntax checks passed for the adaptive runner/submitter,
+  Python compile checks passed for `self/adaptive/{args,attempts,run,proposal}.py`, and
+  the focused adaptive suite passed (`60 passed`, with existing multiprocessing
+  fork warnings).
+
+### Implementation Log: 2026-06-20 100-Step Candidate SFT Default
+
+- Changed the adaptive candidate AILab runner/config default from epoch-based
+  task SFT (`MAX_STEPS=0`) to `MAX_STEPS=100`.
+- Left Python parser defaults unchanged for direct CLI compatibility; the
+  100-step behavior is a launcher/config default for new AILab adaptive runs.
+- Kept generated task example counts unchanged so the first run isolates the
+  compute-budget change from data-distribution changes.
+- Kept proposal-side training settings unchanged: no selected proposal-trace
+  rehearsal under `merged_agent`, and the lightweight proposal update remains
+  separate from task SFT.
+
+### Submission Log: 2026-06-20 25-Attempt 100-Step Config Jobs
+
+- Added an adaptive submitter `SBATCH_TIME` hook so shorter walltime requests
+  override the runner script's legacy `24:00:00` directive at submission time.
+- Estimated runtime from prior 25-attempt/full-epoch and merged-agent n8 runs:
+  historical jobs used roughly 5-10.5 hours; with `MAX_STEPS=100`, the new
+  runs should be substantially faster, so requested `08:00:00`.
+- Submitted config condition jobs with:
+  `task={addition,run_length}`, `num_candidates=8`,
+  `max_attempt_rounds=25`, `no_selection_patience=25`,
+  `max_selected_rounds=0`, `max_steps=100`,
+  `proposal_update_loss_mode=merged_agent`,
+  `proposal_grpo_reward_mode=outcome`,
+  `proposal_grpo_zero_variance=skip`,
+  `proposal_history_max_attempts=4`, `post_task_proposal_rehearsal=0`,
+  `mem=48G`, and `time=08:00:00`.
+- Manifest:
+  `artifacts/runs/adaptive_candidate_25a_100steps_20260620_203943/submission_manifest.json`.
+- Job IDs:
+  `10020270` addition config,
+  `10020271` run_length config.
+- Initial monitoring: both jobs were pending on ailab with reason `Priority`;
+  no stdout/stderr logs had been created yet.
+- Correction: this two-job submission was too narrow. It only used the cleaned
+  default condition instead of rerunning the full failed history/rank ablation
+  matrix. Jobs `10020270` and `10020271` were still pending with no logs and
+  were canceled.
+- Resubmitted the intended 8-job matrix:
+  `task={addition,run_length}` x `proposal_grpo_reward_mode={outcome,rank}` x
+  `proposal_history_max_attempts={0,4}`, with the same 25-attempt, 100-step,
+  merged-agent, skip-zero-variance settings.
+- Corrected manifest:
+  `artifacts/runs/adaptive_candidate_25a_100steps_8job_20260620_204158/submission_manifest.json`.
+- Corrected job IDs:
+  `10020277` addition outcome history-off,
+  `10020278` addition outcome history-4,
+  `10020279` addition rank history-off,
+  `10020280` addition rank history-4,
+  `10020281` run_length outcome history-off,
+  `10020282` run_length outcome history-4,
+  `10020283` run_length rank history-off,
+  `10020284` run_length rank history-4.
+- Initial monitoring of the corrected matrix: all eight jobs were pending on
+  ailab with `08:00:00` time limits; no startup logs yet.
+
+### Implementation Log: 2026-06-20 Seed/Candidate Step Split
+
+- Found a budget-wiring issue before the 8-job matrix started: launcher-level
+  `MAX_STEPS=100` was passed through the shared `TrainingConfig`, so it capped
+  both round-0 seed training and candidate-attempt training.
+- Canceled pending jobs `10020277`-`10020284` before startup; no stdout/stderr
+  logs had been created.
+- Added `--seed-max-steps` to the adaptive driver. Default `None` preserves old
+  direct-CLI behavior by using `--max-steps` for seed training too; the AILab
+  adaptive launcher now sets `SEED_MAX_STEPS=0`, meaning seed training remains
+  epoch-based/full while candidate attempts use `MAX_STEPS=100`.
+- Updated launcher logs to print
+  `Train epochs/candidate max steps/seed max steps`.
+- Verification: `bash -n` for runner/submitter and focused adaptive launcher,
+  argument, and candidate-training tests passed (`53 passed`, with existing
+  multiprocessing fork warnings).
+- Resubmitted the intended 8-job matrix with seed full and candidate attempts
+  capped at 100 steps:
+  `task={addition,run_length}` x `proposal_grpo_reward_mode={outcome,rank}` x
+  `proposal_history_max_attempts={0,4}`.
+- Manifest:
+  `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/submission_manifest.json`.
+- Job IDs:
+  `10020309` addition outcome history-off,
+  `10020310` addition outcome history-4,
+  `10020311` addition rank history-off,
+  `10020312` addition rank history-4,
+  `10020313` run_length outcome history-off,
+  `10020314` run_length outcome history-4,
+  `10020315` run_length rank history-off,
+  `10020316` run_length rank history-4.
+- Initial monitoring: all eight jobs were pending on ailab with `08:00:00`
+  time limits; no startup logs yet.
+
+### Implementation Log: 2026-06-21 Local Candidate Parallelism Default
+
+- Live monitoring of the 25-attempt matrix showed parent jobs continuing, but
+  many local candidate workers hit GPU OOMs because up to four candidate
+  training subprocesses shared one H200.
+- Reduced the default local candidate concurrency from `4` to `2` in the Python
+  argument default, the AILab adaptive runner fallback, and
+  `adaptive_candidate_base.env`.
+- Kept `CANDIDATE_LOCAL_PACK_SIZE=2` and
+  `CANDIDATE_LOCAL_CACHE_BASE_STATE=1` in the shared base config. This should
+  keep candidate dispatch reasonably efficient now that candidate task training
+  is capped at 100 steps, while avoiding the worst local GPU contention.
+
+### Implementation Log: 2026-06-21 Prompt History and Clean Rerun Setup
+
+- Made config proposal history explicit in prompts: when
+  `proposal_history_max_attempts > 0`, compact prior attempt actions now render
+  in a separate `Recent evaluated actions` block rather than being buried in
+  aggregate diagnostics.
+- Hardened the AILab adaptive submitter so it defaults to
+  `adaptive_candidate_base.env`, explicitly exports
+  `CANDIDATE_LOCAL_PARALLELISM=2`, `CANDIDATE_LOCAL_PACK_SIZE=2`, and
+  `CANDIDATE_LOCAL_CACHE_BASE_STATE=1`, and accepts `SBATCH_DEPENDENCY`.
+- Verification: runner/submitter `bash -n` passed; focused adaptive launcher,
+  argument, and candidate-training tests passed (`53 passed`).
+- Submitted the clean dependent 8-job rerun under
+  `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938`
+  with dependency
+  `afterany:10020309:10020310:10020311:10020312:10020313:10020314:10020315:10020316`.
+- Job IDs:
+  `10023747` addition outcome history-off,
+  `10023748` addition outcome history-4,
+  `10023749` addition rank history-off,
+  `10023750` addition rank history-4,
+  `10023751` run_length outcome history-off,
+  `10023752` run_length outcome history-4,
+  `10023753` run_length rank history-off,
+  `10023754` run_length rank history-4.
+- Slurm monitoring confirmed all eight new jobs are pending with reason
+  `(Dependency)`.
+
+### Implementation Log: 2026-06-21 03:17:18 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/run_length-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 48]`.
+- Selected proposal traces retained for replay: `23`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `23`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 12:39:32 UTC
+
+- Checked the clean 25-attempt 8-job rerun
+  `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938`.
+- All eight jobs completed:
+  `10023747`, `10023748`, `10023749`, `10023750`, `10023751`,
+  `10023752`, `10023753`, `10023754`.
+- Runtime was about `3.6`-`4.4` hours/job. Each job requested `48G` CPU RAM;
+  `sacct` batch MaxRSS was about `25`-`26G`, so the CPU-memory request is no
+  longer over-allocating badly.
+- No top-level CUDA OOMs/tracebacks were found in this rerun, and logs report
+  `Candidate local parallelism/pack/cache-base-state: 2/2/1`.
+- Important caveat: this rerun is OOM-clean, but it is not a valid explicit
+  prompt-history ablation. Saved `proposal_prompt.json` files in the history-on
+  runs still have `history_prompts=0`.
+- Root cause: the adaptive loop built a prompt with recent-action history, but
+  the round-model dispatch path rebuilt the actual generation prompt and dropped
+  `extra_aggregate_metrics`.
+- Fix implemented after detecting the issue:
+  - `run_candidate_attempt` now passes compact recent-action history to
+    `run_round_model_dispatch`.
+  - `run_round_model_dispatch` forwards prompt extras to both local and SLURM
+    controller paths.
+  - `run_round_model_controller_worker_from_spec` forwards
+    `extra_aggregate_metrics` into `run_round_model_phase`.
+  - `run_round_model_phase` merges those extras with
+    `proposal_output_schema` before calling `build_attempt_prompt`.
+- Added regression coverage in `tests/test_attempt_candidate_runtime.py` for:
+  local dispatch prompt extras, SLURM worker payload prompt extras, and
+  candidate-attempt recent-action forwarding.
+- Verification:
+  `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_attempt_candidate_runtime.py tests/test_adaptive_candidate_training.py tests/test_adaptive_candidate_launcher.py -q`
+  passed with `53 passed, 3 warnings`.
+
+### Implementation Log: 2026-06-21 03:18:31 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/run_length-config-numeric-n8-reward-rank-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 48]`.
+- Selected proposal traces retained for replay: `22`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `22`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 03:21:47 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/run_length-config-numeric-n8-reward-outcome-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 48]`.
+- Selected proposal traces retained for replay: `23`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `21`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 03:25:47 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/run_length-config-numeric-n8-reward-rank-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 40]`.
+- Selected proposal traces retained for replay: `23`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `21`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 04:06:48 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/addition-config-numeric-n8-reward-rank-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 13, 15, 23]`.
+- Selected proposal traces retained for replay: `20`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `20`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 04:08:39 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/addition-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 13, 15, 17, 23]`.
+- Selected proposal traces retained for replay: `20`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `21`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 04:16:00 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/addition-config-numeric-n8-reward-outcome-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 15, 25]`.
+- Selected proposal traces retained for replay: `21`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `22`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 04:20:58 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_8job_20260620_204706/addition-config-numeric-n8-reward-rank-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 13, 15, 17, 23]`.
+- Selected proposal traces retained for replay: `17`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `21`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 08:16:02 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/addition-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 9, 11, 12, 14, 16, 17, 19, 20, 22, 29]`.
+- Selected proposal traces retained for replay: `24`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 08:43:39 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/addition-config-numeric-n8-reward-outcome-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 13, 15, 17, 23]`.
+- Selected proposal traces retained for replay: `25`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `23`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 09:39:59 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/addition-config-numeric-n8-reward-rank-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 12, 13, 15, 17, 22]`.
+- Selected proposal traces retained for replay: `22`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 10:42:13 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/addition-config-numeric-n8-reward-rank-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 14, 15, 17, 24, 25]`.
+- Selected proposal traces retained for replay: `24`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 11:53:59 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/run_length-config-numeric-n8-reward-rank-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 48]`.
+- Selected proposal traces retained for replay: `24`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 12:10:06 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/run_length-config-numeric-n8-reward-outcome-history-off-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 40]`.
+- Selected proposal traces retained for replay: `25`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `19`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 12:17:06 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/run_length-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 32, 40, 48]`.
+- Selected proposal traces retained for replay: `25`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `23`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 12:37:08 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_25a_seedfull_100steps_histfix_lp2_8job_20260620_233938/run_length-config-numeric-n8-reward-rank-history-4-grpo-skip`.
+- Proposal output schema: `action_prediction`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 40]`.
+- Selected proposal traces retained for replay: `25`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `200`.
+- Proposal GRPO updates: `23`; steps/update: `1`; reward mode: `rank`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; world/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 13:39:17 UTC
+
+- Cleaned proposer-facing config prompt/trace terminology after manual inspection.
+- Removed `already_in_source` from `allowed_target_frontier`; repeated targets are allowed and should be judged by measured reward, so this field was unnecessary prompt clutter.
+- Renamed prompt diagnostics from `current_final_accuracy`/`init_final_accuracy` to `current_avg_accuracy`/`init_avg_accuracy`.
+- Renamed action-prediction schema field from `expected_final_delta_from_init` to `expected_avg_delta_from_init`; old completions with `expected_final_delta_from_init` remain valid as a backward-compatible alias, but normalized new training completions use the `avg` key.
+- Renamed compact outcome-trace prompt state from `current_final`/`init_final` to `current_avg`/`init_avg`, and target keys from `final_delta_*` to `avg_delta_*`.
+- Verified with `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_experience_outcome_traces.py -q` (`50 passed`, `3 warnings`).
+
+### Implementation Log: 2026-06-21 14:23:08 UTC
+
+- Replaced the default config proposal schema with ECHO-style `action_observation`.
+- New model proposal output is action-only plus rationale, e.g. `{"left":5,"right":3,"guard":"reject_boundary_carry","rationale":"..."}`; the driver executes only `left/right/guard`.
+- Kept `action_prediction` as a backward-compatible schema for old runs and tests.
+- Replaced separate realized-prediction CE with driver-appended observation CE: the model is conditioned on the original prompt plus `Assistant action: <action>` and trained to predict `Environment observation: <observation_json>`.
+- Observation JSON includes validity/training status, measured reward, target, target/frontier/average deltas, and `delta_per_size`; `advantage` is intentionally excluded because it is batch-normalized optimizer bookkeeping rather than an environment fact.
+- Added `per_size_delta` to `CandidateMetrics` serialization so observations can expose per-size changes without reparsing prompts.
+- Updated launcher defaults from `action_prediction` to `action_observation`.
+- Verified with `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_experience_outcome_traces.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_proposals_and_sandbox.py tests/test_proposal_generation.py tests/test_candidate_metric_collection.py tests/test_candidate_rewards.py tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py tests/test_candidate_training_mix.py -q` (`89 passed`, `7 warnings`).
+
+### Implementation Log: 2026-06-21 14:56:44 UTC
+
+- Tightened the config proposal format to the explicit tagged trace: `<reasoning>...</reasoning><action>{...}</action>`.
+- The validator now parses only the JSON object inside `<action>` and rejects missing tags, extra text outside the two blocks, malformed action JSON, and action fields other than `left/right/guard`.
+- Removed the active `action_prediction` schema path and renamed the auxiliary supervised target from world prediction to driver-appended observation prediction.
+- Observation CE targets no longer include the scalar policy reward; they keep validity/training status, measured target/frontier/average deltas, per-size deltas, and failure metadata when present.
+- Added `--proposal-grpo-span` with default `reasoning_action`; `action_only` remains available as a later ablation that masks GRPO to the JSON inside `<action>`.
+- Updated launcher defaults and summaries to use `PROPOSAL_OBSERVATION_LOSS_WEIGHT` and the new GRPO span flag.
+- Verified with `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_experience_outcome_traces.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_proposals_and_sandbox.py tests/test_proposal_generation.py tests/test_candidate_metric_collection.py tests/test_candidate_rewards.py tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py tests/test_candidate_training_mix.py -q` (`88 passed`, `7 warnings`) and a focused final-state recheck over proposal/parser/launcher tests (`61 passed`, `3 warnings`).
+
+### Implementation Log: 2026-06-21 15:06:18 UTC
+
+- Submitted the no-example tagged-format pilot with `MAX_ATTEMPT_ROUNDS=3`, `NO_SELECTION_PATIENCE=3`, `MAX_SELECTED_ROUNDS=0`, `NUM_CANDIDATES=8`, `MAX_STEPS=100`, `SEED_MAX_STEPS=0`, `SBATCH_MEM=48G`, and `SBATCH_TIME=01:00:00`.
+- Output root: `artifacts/runs/adaptive_candidate_format_pilot_3a_20260621_110338`.
+- Jobs: addition `10040839`; run_length `10040840`.
+- Both jobs started on `della-i22g2`; launcher logs confirmed `PROPOSAL_OUTPUT_SCHEMA=action_observation`, `PROPOSAL_UPDATE_LOSS_MODE=merged_agent`, and `PROPOSAL_GRPO_SPAN=reasoning_action`.
+
+### Implementation Log: 2026-06-21 15:19:20 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_format_pilot_3a_20260621_110338/run_length-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 18:27:39 UTC
+
+- Added pre-training candidate action deduplication in `build_candidate_work_items`: config actions are keyed by ordered `(left, right, guard, target)` and executable/program actions additionally include condition/code.
+- Duplicate valid actions are now skipped before composed data construction, pseudolabeling, candidate worker dispatch, task SFT, and candidate evaluation.
+- Wrote per-attempt `candidate_action_dedup.json` plus `candidate_dedup_*` annotations in `proposal_results.json` so notebooks can distinguish raw proposal validity from distinct trained/scored candidates.
+- Updated proposal-GRPO trace construction to skip candidate-deduped rows instead of assigning them fake `valid_untrained=0.0` rewards, which could otherwise override a trained negative-reward duplicate.
+- Updated outcome trace construction to skip candidate-deduped rows so observation CE does not label them as data-build failures.
+- Verification: `python -m py_compile self/adaptive/candidate.py self/adaptive/proposal.py self/adaptive/traces.py tests/test_adaptive_candidate_training.py`; focused pytest for candidate/GRPO dedup (`3 passed`); broader `tests/test_adaptive_candidate_training.py tests/test_candidate_worker_payloads.py tests/test_candidate_dispatch_runtime.py -q` (`59 passed`, `3` existing multiprocessing fork warnings).
+
+### Implementation Log: 2026-06-21 15:19:59 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_format_pilot_3a_20260621_110338/addition-config-numeric-n8-reward-outcome-history-4-grpo-skip`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 15:46:35 UTC
+
+- Relaxed the config proposal trace format from strict `<reasoning>...</reasoning><action>...</action>` to free-form reasoning text plus exactly one `<action>...</action>` block.
+- The validator now parses and executes only the JSON inside `<action>`; surrounding text is retained as proposal notes rather than requiring a separate reasoning tag.
+- Normalized selected proposal completions now serialize as brief reasoning followed by the canonical `<action>` block.
+- Removed proposal history mode entirely from prompts, CLI args, launcher exports, submission matrix/manifests, and tests; current prompts no longer include recent evaluated actions.
+- Verified launcher syntax with `bash -n` for the adaptive candidate sbatch and submitter.
+- Verified focused behavior with `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_attempt_candidate_runtime.py tests/test_adaptive_args_normalization.py tests/test_proposal_generation.py tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py -q` (`71 passed`, `3 warnings`).
+
+### Implementation Log: 2026-06-21 16:12:42 UTC
+
+- Submitted the free-reasoning action-format 3-attempt pilot with `MAX_ATTEMPT_ROUNDS=3`, `NO_SELECTION_PATIENCE=3`, `MAX_SELECTED_ROUNDS=0`, `NUM_CANDIDATES=8`, `MAX_STEPS=100`, `SEED_MAX_STEPS=0`, `SBATCH_MEM=48G`, and `SBATCH_TIME=01:00:00`.
+- Output root: `artifacts/runs/adaptive_candidate_format_pilot_3a_free_reasoning_20260621_115533`.
+- Jobs: addition `10042967`; run_length `10042968`.
+- Launcher logs confirmed `PROPOSAL_OUTPUT_SCHEMA=action_observation`, `PROPOSAL_UPDATE_LOSS_MODE=merged_agent`, `PROPOSAL_GRPO_SPAN=reasoning_action`, and no proposal-history export/path suffix.
+- Short monitoring: both jobs started on `della-i23g1`, passed model load and seed training startup, and were still running at roughly 16.5 minutes.
+- Current artifacts during monitoring: addition attempt 1 had `1/8` valid proposals and one candidate metric; addition attempt 2 had `0/8` valid proposals. run_length attempt 1 had `0/8` valid proposals, attempt 2 had `1/8`, and attempt 3 had `2/8`.
+
+### Implementation Log: 2026-06-21 16:14:09 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_format_pilot_3a_free_reasoning_20260621_115533/addition-config-numeric-n8-reward-outcome-grpo-skip`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `1`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 16:16:56 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_format_pilot_3a_free_reasoning_20260621_115533/run_length-config-numeric-n8-reward-outcome-grpo-skip`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 32]`.
+- Selected proposal traces retained for replay: `2`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 18:46:04 UTC
+
+- Added an optional candidate evaluation backend: `--candidate-eval-backend {transformers,vllm}`. The default remains `transformers`.
+- Added vLLM knobs: `--vllm-python-bin`, `--vllm-gpu-memory-utilization`, and `--vllm-dtype`; the AILAB launcher wires them from `CANDIDATE_EVAL_BACKEND`, `VLLM_PYTHON_BIN`, `VLLM_GPU_MEMORY_UTILIZATION`, and `VLLM_DTYPE`.
+- Implemented `self/core/vllm_evaluation.py` as a subprocess-only evaluator. Candidate training saves the model, releases the in-process HF model/tokenizer, clears CUDA cache, and then runs `python -m self.core.vllm_evaluation --spec ...` in the vLLM environment.
+- The subprocess writes `vllm_eval_spec.json`, `vllm_eval_result.json`, `vllm_eval_summary.json`, `vllm_eval_stdout.txt`, and `vllm_eval_stderr.txt`; the scorer writes a backend-agnostic `candidate_eval_summary.json`.
+- Preserved the existing model cleanup protocol: unselected candidate model directories are still deleted by `CheckpointManager.cleanup_unselected_candidates`; selected model handling is unchanged.
+- Created a project-local vLLM environment at `/scratch/gpfs/BRENDEN/changho/envs/adaptive-vllm` with `vllm==0.23.0` and `torch==2.11.0+cu130`. The temporary uv cache was removed after installation.
+- Verification: `python -m py_compile self/core/vllm_evaluation.py self/adaptive/candidate.py self/adaptive/args.py self/launcher_manifests.py`; `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_vllm_eval tests/test_vllm_evaluation.py tests/test_candidate_training_runtime.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q` (`17 passed`); `PYTHONPATH=. conda run -n torch-env pytest --basetemp=.pytest_tmp_adaptive_vllm tests/test_adaptive_candidate_training.py tests/test_candidate_worker_inputs.py tests/test_candidate_worker_pack_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_candidate_metric_collection.py tests/test_vllm_evaluation.py -q` (`65 passed`, `3` existing multiprocessing fork warnings).
+- vLLM env probe: `PYTHONPATH=. /scratch/gpfs/BRENDEN/changho/envs/adaptive-vllm/bin/python -c "import vllm; import torch; from self.core.task_protocols import task_for_name; ..."` reported `vllm 0.23.0`, `torch 2.11.0+cu130`, CUDA visible, and `RunLengthTask`.
+- Submitted one-attempt run-length eval-backend benchmark under `artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604`.
+- Benchmark job `10050706`: `transformers` eval, `CANDIDATE_LOCAL_PARALLELISM=2`, `CANDIDATE_LOCAL_PACK_SIZE=2`, `CANDIDATE_LOCAL_CACHE_BASE_STATE=1`.
+- Benchmark job `10050707`: `vllm` eval, `CANDIDATE_LOCAL_PARALLELISM=1`, `CANDIDATE_LOCAL_PACK_SIZE=1`, `VLLM_PYTHON_BIN=/scratch/gpfs/BRENDEN/changho/envs/adaptive-vllm/bin/python`.
+- Short monitoring immediately after submission: both jobs were pending in the AILAB queue with reason `(None)` and had not emitted launcher logs yet.
+
+### Analysis Log: 2026-06-21 16:23:45 UTC
+
+- Slurm results: addition job `10042967` completed in `00:18:30`; run_length job `10042968` completed in `00:21:16`; both exited `0:0` with requested `48G` CPU memory and roughly `14GB` MaxRSS.
+- Addition validity by attempt: `1/8`, `0/8`, `0/8`; selected one candidate, composing `3 + 7 -> 10` with `reject_boundary_carry`.
+- Addition selected candidate improved average eval accuracy from `0.3897` to `0.4117`; frontier accuracy delta `+0.0271`; selected reward `0.0293`.
+- run_length validity by attempt: `0/8`, `1/8`, `2/8`; selected two candidates, both based on `16 + 16 -> 32` with `require_boundary_continue`.
+- run_length improved average eval accuracy from `0.4082` to `0.4503` after attempt 2 and to `0.4700` after attempt 3; selected rewards `0.0470` and `0.0262`.
+- Format diagnosis: the relaxed free-reasoning parser fixed the missing `<reasoning>` tag failure mode, but proposal validity remains low because many generations omit `<action>`, emit markdown/code fences, or copy instruction/meta text into the reasoning.
+
+### Implementation Log: 2026-06-21 16:47:01 UTC
+
+- Changed the active `action_observation` proposal surface from free reasoning plus `<action>` tags to one flat JSON object with `reasoning`, `left`, `right`, and `guard`.
+- The driver still executes only `left/right/guard`, stores `reasoning` as proposal notes, and trains the same merged-agent GRPO + observation CE + format CE objective.
+- Updated normalized valid traces to serialize as compact JSON with `reasoning` first.
+- During the first JSON-only pilot (`10044816`, `10044817`), monitoring showed repeated fenced JSON completions that contained a valid first object but failed because the extractor parsed from the first `{` to the last `}` across repeated snippets.
+- Cancelled those flawed pilot jobs and fixed `extract_json_object` to return the first complete JSON object found in the completion; added a regression test for repeated fenced JSON with a truncated trailing object.
+- Verified with `PYTHONPATH=. /home/cs1095/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_attempt_candidate_runtime.py tests/test_adaptive_args_normalization.py tests/test_proposal_generation.py tests/test_candidate_worker_payloads.py tests/test_candidate_worker_specs.py -q` (`72 passed`, `3 warnings`).
+- Resubmitted fixed-parser 3-attempt pilots at output root `artifacts/runs/adaptive_candidate_format_pilot_3a_json_reasoning_firstjson_20260621_124408`; jobs are addition `10045315` and run_length `10045316`.
+- Short monitoring: both fixed-parser jobs were still pending on priority at submission time; no launcher logs had been created yet.
+
+### Implementation Log: 2026-06-21 17:21:24 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_candidate_format_pilot_3a_json_reasoning_firstjson_20260621_124408/run_length-config-numeric-n8-reward-outcome-grpo-skip`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 32]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 19:29:54 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-transformers-lp2`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `8`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 19:57:25 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-vllm-lp1`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `8`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 20:54:06 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-vllm-lp1-fixed`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `8`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 21:03:24 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `1`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-vllm-smoke-cudafix`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `none`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `0`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 21:08:12 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `1`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-vllm-smoke-seedckpt-cudafix`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `none`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `0`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Manual Note: vLLM Candidate-Eval Smoke, 2026-06-21
+
+- Initial full vLLM benchmark failed inside flashinfer JIT: first because `ninja` was not on the vLLM subprocess `PATH`, then because flashinfer wrote to `~/.cache/flashinfer` and could not find CUDA sampling headers during JIT compilation.
+- Updated the vLLM subprocess wrapper to prepend the vLLM env `bin` directory, redirect flashinfer workspace under `artifacts/cache/vllm/flashinfer`, and expose CUDA include dirs through `CUDA_HOME`/`CUDA_PATH`/`CPATH`/`CPLUS_INCLUDE_PATH`.
+- A smoke run with `treat_seed_as_round_zero` and the raw base model did not reach vLLM because no pseudo-labels were retained.
+- A second smoke run used the existing trained seed checkpoint as `MODEL_NAME`, still with `treat_seed_as_round_zero`, plus a one-candidate fixture. It reached vLLM successfully and wrote `vllm_eval_summary.json`/`vllm_eval_result.json`.
+- Successful smoke job: `10054314`; output: `artifacts/runs/adaptive_vllm_eval_benchmark_20260621_144604/run_length-vllm-smoke-seedckpt-cudafix`; Slurm elapsed: `00:03:09`; vLLM candidate eval runtime: `123.6s` for `205` examples, dominated by first-time flashinfer compile/cache warmup.
+
+### Manual Note: vLLM Eval Optimization Pass, 2026-06-21
+
+- Added adaptive CLI/launcher controls for vLLM candidate eval: `--vllm-flashinfer-sampler`, `--vllm-enforce-eager`, `--vllm-max-model-len`, `--vllm-max-num-seqs`, and `--vllm-max-num-batched-tokens`.
+- Defaulted adaptive vLLM candidate eval to `--vllm-flashinfer-sampler off` because our deterministic short-output scoring does not need FlashInfer sampling and the previous smoke run spent most of its time in FlashInfer JIT/cache setup.
+- The vLLM subprocess now sets repo-local vLLM/FlashInfer cache paths, disables standalone compile/pregrad passes by default when unset, and records worker/runtime/settings in `vllm_eval_summary.json`.
+- Focused verification passed: `tests/test_vllm_evaluation.py`, `tests/test_candidate_training_runtime.py`, `tests/test_adaptive_args_normalization.py`, and `tests/test_adaptive_candidate_launcher.py`.
+- One-candidate smoke benchmark output: `artifacts/runs/adaptive_vllm_eval_optimized_20260621_181952`.
+- Jobs completed: sampler-off vLLM `10056669` (`00:02:37` Slurm elapsed), eager-small vLLM `10056670` (`00:02:04`), matched Transformers comparison `10056807` (`00:01:04`).
+- Candidate eval runtime on the same 205 run-length examples: sampler-off vLLM `78.9s`, eager-small vLLM `48.8s`, Transformers `3.8s`.
+- Conclusion for current small per-candidate eval: optimized vLLM is much better than the first FlashInfer-JIT smoke (`123.6s`) but still not competitive with in-process Transformers because vLLM process/model startup dominates.
+
+### Implementation Log: 2026-06-21 22:22:42 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `1`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_optimized_20260621_181952/eager-small`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `none`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `0`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 22:23:12 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `1`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_optimized_20260621_181952/sampler-off`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `none`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `0`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-21 22:25:51 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `1`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_vllm_eval_optimized_20260621_181952/transformers-small`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `none`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `0`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 00:22:31 UTC
+
+- Reduced proposal format-CE pressure on concrete actions by adding `--proposal-format-mask-config-values` / `--no-proposal-format-mask-config-values`, defaulting to masked values.
+- In merged-agent proposal updates, format replay still trains JSON braces, keys, colons, commas, and string delimiters, but masks the contents/values for `reasoning`, `notes`, `rationale`, `left`, `right`, `guard`, and legacy `target`.
+- GRPO policy samples and driver-appended observation CE samples are unchanged; the masking applies only to `proposal_format_targets.jsonl` replay samples.
+- Proposal-GRPO metrics now log `format_mask_config_values`, `format_masked_value_token_counts`, `format_completion_token_counts`, and `format_total_completion_token_counts`.
+- Verification: `python -m py_compile self/adaptive/args.py self/adaptive/proposal.py tests/test_adaptive_candidate_training.py tests/test_adaptive_args_normalization.py`; focused pytest for parser defaults, format masking, action-span masking, observation completion, and argument normalization passed (`8` tests total).
+
+### Implementation Log: 2026-06-22 00:31:44 UTC
+
+- Changed config candidate reward to local average-accuracy improvement: `candidate_avg_accuracy - current_avg_accuracy`.
+- Kept `frontier_delta`, `target_delta`, and init-relative average delta in candidate metrics and observations for analysis, but they no longer enter the scalar candidate reward used for selection or proposal-GRPO outcome rewards.
+- Updated the proposal prompt reward formula and the old dry-run experiment summary text to avoid advertising the previous static-frontier/init-relative reward.
+- Verification: `python -m py_compile self/adaptive/candidate.py self/adaptive/attempts.py self/adaptive/proposal.py self/experiments/adaptive_self_improvement.py tests/test_candidate_rewards.py tests/test_adaptive_candidate_training.py`; focused pytest for candidate reward metrics and config prompt formula passed (`4` tests).
+
+### Implementation Log: 2026-06-22 01:02:32 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_candidate_avg_delta_pilot_3a_20260621_203811/run_length-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 32, 40]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `21`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 01:05:11 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_candidate_avg_delta_pilot_3a_20260621_203811/addition-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `3`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 01:28:00 UTC
+
+- Changed default proposal sampling temperature from `0.8` to `0.9`.
+- Added `--force-unique-proposals` for config generation. When enabled, the driver samples until it returns `num_candidates` unique normalized config actions `(left, right, guard, target)` or exhausts `--proposal-unique-max-draws`.
+- Launcher defaults now set `FORCE_UNIQUE_PROPOSALS=1`, `PROPOSAL_TEMPERATURE=0.9`, `PROPOSAL_TOP_P=0.95`, and `PROPOSAL_UNIQUE_MAX_DRAWS=0` (`0` auto-expands to `max(8 * num_candidates, num_candidates + 16)`).
+- Each attempt with forced uniqueness writes `proposal_unique_sampling.json`, including total raw draws, unique valid action count, whether the requested unique count was reached, and per-draw validation reasons.
+- Candidate-action dedup remains in place after validation/training dispatch; the new sampling stage is earlier and is meant to reduce duplicate candidate training attempts.
+- Verification: `PYTHONPATH=. ~/.conda/envs/torch-env/bin/python -m pytest -q tests/test_proposal_generation.py tests/test_adaptive_candidate_training.py::test_parser_defaults_enable_numeric_outcome_and_config_grpo tests/test_adaptive_candidate_launcher.py` passed (`9` tests).
+
+### Implementation Log: 2026-06-22 07:22:28 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_unique_temp09_25a_20260621_213009/addition-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `30`.
+- Proposal GRPO updates: `4`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 08:33:34 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_unique_temp09_25a_20260621_213009/run_length-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 31, 32, 40, 48]`.
+- Selected proposal traces retained for replay: `21`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `195`.
+- Proposal GRPO updates: `23`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 09:20:00 UTC
+
+- Added `self/diagnostics/proposal_state_sensitivity.py` to test whether proposal generation is conditioned on the state prompt.
+- The diagnostic loads a saved `proposal_prompt.json`, keeps the same prompt template, and creates swapped-state variants by changing `current_source_slices`, `allowed_target_frontier`, and the aggregate per-size accuracy table.
+- It reports prompt token count/context fit, greedy proposal behavior, optional sampled proposal behavior, and normalized action log-likelihood rankings for valid hypothetical actions.
+- Added diagnostic safeguards: `--num-samples 0` skips sampling for faster greedy/logprob-only probes; `--logprob-batch-size` chunks scoring to avoid diagnostic-only GPU OOM; `--max-logprob-candidate-actions` caps broad-frontier action ranking while preserving observed/preferred actions when valid.
+- Addition probe output: `artifacts/analysis/proposal_state_sensitivity/addition_attempt1_final.json`. Prompt length was about `900` tokens with a `40960` token effective context. Greedy/sampled generation kept emitting `(5, 3, 8, none)` even when the frontier was changed to exactly `9` or `14`; logprob rankings did move to valid frontier actions under strict frontier swaps.
+- Run-length probe output: `artifacts/analysis/proposal_state_sensitivity/run_length_attempt8_final.json`. Prompt length was about `805-1113` tokens with a `40960` token effective context. Greedy generation produced invalid stale text/actions under all swapped states; logprob rankings changed with frontier constraints but accuracy-only swaps still favored the old observed action `(16, 24, 40, none)`.
+- Interpretation: context length is not the limiting issue. The current proposal policy has a state-conditioning failure at the decoded-action level, with some frontier sensitivity visible in normalized action logprobs but weak use of per-size accuracy/state details.
+
+### Implementation Log: 2026-06-22 09:55:00 UTC
+
+- Prepared the Qwen3-4B adaptive pilot.
+- Cached non-base `Qwen/Qwen3-4B` into the scratch Hugging Face cache used by AILab offline jobs: `/scratch/gpfs/BRENDEN/changho/hf_cache/hub/models--Qwen--Qwen3-4B`.
+- Offline preflight passed for config/tokenizer from scratch cache: `qwen3`, `36` layers, hidden size `2560`, max positions `40960`, tokenizer size `151669`.
+- Updated adaptive candidate submitter/manifests to explicitly export and record `MODEL_NAME` and `PROPOSAL_MODEL_NAME`; this makes model-size experiments auditable instead of relying on ambient `--export ALL`.
+- Verification: `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`; `py_compile` for `self/launcher_manifests.py` and the proposal-state diagnostic; focused pytest for launcher/manifests passed (`7` tests).
+- Dry-run submission with `MODEL_NAME=Qwen/Qwen3-4B` confirmed Slurm exports and manifest fields.
+- Submitted 3-attempt Qwen3-4B AILab pilot with conservative one-candidate-worker settings: `MAX_ATTEMPT_ROUNDS=3`, `NUM_CANDIDATES=8`, `MAX_STEPS=100`, `CANDIDATE_LOCAL_PARALLELISM=1`, `CANDIDATE_LOCAL_PACK_SIZE=1`, `CANDIDATE_LOCAL_CACHE_BASE_STATE=0`, `SBATCH_MEM=64G`, `SBATCH_TIME=06:00:00`.
+- Output root: `artifacts/runs/adaptive_qwen3_4b_pilot_3a_20260622_095411`.
+- Submitted jobs: addition `10094651`, run_length `10094652`. Initial monitoring showed both jobs pending in AILab with reason `Priority`, so no runtime logs were available yet.
+
+### Implementation Log: 2026-06-22 11:10:00 UTC
+
+- Qwen3-4B pilot jobs completed successfully.
+- Slurm: addition `10094651` completed in `00:53:57`; run_length `10094652` completed in `00:56:52`; both exit code `0:0`; CPU RSS about `19-20GB` under `64G` allocation.
+- Addition result: `3` attempts, `0` selected candidates, `0` proposal-GRPO updates. Initial/final held-out average stayed at `0.6007`; all trained valid candidate actions were variants of `(5, 3)->8` or `(3, 5)->8` and had negative local average-accuracy rewards.
+- Addition proposals: per attempt, 3-5 of 8 returned valid parsed actions, but duplicates dominated and parse errors remained common.
+- Run-length result: `3` attempts, `3` selected candidates, `2` proposal-GRPO updates. Initial held-out average was `0.4452`; selected candidate averages moved to `0.6973`, `0.7464`, and `0.8015`.
+- Run-length selected actions: attempt 1 `(15, 16)->31`, reward `+0.2521`; attempt 2 `(16, 8)->24`, reward `+0.0503`; attempt 3 `(16, 24)->40`, reward `+0.0506`.
+- Qwen3-4B state-sensitivity diagnostics were written to `artifacts/analysis/proposal_state_sensitivity/qwen3_4b_addition_attempt1_final.json` and `artifacts/analysis/proposal_state_sensitivity/qwen3_4b_run_length_attempt3_final.json`.
+- Diagnostic interpretation: model context is still fine (`~900-1100` prompt tokens vs `40960` effective context). Qwen3-4B logits react to strict frontier swaps, but decoded greedy behavior still fails state-conditioning. Addition greedy outputs prose and no parseable JSON; run_length original state emits valid `(16, 24)->40`, but swapped-frontier states still decode stale out-of-frontier actions even when logprob ranking favors the valid frontier action.
+
+### Implementation Log: 2026-06-22 14:54:20 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_qwen3_4b_pilot_3a_20260622_095411/addition-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `17`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 14:57:14 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_qwen3_4b_pilot_3a_20260622_095411/run_length-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24, 31, 40]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `18`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.1`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 15:20:00 UTC
+
+- Fixed a proposal-prompt leakage bug in the config `action_observation` schema.
+- The previous prompt included a concrete pseudo-example with `left=5`, `right=3`, and target `8`; addition pilots then repeatedly proposed `(5, 3)->8` / `(3, 5)->8`.
+- The prompt is now schema-only: it lists required keys (`reasoning`, `left`, `right`, `guard`) and tells the model to choose all numeric values from `current_source_slices` and `allowed_target_frontier`.
+- Added a lightweight regression test to ensure the concrete `(5, 3)->8` exemplar does not return.
+- Verification: `PYTHONPATH=. pytest -q tests/test_adaptive_proposals_and_sandbox.py` passed (`9` tests); `python -m py_compile self/adaptive/proposal.py` passed.
+- Iteration note: before full candidate-training loops, use prompt-only and validation-only smoke runs to catch this class of issue. The cheap sequence should be: render prompt, sample proposals, parse/validate/deduplicate, inspect action histogram/state-sensitivity, then train at most one candidate if the proposal distribution is sane.
+
+### Implementation Log: 2026-06-22 16:00:00 UTC
+
+- Added `self/diagnostics/proposal_smoke.py`, a prompt-only diagnostic that renders the current fixed prompt, samples proposal completions, validates/deduplicates actions, writes action histograms, and emits a small synthetic run directory for state-sensitivity probes.
+- Ran Qwen3-4B fixed-prompt smoke diagnostics without candidate training.
+- Artifact root: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/analysis/proposal_smoke/fixed_prompt_qwen3_4b_20260622_153630`.
+- Addition smoke (`32` samples, temp `0.9`): `13/32` valid, `8` unique valid actions. The old hard collapse to `(5, 3)->8` disappeared; top actions were `(3,5)->8` (`3`), `(5,7)->12` with carry guard (`2`), `(3,5)->8` with carry guard (`2`), and `(5,6)->11` (`2`). Remaining failures were mostly parse errors (`11`), range errors (`6`), and schema errors (`2`).
+- Run-length smoke (`32` samples, temp `0.9`): `25/32` valid, but only `5` unique valid actions. Distribution remained concentrated on `(16,24)->40` with `require_boundary_continue` (`11`) and `(40,8)->48` with `require_boundary_continue` (`8`).
+- Addition state-sensitivity: prompt length `~928` tokens. Greedy moved correctly to `(3,5)->8` when the frontier was exactly `8`. For frontier exactly `14`, normalized action logprobs ranked `(7,7)->14` highest, but greedy still emitted an invalid lower-sum action. Accuracy-only swaps did not reliably move greedy actions toward the preferred `(7,7)->14` target.
+- Run-length state-sensitivity: prompt length `~1051` tokens. Original greedy stayed at `(16,24)->40`; frontier-only swaps changed logprob rankings to the valid exact-frontier actions but greedy often produced parse/range errors. When both frontier and accuracy preferred target `47`, greedy emitted valid `(16,31)->47`.
+- Interpretation: removing the concrete example helped addition diversity, but the remaining bottlenecks are strict output formatting, weak decoding-level state conditioning, and an overstrong run-length prior toward previously successful actions/guards. Prompt-only diagnostics took about `3.6-3.7` minutes per task with `32` samples on the local CUDA environment; future smoke tests should default to `8-16` samples or use a batched/vLLM proposal backend.
+
+### Implementation Log: 2026-06-22 16:45:00 UTC
+
+- Implemented strict valid-unique config proposal sampling for candidate training.
+- Candidate training now receives only kept valid unique `left/right/guard/target` actions. Invalid parses and duplicate valid actions are rejected instead of being backfilled into candidate slots.
+- Added batched proposal draws through `--proposal-sampling-batch-size` (default `8` in launch configs) so rejection sampling does not call `model.generate` one sample at a time.
+- Added `proposal_draw_results.json` for all validated proposal draws, including invalid and duplicate samples, while keeping `proposal_results.json` as the candidate-facing kept set.
+- Wired proposal-GRPO to use all draw results when available. Kept draw rows carry `candidate_proposal_index`, so downstream candidate metrics still attach to the trained candidate even when the draw index differs from the candidate index.
+- If every trainable GRPO draw is invalid and rewards have zero variance, the default `skip` mode is overridden to a fixed-baseline update so malformed-only batches still create a negative training signal.
+- Disabled merged-agent format CE by default (`PROPOSAL_FORMAT_LOSS_WEIGHT=0.0`) and skip building format replay targets when the weight is zero. Formatting pressure now primarily comes from rejection sampling plus invalid-draw GRPO.
+- Updated launchers/config defaults to export `PROPOSAL_SAMPLING_BATCH_SIZE=8` and the new zero format-CE default.
+- Verification: `py_compile` passed for adaptive proposal/controller/run/traces/args; focused torch-env pytest passed for proposal generation, launcher wiring, args normalization, and proposal-GRPO trace tests (`21` tests total).
+
+### Submission Log: 2026-06-22 13:25 EDT
+
+- Submitted a 3-attempt model-size pilot comparing `Qwen/Qwen3-1.7B` and `Qwen/Qwen3-4B`.
+- Common settings: `task={addition,run_length}`, `condition=config`, `num_candidates=8`, `MAX_ATTEMPT_ROUNDS=3`, `NO_SELECTION_PATIENCE=3`, `MAX_STEPS=100`, strict unique proposal sampling, `PROPOSAL_SAMPLING_BATCH_SIZE=8`, `PROPOSAL_TEMPERATURE=0.9`, `PROPOSAL_TOP_P=0.95`, `PROPOSAL_GRPO_REWARD_MODE=outcome`, `PROPOSAL_GRPO_ZERO_VARIANCE=skip`, `PROPOSAL_FORMAT_LOSS_WEIGHT=0.0`.
+- Output root: `artifacts/runs/adaptive_qwen3_model_compare_3a_20260622_132528`.
+- 1.7B jobs: addition `10102327`, run_length `10102328`; resources `48G`, `03:00:00`, local candidate parallelism `2`, pack size `2`, cache base state on.
+- 4B jobs: addition `10102339`, run_length `10102340`; resources `64G`, `04:00:00`, local candidate parallelism `1`, pack size `1`, cache base state off.
+- Initial monitoring after submission: all four jobs were pending on `ailab` with reason `Priority`; no stdout/stderr logs had started yet.
+
+### Implementation Log: 2026-06-22 17:10 EDT
+
+- Re-enabled weak proposal format CE by default after the 3-attempt model-size pilot still showed substantial malformed/prose-heavy proposal draws under strict rejection sampling.
+- New default: `PROPOSAL_FORMAT_LOSS_WEIGHT=0.02` in Python defaults, the AILab runner, submitter, and shared adaptive config.
+- Kept `PROPOSAL_FORMAT_MASK_CONFIG_VALUES=1`, so format CE masks concrete config values and mainly trains structural JSON/key/delimiter tokens. This is intended to improve parseability without strongly copying the selected `left/right/guard` action.
+- Existing runs from `adaptive_qwen3_model_compare_3a_20260622_132528` used the old `0.0` default; reruns are needed to test this change.
+
+### Implementation Log: 2026-06-22 19:11:28 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_qwen3_model_compare_3a_20260622_132528/qwen3-1.7b/run_length-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 31, 47]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `173`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.0`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 19:24:39 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_qwen3_model_compare_3a_20260622_132528/qwen3-4b/run_length-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 31, 47]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `192`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.0`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 19:48:03 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_qwen3_model_compare_3a_20260622_132528/qwen3-1.7b/addition-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10, 17, 27]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `114`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.0`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 20:46:40 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `3`; max selected candidates: `unlimited`; attempts used: `3`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_qwen3_model_compare_3a_20260622_132528/qwen3-4b/addition-config-numeric-n8-reward-outcome-grpo-skip-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 14, 21, 28]`.
+- Selected proposal traces retained for replay: `3`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `97`.
+- Proposal GRPO updates: `2`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.0`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Analysis Log: 2026-06-22 17:45 EDT
+
+- Updated `notebooks/adaptive_qwen3_model_compare_candidate_analysis.ipynb` with intended-behavior diagnostics in addition to aggregate accuracy, candidate filtering, and selected-action tables.
+- New diagnostics track whether selected candidates use newly learned source sizes, whether the selected target is novel relative to the current source pool, and whether a round repeats an already learned target.
+- In the 3-attempt model-size pilot, both addition runs show clean bootstrapping chains: 1.7B selects `10 -> 17 -> 27`, and 4B selects `14 -> 21 -> 28`, using learned source sizes after attempt 1.
+- Both run-length runs improve accuracy but repeat target `47` on attempt 3 with a different guard, so their accuracy gains should be separated from acquisition-policy success.
+- The pilot used `PROPOSAL_FORMAT_LOSS_WEIGHT=0.0`; the weak masked format CE default (`0.02`) was implemented after this run and still needs a rerun to evaluate format robustness.
+
+### Runtime Analysis Log: 2026-06-22 18:15 EDT
+
+- Added `notebooks/adaptive_runtime_disaggregation.ipynb` to parse adaptive run artifacts and summarize wall time, seed training time, candidate-dispatch wall estimates, summed candidate SFT time, and summed candidate evaluation time.
+- For the 3-attempt Qwen3 model-size pilot, candidate evaluation dominated candidate SFT. Addition was the slowest case: 1.7B addition spent about `84.5` summed candidate-eval minutes versus `12.7` summed candidate-SFT minutes; 4B addition spent about `62.6` versus `14.6`.
+- Run-length candidate evaluation was cheaper but still larger than candidate SFT: 1.7B run-length `15.2` eval minutes versus `5.1` SFT minutes; 4B run-length `9.8` versus `3.8`.
+- Added future-run instrumentation in `self/adaptive/attempts.py` to write `attempt_timing.json` per attempt with exact phase timings for round/proposal dispatch, candidate dispatch, selection/trace/cleanup, outcome/GRPO, and total attempt time.
+
+### Seed-Cache Semantics: 2026-06-22 18:30 EDT
+
+- The adaptive loop trains/evaluates the seed model before attempt 1; the first proposal is generated from the seed-trained checkpoint, not from the raw base model.
+- Cached seed reuse is therefore valid across proposal-prompt, output-schema, proposal-GRPO, observation-loss, format-CE, reward-scaling, and candidate-selection experiments, as long as the seed-stage model/data/training recipe is unchanged.
+- Seed checkpoints should be invalidated when any seed-stage ingredient changes: task, base model, tokenizer mode, task output/target format, initial source size range, initial train/eval counts, random seed, seed max steps/epochs, learning rate, train batch size, precision, or recipe/init-from-scratch settings.
+- Suggested naming convention: `artifacts/seed_cache/adaptive/{task}/{model_slug}/init{min}-{max}_frontier{frontier}_train{train_per_size}_eval{eval_per_size}_target{target_mode}_tok{tokenizer}_seed{seed}_steps{seed_steps}_lr{lr}_bs{batch}/model`.
+- To reuse a cached seed checkpoint in the adaptive launcher, set `TREAT_SEED_AS_ROUND_ZERO=1` and set `MODEL_NAME` to the cached `.../model` path. In that mode the driver evaluates `MODEL_NAME` as round 0 and attempt 1 proposes from it directly.
+- Made `TREAT_SEED_AS_ROUND_ZERO` explicit in `adaptive_candidate_base.env`, Slurm logs, and the submitter export so cached-seed runs are auditable.
+
+### Seed-Only Cache Jobs: 2026-06-22 19:25 EDT
+
+- Submitted seed-checkpoint-only jobs for `{addition, run_length} x {Qwen3-1.7B, Qwen3-4B}` using the normal adaptive runner with `MAX_ATTEMPT_ROUNDS=0`, `MAX_SELECTED_ROUNDS=0`, and `NO_SELECTION_PATIENCE=1`.
+- These jobs train and evaluate only `round_00/seed_training/model`; no proposals, candidate SFT, selection, or proposal updates should run.
+- Common seed recipe: `SEED_MAX_STEPS=0` epoch-based seed training, `LEARNING_RATE=5e-6`, `TRAIN_BATCH_SIZE=16`, `EVAL_BATCH_SIZE=16`, `BF16=1`, `TREAT_SEED_AS_ROUND_ZERO=0`.
+- Submission manifest: `artifacts/seed_cache/adaptive/seed_cache_submission_20260622.tsv`.
+- Job IDs: `10113852` addition/Qwen3-1.7B, `10113853` run_length/Qwen3-1.7B, `10113854` addition/Qwen3-4B, `10113855` run_length/Qwen3-4B.
+- Cache output roots:
+  - `artifacts/seed_cache/adaptive/addition/qwen3-1.7b/init3-7_frontier31_train5000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16`
+  - `artifacts/seed_cache/adaptive/run_length/qwen3-1.7b/init8-16_frontier48_train50000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16_targetrun_state_alpha2`
+  - `artifacts/seed_cache/adaptive/addition/qwen3-4b/init3-7_frontier31_train5000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16`
+  - `artifacts/seed_cache/adaptive/run_length/qwen3-4b/init8-16_frontier48_train50000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16_targetrun_state_alpha2`
+
+### Eval Throughput Change: 2026-06-22 19:50 EDT
+
+- Candidate evaluation was slower than 100-step candidate SFT because `transformers` eval runs autoregressive `model.generate` over the full held-out size grid.
+- Increased adaptive default `EVAL_BATCH_SIZE` from `16` to `128` in Python and AILab launcher defaults.
+- Updated `evaluate_accuracy_with_breakdown` to size-bucket examples before generation batching, preserving accuracy metrics while reducing padding waste for larger eval batches.
+- Verification: focused generation/eval and candidate runtime tests passed (`7 passed`), and adaptive launcher shell syntax checks passed.
+
+### Cached-Seed Eval Batch Smoke: 2026-06-22 19:14 EDT
+
+- Submitted one-attempt cached-seed smoke jobs to exercise the real adaptive pipeline with `EVAL_BATCH_SIZE=128` and size-bucketed generation eval.
+- Output root: `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406`.
+- Jobs: `10114604` addition/Qwen3-1.7B, `10114605` run_length/Qwen3-1.7B, `10114606` addition/Qwen3-4B, `10114607` run_length/Qwen3-4B.
+- The run_length/Qwen3-4B smoke job was submitted with dependency `afterok:10113855` on the seed-only cache job.
+- Early monitoring: the running jobs loaded cached seed checkpoints on compute nodes, skipped seed training via `TREAT_SEED_AS_ROUND_ZERO=1`, reached adaptive attempt 1, and logged `Train/eval batch size: 16/128`.
+- First candidate eval summaries confirm real candidate eval used `batch_size=128`: addition candidates over `2900` examples finished in about `27-29s`; run_length candidates over `3300` examples finished in about `12-43s`.
+
+### Submission Log: 2026-06-22 19:40 EDT
+
+- Submitted cached-seed 25-attempt adaptive config jobs with `EVAL_BATCH_SIZE=128` and hard `02:30:00` walltime.
+- Output root: `artifacts/runs/adaptive_cached_seed_25a_evalbs128_20260622_193946`.
+- Jobs: `10115214` addition/Qwen3-1.7B, `10115215` run_length/Qwen3-1.7B, `10115216` addition/Qwen3-4B, `10115217` run_length/Qwen3-4B.
+- Common settings: `TREAT_SEED_AS_ROUND_ZERO=1`, `MAX_ATTEMPT_ROUNDS=25`, `MAX_SELECTED_ROUNDS=0`, `NO_SELECTION_PATIENCE=25`, `NUM_CANDIDATES=8`, `MAX_STEPS=100`, `TRAIN_BATCH_SIZE=16`, `CANDIDATE_EVAL_BACKEND=transformers`.
+- Initial monitoring: all four jobs were pending on `ailab` with reason `Priority`; no job logs had started yet.
+
+### Implementation Log: 2026-06-22 22:57:26 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `1`.
+- Output directory: `artifacts/seed_cache/adaptive/addition/qwen3-1.7b/init3-7_frontier31_train5000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-23 03:33:21 UTC
+
+- Added explicit config-proposal decision rules to the prompt:
+  reliable source sizes, weak reachable targets, local average-accuracy improvement,
+  source-pool growth, conditional exact-repeat avoidance, and task-specific guard failure modes.
+- Added `--proposal-prompt-action-history` / `PROPOSAL_PROMPT_ACTION_HISTORY` as an ablation knob.
+  Default is off; when enabled, prompts include only a compact recent selected-action summary
+  (`left`, `right`, `target`, `guard`, reward, and selected outcome deltas), not full trace text.
+- No candidate reward/selection formula changed in this edit.
+
+### Implementation Log: 2026-06-23 03:50:36 UTC
+
+- Fixed the stale adaptive candidate-training prompt assertion after replacing the confusing numeric-copy instruction.
+- Verification: `PYTHONPATH=. "$HOME/.conda/envs/torch-env/bin/python" -m pytest -q tests/test_adaptive_candidate_training.py`
+  passed (`58 passed`, `3` existing multiprocessing fork warnings).
+- Submitted 8 cached-seed Qwen3-1.7B adaptive config jobs:
+  `{addition, run_length} x history {0, 1} x novelty beta {0, 0.05}`.
+- Common settings: `MAX_ATTEMPT_ROUNDS=25`, `NO_SELECTION_PATIENCE=25`,
+  `NUM_CANDIDATES=8`, `MAX_STEPS=100`, `TREAT_SEED_AS_ROUND_ZERO=1`,
+  `SBATCH_TIME=03:00:00`, `PROPOSAL_GRPO_REWARD_MODE=outcome`,
+  `PROPOSAL_GRPO_ZERO_VARIANCE=skip`, `PROPOSAL_UPDATE_LOSS_MODE=merged_agent`.
+- Output root: `artifacts/runs/adaptive_1p7b_history_novelty_25a_20260622_234947`.
+- Submission manifest: `artifacts/runs/adaptive_1p7b_history_novelty_25a_20260622_234947/submission_manifest.tsv`.
+- Job IDs: `10127771`, `10127772`, `10127773`, `10127774`,
+  `10127775`, `10127776`, `10127777`, `10127778`.
+- Initial monitoring: all 8 jobs were still pending on `ailab`; no Slurm logs had been created yet.
+
+### Implementation Log: 2026-06-23 03:17:49 UTC
+
+- Confirmed current config jobs already use `FORCE_UNIQUE_PROPOSALS=1` in the AILAB launchers and `--proposal-grpo-deduplicate-actions` by default, so exact duplicate actions are deduplicated before candidate training and before proposal-policy GRPO credit.
+- Added proposal-GRPO action entropy diagnostics: pre-dedup/trainable action entropy, effective action count, duplicate action rate, and top action counts are now written in `proposal_grpo_metrics.json`.
+- Added novelty reward shaping with `--proposal-grpo-novelty-bonus-beta` defaulting to `0.05`. Valid config actions receive `beta / sqrt(count + 1)`, where `count` comes from selected-action history plus current raw duplicates; set beta to `0` for ablation.
+- Added source-pool admission gating with `--source-admission-target-accuracy-threshold` defaulting to `0.80`. A selected model checkpoint still advances the learner, but the selected target and its pseudo examples enter future composition source data only when held-out target accuracy clears the threshold.
+- `round_summary.json` now logs the source-admission decision, and run summaries/logs record both novelty beta and the source-admission threshold.
+
+### Implementation Log: 2026-06-23 01:59:42 UTC
+
+- Tightened adaptive checkpoint retention for the config self-improvement pipeline.
+- Candidate workers now delete their own unselectable candidate `model/` directory immediately after scoring when `reward < selection_min_reward` or the candidate is invalid, unless `--keep-all-candidate-models` is set.
+- Attempt-level cleanup now deletes only unselected candidate `model/` directories and preserves surrounding JSON/JSONL logs such as `candidate_metrics.json`, eval summaries, trace files, and proposal-rehearsal summaries.
+- Added `--keep-final-model-checkpoint` / `KEEP_FINAL_MODEL_CHECKPOINT=1`. The default is logs-only finalization: if the final current checkpoint lives under the run output directory, its `model/` directory is deleted after summary/log writing.
+- Existing protected caches and external seed checkpoints are not pruned by finalization because deletion is bounded to the run output directory.
+- Deleted old non-live adaptive smoke-run candidate model directories under `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406`, freeing about `21.4 GiB`; current live 25-attempt jobs were left untouched.
+
+### Implementation Log: 2026-06-22 22:58:45 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `1`.
+- Output directory: `artifacts/seed_cache/adaptive/addition/qwen3-4b/init3-7_frontier31_train5000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:02:20 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `1`.
+- Output directory: `artifacts/seed_cache/adaptive/run_length/qwen3-1.7b/init8-16_frontier48_train50000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16_targetrun_state_alpha2`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:13:56 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `0`; max selected candidates: `unlimited`; attempts used: `0`; candidates per attempt: `1`.
+- Output directory: `artifacts/seed_cache/adaptive/run_length/qwen3-4b/init8-16_frontier48_train50000_initeval50_eval100_seed42_steps0_lr5e-6_bs16_bf16_targetrun_state_alpha2`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `0`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `0`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:21:09 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406/qwen3-1.7b/addition-one-attempt-evalbs128`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 10]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `64`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:22:30 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406/qwen3-1.7b/run_length-one-attempt-evalbs128`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `24`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:31:56 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406/qwen3-4b/run_length-one-attempt-evalbs128`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 31]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `64`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-22 23:32:12 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `addition`; max attempts: `1`; max selected candidates: `unlimited`; attempts used: `1`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_eval_batch128_cached_seed_smoke_20260622_191406/qwen3-4b/addition-one-attempt-evalbs128`.
+- Proposal output schema: `action_observation`.
+- Final source sizes tracked by driver: `[3, 4, 5, 6, 7, 13]`.
+- Selected proposal traces retained for replay: `1`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `37`.
+- Proposal GRPO updates: `0`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-23 08:15:19 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_1p7b_history_novelty_25a_20260622_234947/run_length-history0-novelty0`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `10`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.0`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 16:08:30 UTC
+
+- Fixed the anchor-KL failure in the adaptive config-generation loop.
+- Root cause: the seed checkpoint used as the `adaptive_init` anchor was pruned after the first proposal-GRPO update. On the next attempt, anchor-KL tried to load `round_00/seed_training/model`; because the local directory had been deleted, HuggingFace interpreted the relative path as a repo id and raised `HFValidationError`.
+- Implementation: `CheckpointManager.cleanup_replaced_checkpoint` now accepts protected checkpoints, and the attempt loop protects `proposal_kl_reference_checkpoint` while the run is active. Finalization still prunes the anchor checkpoint when `keep_final_model_checkpoint=False`, so this does not keep seed checkpoints indefinitely.
+- Added local-path normalization before loading a distinct anchor reference checkpoint.
+- Added regression tests for protected anchor cleanup and reran targeted proposal/checkpoint/launcher tests.
+
+### Implementation Log: 2026-06-23 Anchored Proposal KL
+
+- Added a GRPO-standard proposal anchor KL path: `--proposal-grpo-anchor-kl-reference adaptive_init` with `--proposal-grpo-anchor-kl-coef`.
+- The adaptive loop now captures the seed/adaptive-loop initial checkpoint immediately after seed training and passes it to every proposal-GRPO update as the frozen reference.
+- Kept the old sampled pre-update logprob proxy as `--proposal-grpo-kl-coef`; it remains a local trust-region proxy, while the new anchor KL is the cross-attempt regularizer.
+- `proposal_grpo_metrics.json` now logs `anchor_kl_enabled`, `anchor_kl_reference_checkpoint`, `anchor_kl_proxy`, and the reference mean logprob so notebooks can distinguish local KL from anchor KL.
+- Launcher defaults set `PROPOSAL_GRPO_ANCHOR_KL_COEF=0.01` and `PROPOSAL_GRPO_ANCHOR_KL_REFERENCE=adaptive_init`.
+
+### Implementation Log: 2026-06-23 08:52:18 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_1p7b_history_novelty_25a_20260622_234947/run_length-history0-novelty0p05`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 23]`.
+- Selected proposal traces retained for replay: `18`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-23 08:58:37 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/adaptive_1p7b_history_novelty_25a_20260622_234947/run_length-history1-novelty0`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `True`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `17`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `21`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.0`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-23 Option A Outcome Prediction
+
+- Changed the active config `action_observation` completion target to put outcome predictions inside the same generated JSON object after `reasoning` and before the executable config fields:
+  `{"reasoning": str, "expected_avg_delta_from_current": float, "expected_target_delta": float, "expected_frontier_delta": float, "left": int, "right": int, "guard": str}`.
+- The driver still executes only `left`, `right`, and `guard`; predictions are stored as `parsed_prediction` / `proposal_prediction` metadata.
+- Merged-agent observation CE now appends realized feedback with the stored prediction and error terms:
+  `frontier_delta_error`, `target_delta_error`, `avg_delta_from_current_error`, and `avg_delta_from_init_error`.
+- Format CE masks the actual reasoning, prediction numeric values, and config values while keeping JSON syntax and field names trainable. This keeps format pressure without directly imitating specific acquisition choices.
+- The prompt now explicitly asks for reasoning, then expected deltas, then the config action, and removes the older “do not predict reward” language.
+- Verification in the current login environment: `python -m py_compile self/adaptive/proposal.py self/adaptive/traces.py tests/test_adaptive_candidate_training.py tests/test_adaptive_proposals_and_sandbox.py`.
+- Full focused pytest was not run in this shell because `torch` is unavailable in the active Python environment.
+
+### Implementation Log: 2026-06-23 Proposal-GRPO LR / Anchor-KL Sweep Support
+
+- Added adaptive candidate submitter sweep axes for `PROPOSAL_GRPO_LEARNING_RATES` and `PROPOSAL_GRPO_ANCHOR_KL_COEFS`, while keeping `PROPOSAL_GRPO_LEARNING_RATE` and `PROPOSAL_GRPO_ANCHOR_KL_COEF` as single-value defaults.
+- Output directories, SLURM job names, stdout/stderr log names, and submission manifest keys now include `lr-*` and `akl-*` labels.
+- The submission manifest now records per-job `proposal_grpo_learning_rate`, `proposal_grpo_kl_coef`, and `proposal_grpo_anchor_kl_coef`, plus top-level sweep lists.
+- The planned sweep disables the old sampled-token local KL proxy by launching with `PROPOSAL_GRPO_KL_COEF=0`; anchor KL remains the only KL-style regularizer in that sweep.
+- Verification: `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`, `python -m py_compile self/launcher_manifests.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py`, and `python -m pytest tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q` (`8 passed`).
+
+### Implementation Log: 2026-06-23 Dr.GRPO Proposal Objective
+
+- Added `--proposal-grpo-objective {grpo,dr_grpo}` / `PROPOSAL_GRPO_OBJECTIVE`, defaulting to `grpo`.
+- `grpo` preserves the previous proposal policy update: std-normalized group advantages and mean logprob over trainable policy tokens.
+- `dr_grpo` uses reward-minus-group-mean advantages and summed logprob over trainable policy tokens, removing reward-std and per-completion length normalization from the proposal policy term.
+- Observation CE, format CE, reward shaping, zero-variance handling, deduplication, novelty bonus, and KL/anchor-KL knobs are unchanged.
+- Runner, submitter, job/log/output labels, and submission manifests now record the objective with `obj-grpo` / `obj-dr-grpo` labels.
+- Verification:
+  - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
+  - `python -m py_compile self/adaptive/proposal.py self/adaptive/args.py self/launcher_manifests.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_training.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py`
+  - `python -m pytest tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q` (`9 passed`)
+  - `conda run -n torch-env python -m pytest tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_training.py -k 'proposal_grpo_reward_mapping_and_advantages or proposal_policy_microbatches_match_full_batch_gradient or parser_defaults_enable_numeric_outcome_and_config_grpo or preserves_task_defaults' -q` (`4 passed`, `57 deselected`)
+
+### Implementation Log: 2026-06-24 01:23:22 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-3em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `4`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.0`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-3em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 01:40:15 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `10`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.0`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-1em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 09:04:55 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24]`.
+- Selected proposal traces retained for replay: `16`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1583`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.0`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_20260623_105700/run_length-config-numeric-n8-reward-outcome-grpo-skip-lr-5em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 22:31:50 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24]`.
+- Selected proposal traces retained for replay: `12`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 22:57:39 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0p03-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `5`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.03`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0p03-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 23:01:35 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 24]`.
+- Selected proposal traces retained for replay: `17`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 23:26:31 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0p01-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `8`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.01`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0p01-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 23:48:54 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0p01-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 27]`.
+- Selected proposal traces retained for replay: `18`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.01`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-1em6-akl-0p01-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-24 23:56:30 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0p03-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `16`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.03`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-3em6-akl-0p03-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 00:33:52 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-5em6-akl-0p03-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `12`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.03`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-5em6-akl-0p03-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 00:50:15 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_dr_grpo_default_cell_anchorfix_20260624_120907/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16]`.
+- Selected proposal traces retained for replay: `13`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.01`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_dr_grpo_default_cell_anchorfix_20260624_120907/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 00:55:30 UTC
+
+- Implemented/running adaptive candidate-training loop.
+- Task: `run_length`; max attempts: `25`; max selected candidates: `unlimited`; attempts used: `25`; candidates per attempt: `8`.
+- Output directory: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-5em6-akl-0-eval-transformers`.
+- Proposal output schema: `action_observation`.
+- Proposal prompt action history: `False`; max items: `5`.
+- Final source sizes tracked by driver: `[8, 9, 10, 11, 12, 13, 14, 15, 16, 27]`.
+- Selected proposal traces retained for replay: `14`.
+- Post-task proposal rehearsal: `False`; repeat/max examples: `64`/`256`.
+- Outcome trace target mode: `numeric`; retained outcome traces: `1600`.
+- Proposal GRPO updates: `24`; steps/update: `1`; reward mode: `outcome`; zero-variance mode: `skip`.
+- Proposal GRPO KL: old-policy coef `0.01`; anchor `adaptive_init` coef `0.0`.
+- Proposal GRPO anchor checkpoint: `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855/run_length-config-numeric-n8-reward-outcome-grpo-skip-obj-grpo-lr-5em6-akl-0-eval-transformers/round_00/seed_training/model`.
+- Proposal GRPO action dedup: `True`.
+- Proposal GRPO novelty beta: `0.05`.
+- Source admission target-accuracy threshold: `0.8`.
+- Proposal update loss: `merged_agent`; observation/format weights: `0.2`/`0.02`.
+- Keep final model checkpoint: `False`.
+- Keep all proposal-GRPO checkpoints: `False`.
+
+### Implementation Log: 2026-06-25 Anchor-KL Fix Sweep Outcome
+
+- Updated analysis notebook: `notebooks/adaptive_recent_grpo_sweep_results.ipynb`.
+- Fixed-run roots analyzed:
+  - `artifacts/runs/adaptive_grpo_lr_anchor_sweep_anchorfix_20260624_120855`
+  - `artifacts/runs/adaptive_dr_grpo_default_cell_anchorfix_20260624_120907`
+- Scheduler outcome:
+  - All addition jobs reached the `3h` walltime, but wrote partial results with roughly `12`-`17` attempts.
+  - Most run-length jobs completed the full `25` attempts. The `run_length grpo lr=5e-6 akl=0.01` cell reached `23` attempts before walltime.
+  - Dr.GRPO run_length completed; Dr.GRPO addition timed out after `12` attempts.
+- Anchor-KL fix status:
+  - The previous `HFValidationError` / deleted relative seed-checkpoint failure did not recur.
+  - All `anchor_kl > 0` proposal-GRPO updates reported `anchor_kl_enabled=True` with no skip reason.
+  - The anchor checkpoint is now protected during the adaptive loop and pruned only at final cleanup when checkpoint retention is disabled.
+- Quick outcome summary from logged attempt/candidate records:
+  - Addition best partial cell by selected local reward: `grpo lr=5e-6 akl=0.01`, `15` attempts, `8` selected candidates, selected reward sum `+0.1445`, selected frontier-delta sum `+0.1755`, `72` evaluated candidates, `17` unique actions.
+  - Run-length best completed cell by selected local reward: `grpo lr=1e-6 akl=0.01`, `25` attempts, `18` selected candidates, selected reward sum `+0.3104`, selected frontier-delta sum `+0.3205`, `73` evaluated candidates, `20` unique actions.
+  - Dr.GRPO did not clearly improve this batch: addition selected `4` candidates before timeout with reward sum `+0.0430`; run_length selected `13` candidates with reward sum `+0.1875`.
+- Caveats:
+  - The result files reliably record selected candidate rewards/actions, validity, diversity, and proposal-GRPO metrics, but they do not preserve a clean post-attempt global held-out average accuracy trajectory after final checkpoint cleanup.
+  - Because final model checkpoints are deleted by default, exact final heatmaps/final-delta comparisons require logging post-update eval summaries before cleanup in future runs.
+  - Repetition is still visible in the best addition partial run, especially repeated `13+7->20 reject_boundary_carry` after that action becomes selected.

@@ -350,6 +350,8 @@ def _prediction_delta_error(
     if prediction is None or realized is None:
         return None
     expected = _finite_or_none(prediction.get(key))
+    if expected is None and key == "expected_avg_delta_from_init":
+        expected = _finite_or_none(prediction.get("expected_final_delta_from_init"))
     if expected is None:
         return None
     return float(realized) - expected
@@ -370,8 +372,8 @@ def _render_outcome_trace_prompt(
     state = {
         "source": [int(size) for size in sorted(source_sizes)],
         "frontier": [int(frontier_min), int(frontier_max)],
-        "current_final": _round_or_none(current_final_accuracy),
-        "init_final": _round_or_none(init_final_accuracy),
+        "current_avg": _round_or_none(current_final_accuracy),
+        "init_avg": _round_or_none(init_final_accuracy),
         "acc": _compact_accuracy_map(current_per_size_accuracy),
     }
     return "\n".join(
@@ -468,8 +470,8 @@ def _outcome_completion(
         "reward": _round_or_none(reward),
         "target_delta": _round_or_none(target_delta),
         "frontier_delta": _round_or_none(frontier_delta),
-        "final_delta_init": _round_or_none(final_delta_init),
-        "final_delta_current": _round_or_none(final_delta_current),
+        "avg_delta_init": _round_or_none(final_delta_init),
+        "avg_delta_current": _round_or_none(final_delta_current),
         "failure": failure,
     }
     if prediction is not None:
@@ -481,10 +483,24 @@ def _outcome_completion(
                 realized=frontier_delta,
             )
         )
-        numeric_payload["final_delta_from_init_error"] = _round_or_none(
+        numeric_payload["target_delta_error"] = _round_or_none(
             _prediction_delta_error(
                 prediction=prediction,
-                key="expected_final_delta_from_init",
+                key="expected_target_delta",
+                realized=target_delta,
+            )
+        )
+        numeric_payload["avg_delta_from_current_error"] = _round_or_none(
+            _prediction_delta_error(
+                prediction=prediction,
+                key="expected_avg_delta_from_current",
+                realized=final_delta_current,
+            )
+        )
+        numeric_payload["avg_delta_from_init_error"] = _round_or_none(
+            _prediction_delta_error(
+                prediction=prediction,
+                key="expected_avg_delta_from_init",
                 realized=final_delta_init,
             )
         )
@@ -625,11 +641,18 @@ def build_round_outcome_trace_examples(
     selected_index = selected.index if selected is not None else None
     traces: List[OutcomeTraceExample] = []
     for result in proposal_results:
+        if bool(result.get("candidate_dedup_skipped")):
+            continue
         try:
-            index = int(result["proposal_index"])
+            proposal_index = int(result["proposal_index"])
         except (KeyError, TypeError, ValueError):
             continue
-        metric = metrics_by_index.get(index)
+        metric_index = result.get("candidate_proposal_index", proposal_index)
+        try:
+            metric_index_int = int(metric_index)
+        except (TypeError, ValueError):
+            metric_index_int = proposal_index
+        metric = metrics_by_index.get(metric_index_int)
         traces.append(
             build_outcome_trace_example(
                 args=args,
@@ -638,7 +661,7 @@ def build_round_outcome_trace_examples(
                 round_index=round_index,
                 result=result,
                 metric=metric,
-                selected=bool(selected_index is not None and index == selected_index),
+                selected=bool(selected_index is not None and metric_index_int == selected_index),
                 source_sizes=source_sizes,
                 frontier_min=frontier_min,
                 frontier_max=frontier_max,

@@ -1108,14 +1108,18 @@ class DummyGenerationModel(torch.nn.Module):
         super().__init__()
         self.tokenizer = tokenizer
         self.completions = completions
+        self.generated_batches: list[list[str]] = []
         self.anchor = torch.nn.Parameter(torch.zeros(()))
 
     def generate(self, input_ids, attention_mask=None, max_new_tokens: int = 0, do_sample: bool = False):
         rows = []
+        prompts = []
         for row in input_ids.tolist():
             prompt = self.tokenizer.decode(row, skip_special_tokens=True)
+            prompts.append(prompt)
             completion = self.completions[prompt]
             rows.append(row + self.tokenizer.encode(completion, add_special_tokens=False))
+        self.generated_batches.append(prompts)
         max_len = max(len(row) for row in rows)
         padded = [row + [self.tokenizer.pad_token_id] * (max_len - len(row)) for row in rows]
         return torch.tensor(padded, dtype=torch.long, device=input_ids.device)
@@ -1152,3 +1156,37 @@ def test_generation_helpers_slice_after_full_left_padded_prompt():
     assert accuracy == 1.0
     assert prediction_map[examples[0].prompt()] == "7"
     assert prediction_map[examples[1].prompt()] == "42"
+
+
+def test_evaluate_accuracy_groups_generation_batches_by_size():
+    tokenizer = DummyTokenizer()
+    examples = [
+        DummyPromptExample("size three a", "ok"),
+        DummyPromptExample("size one a", "ok"),
+        DummyPromptExample("size three b", "ok"),
+        DummyPromptExample("size one b", "ok"),
+    ]
+    sizes = {
+        "size three a": 3,
+        "size one a": 1,
+        "size three b": 3,
+        "size one b": 1,
+    }
+    model = DummyGenerationModel(tokenizer, {example.prompt(): example.target() for example in examples})
+
+    accuracy, per_size = evaluate_accuracy_with_breakdown(
+        model=model,
+        tokenizer=tokenizer,
+        examples=examples,
+        batch_size=2,
+        max_new_tokens=2,
+        size_getter=lambda example: sizes[example.prompt()],
+        prediction_parser=lambda text, example=None: text,
+    )
+
+    assert accuracy == 1.0
+    assert per_size == {1: 1.0, 3: 1.0}
+    assert model.generated_batches == [
+        ["size one a", "size one b"],
+        ["size three a", "size three b"],
+    ]

@@ -102,10 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--init-final-accuracy",
         type=float,
         default=None,
-        help=(
-            "Init-time final/global accuracy baseline. Reward uses "
-            "final_accuracy - init_final_accuracy instead of absolute final_accuracy."
-        ),
+        help="Deprecated init-time final/global accuracy baseline retained for old fixture compatibility.",
     )
     parser.add_argument("--max-traces", type=int, default=2)
     parser.add_argument("--repair-attempts", type=int, default=1)
@@ -226,7 +223,7 @@ def run(args: argparse.Namespace) -> JsonDict:
         aggregate_metrics = {
             **aggregate_metrics,
             "init_final_accuracy": args.init_final_accuracy,
-            "reward_formula": "frontier_delta + lambda_final * (final_accuracy - init_final_accuracy)",
+            "reward_formula": "final_accuracy - current_final_accuracy",
         }
     frontier_selection = _apply_frontier_policy(args, aggregate_metrics)
     aggregate_metrics = {
@@ -271,7 +268,7 @@ def run(args: argparse.Namespace) -> JsonDict:
         "frontier_policy": args.frontier_policy,
         "frontier_selection": frontier_selection,
         "init_final_accuracy": args.init_final_accuracy,
-        "reward_formula": "frontier_delta + lambda_final * final_accuracy_delta",
+        "reward_formula": "final_accuracy - current_final_accuracy",
         "proposal_quality_metrics": quality_metrics,
     }
     _write_json(output_dir / "summary.json", summary)

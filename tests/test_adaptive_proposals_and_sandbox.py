@@ -116,6 +116,31 @@ def test_prompt_owner_reexports() -> None:
     assert proposals.render_program_repair_prompt is proposal_prompts.render_program_repair_prompt
 
 
+def test_action_observation_config_prompt_uses_schema_without_concrete_action_example() -> None:
+    prompt = proposals.render_config_prompt(
+        task_name="addition",
+        round_index=1,
+        current_source={"sizes": [3, 4, 5, 6, 7]},
+        allowed_target_frontier={"min_size": 8, "max_size": 14},
+        aggregate_metrics={"current_avg_accuracy": 0.4, "accuracy_by_size": {"8": 0.0}},
+        guard_choices=["none", "reject_boundary_carry"],
+        proposal_output_schema="action_observation",
+    )
+
+    assert "Return exactly one JSON object with these keys" in prompt.user
+    assert "expected_avg_delta_from_current" in prompt.user
+    assert "expected_target_delta" in prompt.user
+    assert "expected_frontier_delta" in prompt.user
+    assert "Put prediction fields after reasoning and before left/right/guard." in prompt.user
+    assert "Predict only expected deltas" in prompt.user
+    assert "Do not copy numeric values from these instructions" not in prompt.user
+    assert "Source sizes 5 and 3" not in prompt.user
+    assert '"left": 5' not in prompt.user
+    assert '"right": 3' not in prompt.user
+    assert "target 8 is in the frontier" not in prompt.user
+    assert "Output exactly one JSON object like this" not in prompt.user
+
+
 def test_config_proposal_schema_rejects_ranges_and_enums():
     invalid_target = proposals.parse_config_proposal(
         {

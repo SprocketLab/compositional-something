@@ -16,57 +16,104 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         out_root="/tmp/run",
         tasks="addition run_length",
         conditions="config",
+        model_name="Qwen/Qwen3-4B",
+        proposal_model_name="current",
         outcome_trace_target_modes="numeric textual",
+        proposal_grpo_reward_modes="outcome rank",
         proposal_grpo_zero_variance_modes="fixed_baseline skip",
+        candidate_eval_backends="transformers vllm",
         num_candidates_list="8 16",
+        proposal_grpo_objective="dr_grpo",
+        proposal_grpo_learning_rates="1e-6 3e-6",
+        proposal_grpo_kl_coef="0",
+        proposal_grpo_anchor_kl_coefs="0 0.01",
         adaptive_config_files="/tmp/base.env",
         job_fields=[
             "addition",
             "config",
             "numeric",
+            "outcome",
             "fixed_baseline",
+            "transformers",
             "8",
+            "dr_grpo",
+            "1e-6",
+            "0",
+            "0.01",
             "123",
-            "/tmp/run/addition-config-numeric-n8-grpo-fixed-baseline",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
             "run_length",
             "config",
             "textual",
+            "rank",
             "skip",
+            "vllm",
             "16",
+            "dr_grpo",
+            "3e-6",
+            "0",
+            "0",
             "124",
-            "/tmp/run/run_length-config-textual-n16-grpo-skip",
+            "/tmp/run/run_length-config-textual-n16-reward-rank-grpo-skip-obj-dr-grpo-lr-3em6-akl-0-eval-vllm",
         ],
     )
 
     assert payload["out_root"] == "/tmp/run"
     assert payload["tasks"] == ["addition", "run_length"]
     assert payload["conditions"] == ["config"]
+    assert payload["model_name"] == "Qwen/Qwen3-4B"
+    assert payload["proposal_model_name"] == "current"
     assert payload["outcome_trace_target_modes"] == ["numeric", "textual"]
+    assert payload["proposal_grpo_reward_modes"] == ["outcome", "rank"]
     assert payload["proposal_grpo_zero_variance_modes"] == ["fixed_baseline", "skip"]
+    assert payload["candidate_eval_backends"] == ["transformers", "vllm"]
     assert payload["num_candidates_list"] == [8, 16]
+    assert payload["proposal_grpo_objective"] == "dr_grpo"
+    assert payload["proposal_grpo_learning_rates"] == ["1e-6", "3e-6"]
+    assert payload["proposal_grpo_kl_coef"] == "0"
+    assert payload["proposal_grpo_anchor_kl_coefs"] == ["0", "0.01"]
     assert payload["adaptive_config_files"] == "/tmp/base.env"
-    assert payload["jobs"]["addition-config-numeric-n8-grpo-fixed_baseline"] == {
+    assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-obj-dr_grpo-lr-1e-6-akl-0.01-eval-transformers"] == {
         "task": "addition",
         "condition": "config",
         "outcome_trace_target_mode": "numeric",
+        "proposal_grpo_reward_mode": "outcome",
         "proposal_grpo_zero_variance": "fixed_baseline",
+        "candidate_eval_backend": "transformers",
         "num_candidates": 8,
+        "proposal_grpo_objective": "dr_grpo",
+        "proposal_grpo_learning_rate": "1e-6",
+        "proposal_grpo_kl_coef": "0",
+        "proposal_grpo_anchor_kl_coef": "0.01",
         "job_id": "123",
-        "output_dir": "/tmp/run/addition-config-numeric-n8-grpo-fixed-baseline",
+        "output_dir": "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
         "status": "submitted",
     }
-    assert payload["jobs"]["run_length-config-textual-n16-grpo-skip"]["num_candidates"] == 16
+    assert (
+        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-obj-dr_grpo-lr-3e-6-akl-0-eval-vllm"][
+            "proposal_grpo_anchor_kl_coef"
+        ]
+        == "0"
+    )
 
 
 def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> None:
-    with pytest.raises(ValueError, match="groups of 7"):
+    with pytest.raises(ValueError, match="groups of 13"):
         build_adaptive_candidate_submission_manifest(
             out_root="/tmp/run",
             tasks="addition",
             conditions="config",
+            model_name="Qwen/Qwen3-1.7B",
+            proposal_model_name="current",
             outcome_trace_target_modes="numeric",
+            proposal_grpo_reward_modes="outcome",
             proposal_grpo_zero_variance_modes="fixed_baseline",
+            candidate_eval_backends="transformers",
             num_candidates_list="8",
+            proposal_grpo_objective="grpo",
+            proposal_grpo_learning_rates="1e-6",
+            proposal_grpo_kl_coef="0",
+            proposal_grpo_anchor_kl_coefs="0.01",
             adaptive_config_files="",
             job_fields=["addition", "config"],
         )
@@ -120,25 +167,53 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "addition",
             "--conditions",
             "config",
+            "--model-name",
+            "Qwen/Qwen3-4B",
+            "--proposal-model-name",
+            "current",
             "--outcome-trace-target-modes",
             "numeric",
+            "--proposal-grpo-reward-modes",
+            "outcome",
             "--proposal-grpo-zero-variance-modes",
             "fixed_baseline",
+            "--candidate-eval-backends",
+            "transformers",
             "--num-candidates-list",
             "8",
+            "--proposal-grpo-objective",
+            "dr_grpo",
+            "--proposal-grpo-learning-rates",
+            "1e-6",
+            "--proposal-grpo-kl-coef",
+            "0",
+            "--proposal-grpo-anchor-kl-coefs",
+            "0.01",
             "--adaptive-config-files",
             "/tmp/base.env",
             "--job-fields",
             "addition",
             "config",
             "numeric",
+            "outcome",
             "fixed_baseline",
+            "transformers",
             "8",
+            "dr_grpo",
+            "1e-6",
+            "0",
+            "0.01",
             "123",
-            "/tmp/run/addition-config-numeric-n8-grpo-fixed-baseline",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-obj-dr-grpo-lr-1em6-akl-0p01-eval-transformers",
         ]
     )
 
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["adaptive_config_files"] == "/tmp/base.env"
-    assert payload["jobs"]["addition-config-numeric-n8-grpo-fixed_baseline"]["job_id"] == "123"
+    assert payload["model_name"] == "Qwen/Qwen3-4B"
+    assert payload["proposal_model_name"] == "current"
+    assert payload["proposal_grpo_objective"] == "dr_grpo"
+    assert (
+        payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-obj-dr_grpo-lr-1e-6-akl-0.01-eval-transformers"]["job_id"]
+        == "123"
+    )

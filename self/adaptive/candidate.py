@@ -22,28 +22,85 @@ class CheckpointManager:
     keep_candidate_models: bool = False
     keep_proposal_grpo_checkpoints: bool = False
 
+    def _is_protected_checkpoint(self, model_dir: Path, protected_checkpoints: Sequence[str] = ()) -> bool:
+        try:
+            resolved_model_dir = model_dir.resolve()
+        except OSError:
+            return False
+        for checkpoint in protected_checkpoints:
+            if not checkpoint:
+                continue
+            try:
+                if Path(checkpoint).resolve() == resolved_model_dir:
+                    return True
+            except OSError:
+                continue
+        return False
+
+    def _cleanup_model_dir(self, model_dir: Path) -> List[str]:
+        if model_dir.name != "model":
+            return []
+        if not model_dir.exists():
+            return []
+        try:
+            model_dir.resolve().relative_to(self.output_dir.resolve())
+        except (ValueError, OSError):
+            return []
+        shutil.rmtree(model_dir, ignore_errors=True)
+        return [str(model_dir)]
+
     def cleanup_unselected_candidates(
         self,
         *,
         metrics: Sequence[CandidateMetrics],
         selected: Optional[CandidateMetrics],
-    ) -> None:
+    ) -> List[str]:
         if self.keep_candidate_models:
-            return
+            return []
+        deleted: List[str] = []
         selected_dir = selected.model_dir if selected is not None else None
         for metric in metrics:
             model_dir = metric.model_dir
             if model_dir is None or model_dir == selected_dir:
                 continue
-            parent = model_dir.parent
-            if parent.exists():
-                shutil.rmtree(parent, ignore_errors=True)
+            deleted.extend(self._cleanup_model_dir(model_dir))
+        return deleted
+
+    def cleanup_unselectable_candidate(
+        self,
+        *,
+        metric: CandidateMetrics,
+        min_reward: float,
+    ) -> List[str]:
+        if self.keep_candidate_models:
+            return []
+        if metric.model_dir is None:
+            return []
+        if metric.valid and metric.reward >= min_reward:
+            return []
+        return self._cleanup_model_dir(metric.model_dir)
+
+    def cleanup_final_checkpoint(
+        self,
+        *,
+        checkpoint: str,
+        keep_final: bool,
+    ) -> List[str]:
+        if keep_final:
+            return []
+        model_dir = Path(checkpoint)
+        if model_dir.parent.name == "proposal_grpo" and self.keep_proposal_grpo_checkpoints:
+            return []
+        if "candidates" in model_dir.parts and self.keep_candidate_models:
+            return []
+        return self._cleanup_model_dir(model_dir)
 
     def cleanup_replaced_checkpoint(
         self,
         *,
         old_checkpoint: str,
         new_checkpoint: str,
+        protected_checkpoints: Sequence[str] = (),
     ) -> List[str]:
         if old_checkpoint == new_checkpoint:
             return []
@@ -63,8 +120,9 @@ class CheckpointManager:
             return []
         if "candidates" in old_model_dir.parts and self.keep_candidate_models:
             return []
-        shutil.rmtree(old_model_dir, ignore_errors=True)
-        return [str(old_model_dir)]
+        if self._is_protected_checkpoint(old_model_dir, protected_checkpoints):
+            return []
+        return self._cleanup_model_dir(old_model_dir)
 
 
 def cleanup_unselected_models(
@@ -86,6 +144,7 @@ def cleanup_replaced_model_checkpoint(
     output_dir: Path,
     keep_candidate_models: bool,
     keep_proposal_grpo_checkpoints: bool,
+    protected_checkpoints: Sequence[str] = (),
 ) -> List[str]:
     return CheckpointManager(
         output_dir=output_dir,
@@ -94,6 +153,7 @@ def cleanup_replaced_model_checkpoint(
     ).cleanup_replaced_checkpoint(
         old_checkpoint=old_checkpoint,
         new_checkpoint=new_checkpoint,
+        protected_checkpoints=protected_checkpoints,
     )
 
 
@@ -111,6 +171,25 @@ from self.core.evaluation import generate_prediction_map, resolve_max_new_tokens
 from self.core.training import TrainingConfig
 
 JsonDict = Dict[str, Any]
+
+
+def candidate_action_key(proposal: Any) -> tuple[Any, ...]:
+    left = int(getattr(proposal, "left"))
+    right = int(getattr(proposal, "right"))
+    guard = str(getattr(proposal, "guard", "none"))
+    target = int(getattr(proposal, "target", left + right))
+    code = getattr(proposal, "code", None)
+    if code is not None:
+        return (
+            "executable",
+            left,
+            right,
+            guard,
+            target,
+            str(getattr(proposal, "condition", "program")),
+            str(code),
+        )
+    return ("config", left, right, guard, target)
 
 
 def examples_by_key(task: Any, examples: Sequence[Any]) -> dict[Any, Any]:
@@ -132,6 +211,8 @@ def build_candidate_work_items(
 ) -> List[CandidateWorkItem]:
     work_items: List[CandidateWorkItem] = []
     data_build_failures: List[JsonDict] = []
+    skipped_duplicates: List[JsonDict] = []
+    kept_by_action: dict[tuple[Any, ...], JsonDict] = {}
     for result in proposal_results:
         if not result.get("valid"):
             continue
@@ -139,6 +220,36 @@ def build_candidate_work_items(
         if not isinstance(proposal_payload, dict):
             continue
         proposal = proposal_from_payload(proposal_payload)
+        action_key = candidate_action_key(proposal)
+        action_key_payload = list(action_key)
+        try:
+            proposal_index = int(result["proposal_index"])
+        except (KeyError, TypeError, ValueError):
+            proposal_index = len(work_items) + len(skipped_duplicates)
+        if isinstance(result, dict):
+            result["candidate_dedup_action_key"] = action_key_payload
+        kept = kept_by_action.get(action_key)
+        if kept is not None:
+            skipped = {
+                "proposal_index": proposal_index,
+                "id": result.get("id"),
+                "kept_proposal_index": kept["proposal_index"],
+                "kept_id": kept.get("id"),
+                "action_key": action_key_payload,
+                "parsed_proposal": proposal.to_json_dict(),
+            }
+            skipped_duplicates.append(skipped)
+            if isinstance(result, dict):
+                result["candidate_dedup_skipped"] = True
+                result["candidate_dedup_reason"] = "duplicate_action"
+                result["candidate_dedup_kept_proposal_index"] = kept["proposal_index"]
+            continue
+        kept_by_action[action_key] = {
+            "proposal_index": proposal_index,
+            "id": result.get("id"),
+        }
+        if isinstance(result, dict):
+            result["candidate_dedup_skipped"] = False
         candidate_dir = round_dir / "candidates" / f"candidate_{int(result['proposal_index']):02d}"
         ensure_dir(candidate_dir)
         try:
@@ -177,6 +288,17 @@ def build_candidate_work_items(
                 proposal_prediction=dict(result.get("parsed_prediction") or {}),
             )
         )
+    write_json(
+        round_dir / "candidate_action_dedup.json",
+        {
+            "enabled": True,
+            "valid_proposal_count": len(kept_by_action) + len(skipped_duplicates),
+            "unique_action_count": len(kept_by_action),
+            "skipped_duplicate_count": len(skipped_duplicates),
+            "skipped_duplicates": skipped_duplicates,
+        },
+    )
+    write_json(round_dir / "proposal_results.json", proposal_results)
     if data_build_failures:
         write_json(round_dir / "data_build_failures.json", data_build_failures)
     return work_items
@@ -344,7 +466,11 @@ def build_trained_candidate_metrics(
     frontier_delta = frontier_accuracy - current_frontier_accuracy
     final_accuracy_delta = final_accuracy - init_final_accuracy
     final_accuracy_delta_from_current = final_accuracy - current_final_accuracy
-    reward = frontier_delta + args.lambda_final * final_accuracy_delta
+    per_size_delta = {
+        int(size): float(per_size_accuracy.get(int(size), 0.0)) - float(current_per_size_accuracy.get(int(size), 0.0))
+        for size in sorted({int(size) for size in per_size_accuracy} | {int(size) for size in current_per_size_accuracy})
+    }
+    reward = final_accuracy_delta_from_current
     return CandidateMetrics(
         index=item.index,
         row_id=item.row_id,
@@ -363,6 +489,7 @@ def build_trained_candidate_metrics(
         current_final_accuracy=current_final_accuracy,
         final_accuracy_delta_from_current=final_accuracy_delta_from_current,
         per_size_accuracy={int(size): float(value) for size, value in per_size_accuracy.items()},
+        per_size_delta=per_size_delta,
         pseudo_count=len(item.pseudo_examples),
         model_dir=model_dir,
         proposal_trace_replay_count=proposal_trace_replay_count,
@@ -376,6 +503,7 @@ def build_trained_candidate_metrics(
 # --- from training.py ---
 import argparse
 import shutil
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Sequence, Tuple
 
@@ -385,6 +513,7 @@ from self.core import worker_io
 from self.core.evaluation import evaluate_accuracy_with_breakdown, resolve_max_new_tokens
 from self.core.model_bootstrap_cache import ModelBootstrapCache
 from self.core.model_io import instantiate_model_and_tokenizer
+from self.core.vllm_evaluation import evaluate_model_with_vllm_subprocess
 from self.core.training import (
     CausalLMDataCollator,
     TrainingConfig,
@@ -483,8 +612,48 @@ def evaluate_model(
     examples: Sequence[Any],
     batch_size: int,
     decode_max_new_tokens: int,
+    backend: str = "transformers",
+    model_dir: Path | None = None,
+    task_name: str | None = None,
+    output_dir: Path | None = None,
+    vllm_python_bin: str | None = None,
+    vllm_gpu_memory_utilization: float = 0.80,
+    vllm_dtype: str = "auto",
+    vllm_flashinfer_sampler: str = "off",
+    vllm_enforce_eager: bool = False,
+    vllm_max_model_len: int = 0,
+    vllm_max_num_seqs: int = 0,
+    vllm_max_num_batched_tokens: int = 0,
 ) -> Tuple[float, Dict[int, float]]:
     max_tokens = resolve_max_new_tokens(examples, decode_max_new_tokens)
+    if backend == "vllm":
+        if model_dir is None:
+            raise ValueError("model_dir is required for vLLM candidate evaluation.")
+        if task_name is None:
+            raise ValueError("task_name is required for vLLM candidate evaluation.")
+        if output_dir is None:
+            raise ValueError("output_dir is required for vLLM candidate evaluation.")
+        return evaluate_model_with_vllm_subprocess(
+            model_dir=model_dir,
+            task_name=task_name,
+            examples=examples,
+            task=task,
+            output_dir=output_dir,
+            batch_size=batch_size,
+            decode_max_new_tokens=max_tokens,
+            python_bin=vllm_python_bin,
+            gpu_memory_utilization=vllm_gpu_memory_utilization,
+            dtype=vllm_dtype,
+            flashinfer_sampler=vllm_flashinfer_sampler,
+            enforce_eager=vllm_enforce_eager,
+            max_model_len=vllm_max_model_len,
+            max_num_seqs=vllm_max_num_seqs,
+            max_num_batched_tokens=vllm_max_num_batched_tokens,
+        )
+    if backend != "transformers":
+        raise ValueError(f"Unsupported candidate eval backend: {backend}")
+    if model is None or tokenizer is None:
+        raise ValueError("model and tokenizer are required for Transformers candidate evaluation.")
     return evaluate_accuracy_with_breakdown(
         model=model,
         tokenizer=tokenizer,
@@ -537,8 +706,8 @@ def train_post_task_proposal_rehearsal(
             "max_examples": args.post_task_proposal_rehearsal_max_examples,
         },
     )
-    if not args.keep_all_candidate_models and task_model_dir.parent.exists():
-        shutil.rmtree(task_model_dir.parent, ignore_errors=True)
+    if not args.keep_all_candidate_models and task_model_dir.exists():
+        shutil.rmtree(task_model_dir, ignore_errors=True)
     return model, tokenizer, model_dir
 
 
@@ -796,6 +965,14 @@ def train_and_score_candidate(
             candidate_trace_examples=training_mix.candidate_trace_examples,
             post_task_rehearsal_examples=training_mix.post_task_rehearsal_examples,
         )
+    eval_backend = str(getattr(args, "candidate_eval_backend", "transformers"))
+    if eval_backend == "vllm":
+        del model
+        del tokenizer
+        model = None
+        tokenizer = None
+        clear_cuda_cache()
+    eval_start = time.monotonic()
     final_accuracy, per_size_accuracy = evaluate_model(
         model=model,
         tokenizer=tokenizer,
@@ -803,6 +980,38 @@ def train_and_score_candidate(
         examples=eval_examples,
         batch_size=config.per_device_eval_batch_size,
         decode_max_new_tokens=config.decode_max_new_tokens,
+        backend=eval_backend,
+        model_dir=model_dir,
+        task_name=args.task,
+        output_dir=candidate_dir,
+        vllm_python_bin=getattr(args, "vllm_python_bin", None),
+        vllm_gpu_memory_utilization=float(getattr(args, "vllm_gpu_memory_utilization", 0.80)),
+        vllm_dtype=str(getattr(args, "vllm_dtype", "auto")),
+        vllm_flashinfer_sampler=str(getattr(args, "vllm_flashinfer_sampler", "off")),
+        vllm_enforce_eager=bool(getattr(args, "vllm_enforce_eager", False)),
+        vllm_max_model_len=int(getattr(args, "vllm_max_model_len", 0)),
+        vllm_max_num_seqs=int(getattr(args, "vllm_max_num_seqs", 0)),
+        vllm_max_num_batched_tokens=int(getattr(args, "vllm_max_num_batched_tokens", 0)),
+    )
+    worker_io.write_json(
+        candidate_dir / "candidate_eval_summary.json",
+        {
+            "backend": eval_backend,
+            "examples": len(eval_examples),
+            "batch_size": config.per_device_eval_batch_size,
+            "decode_max_new_tokens": config.decode_max_new_tokens,
+            "resolved_max_new_tokens": resolve_max_new_tokens(eval_examples, config.decode_max_new_tokens),
+            "runtime_seconds": time.monotonic() - eval_start,
+            "model_dir": str(model_dir),
+            "vllm_python_bin": getattr(args, "vllm_python_bin", None),
+            "vllm_gpu_memory_utilization": getattr(args, "vllm_gpu_memory_utilization", None),
+            "vllm_dtype": getattr(args, "vllm_dtype", None),
+            "vllm_flashinfer_sampler": getattr(args, "vllm_flashinfer_sampler", None),
+            "vllm_enforce_eager": getattr(args, "vllm_enforce_eager", None),
+            "vllm_max_model_len": getattr(args, "vllm_max_model_len", None),
+            "vllm_max_num_seqs": getattr(args, "vllm_max_num_seqs", None),
+            "vllm_max_num_batched_tokens": getattr(args, "vllm_max_num_batched_tokens", None),
+        },
     )
     metrics = build_trained_candidate_metrics(
         args=args,
@@ -819,8 +1028,28 @@ def train_and_score_candidate(
         outcome_trace_replay_count=len(training_mix.outcome_replay_examples),
     )
     worker_io.write_json(candidate_dir / "candidate_metrics.json", metrics.to_json_dict())
-    del model
-    del tokenizer
+    deleted_after_scoring = CheckpointManager(
+        output_dir=round_dir.parent,
+        keep_candidate_models=bool(getattr(args, "keep_all_candidate_models", False)),
+        keep_proposal_grpo_checkpoints=bool(getattr(args, "keep_all_proposal_grpo_checkpoints", False)),
+    ).cleanup_unselectable_candidate(
+        metric=metrics,
+        min_reward=float(getattr(args, "selection_min_reward", 0.0)),
+    )
+    if deleted_after_scoring:
+        worker_io.write_json(
+            candidate_dir / "deleted_model_dirs.json",
+            {
+                "stage": "after_candidate_scoring",
+                "reason": "unselectable",
+                "selection_min_reward": float(getattr(args, "selection_min_reward", 0.0)),
+                "deleted_model_dirs": deleted_after_scoring,
+            },
+        )
+    if model is not None:
+        del model
+    if tokenizer is not None:
+        del tokenizer
     clear_cuda_cache()
     return metrics
 
@@ -2039,6 +2268,7 @@ def _candidate_failure_metrics_impl(
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
+    model_dir: Path | None = None,
 ) -> CandidateMetrics:
     return CandidateMetrics(
         index=item.index,
@@ -2058,7 +2288,7 @@ def _candidate_failure_metrics_impl(
         final_accuracy_delta_from_current=math.nan,
         per_size_accuracy={},
         pseudo_count=len(item.pseudo_examples),
-        model_dir=None,
+        model_dir=model_dir,
         failure_reason=reason,
         proposal_prediction=dict(item.proposal_prediction),
     )
@@ -2087,12 +2317,16 @@ def _collect_candidate_array_metrics_impl(
             reason = str(failure_payload.get("error") or "candidate worker failed")
         else:
             reason = "candidate worker finished without candidate_metrics.json"
+        candidate_dir = round_dir / "candidates" / f"candidate_{item.index:02d}"
+        trained_model_dir = candidate_dir / "training" / "model"
+        model_dir = trained_model_dir if trained_model_dir.exists() else None
         failure_metric = failure_metrics_fn(
             item=item,
             reason=reason,
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy=current_per_size_accuracy,
             init_final_accuracy=init_final_accuracy,
+            model_dir=model_dir,
         )
         worker_io.write_json(metrics_path, failure_metric.to_json_dict())
         metrics.append(failure_metric)
@@ -2300,6 +2534,7 @@ def candidate_failure_metrics(
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
+    model_dir: Path | None = None,
 ) -> CandidateMetrics:
     return _candidate_failure_metrics_impl(
         item=item,
@@ -2307,6 +2542,7 @@ def candidate_failure_metrics(
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
+        model_dir=model_dir,
     )
 
 
@@ -2451,6 +2687,7 @@ def candidate_failure_metrics_with_deps(
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
+    model_dir: Path | None = None,
 ) -> CandidateMetrics:
     return candidate_failure_metrics(
         item=item,
@@ -2458,6 +2695,7 @@ def candidate_failure_metrics_with_deps(
         current_final_accuracy=current_final_accuracy,
         current_per_size_accuracy=current_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
+        model_dir=model_dir,
     )
 
 

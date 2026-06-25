@@ -99,6 +99,7 @@ class CandidateMetrics:
     frontier_accuracy: float = math.nan
     current_frontier_accuracy: float = math.nan
     proposal_prediction: JsonDict = field(default_factory=dict)
+    per_size_delta: Dict[int, float] = field(default_factory=dict)
 
     def to_json_dict(self) -> JsonDict:
         return sanitize_json_value(
@@ -121,6 +122,7 @@ class CandidateMetrics:
                 "final_accuracy_delta": self.final_accuracy_delta,
                 "final_accuracy_delta_from_current": self.final_accuracy_delta_from_current,
                 "per_size_accuracy": self.per_size_accuracy,
+                "per_size_delta": self.per_size_delta,
                 "pseudo_count": self.pseudo_count,
                 "proposal_trace_replay_count": self.proposal_trace_replay_count,
                 "candidate_proposal_trace_count": self.candidate_proposal_trace_count,
@@ -177,6 +179,10 @@ def candidate_metrics_from_json(payload: Mapping[str, Any]) -> CandidateMetrics:
         int(size): float(score)
         for size, score in dict(payload.get("per_size_accuracy", {})).items()
     }
+    per_size_delta = {
+        int(size): float(delta)
+        for size, delta in dict(payload.get("per_size_delta", {})).items()
+    }
     return CandidateMetrics(
         index=int(payload["index"]),
         row_id=str(payload["id"]) if payload.get("id") is not None else None,
@@ -195,6 +201,7 @@ def candidate_metrics_from_json(payload: Mapping[str, Any]) -> CandidateMetrics:
         current_final_accuracy=float_or_nan(payload.get("current_final_accuracy")),
         final_accuracy_delta_from_current=float_or_nan(payload.get("final_accuracy_delta_from_current")),
         per_size_accuracy=per_size_accuracy,
+        per_size_delta=per_size_delta,
         pseudo_count=int(payload.get("pseudo_count", 0)),
         proposal_trace_replay_count=int(payload.get("proposal_trace_replay_count", 0)),
         candidate_proposal_trace_count=int(payload.get("candidate_proposal_trace_count", 0)),

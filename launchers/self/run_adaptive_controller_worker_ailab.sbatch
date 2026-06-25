@@ -12,7 +12,11 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "${SLURM_SUBMIT_DIR}/launchers/self/lib/adaptive_common.sh" ]]; then
+  SCRIPT_DIR="${SLURM_SUBMIT_DIR}/launchers/self"
+else
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 source "${SCRIPT_DIR}/lib/adaptive_common.sh"
 
 : "${CONTROLLER_WORKER_SPEC:?CONTROLLER_WORKER_SPEC must point to a controller worker spec}"

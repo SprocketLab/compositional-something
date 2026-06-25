@@ -71,6 +71,7 @@ def test_candidate_failure_metrics_preserves_candidate_context():
     assert metric.current_final_accuracy == 0.45
     assert metric.init_final_accuracy == 0.2
     assert metric.pseudo_count == 2
+    assert metric.model_dir is None
     assert metric.failure_reason == "worker crashed"
     assert metric.proposal_prediction == item.proposal_prediction
 
@@ -102,6 +103,8 @@ def test_collect_candidate_array_metrics_loads_existing_metric(tmp_path: Path):
 def test_collect_candidate_array_metrics_writes_failure_metric_and_manifest(tmp_path: Path):
     round_dir = tmp_path / "attempt_0001"
     item = _work_item(index=2)
+    trained_model_dir = round_dir / "candidates" / "candidate_02" / "training" / "model"
+    trained_model_dir.mkdir(parents=True)
     worker_io.write_json(
         round_dir / "candidates" / "candidate_02" / "worker_failure.json",
         {"error": "CUDA out of memory"},
@@ -119,8 +122,10 @@ def test_collect_candidate_array_metrics_writes_failure_metric_and_manifest(tmp_
     gather_path = round_dir / "candidate_jobs" / "gather_failures.json"
     assert len(metrics) == 1
     assert metrics[0].failure_reason == "CUDA out of memory"
+    assert metrics[0].model_dir == trained_model_dir
     assert metric_path.exists()
     assert worker_io.load_json(metric_path)["failure_reason"] == "CUDA out of memory"
+    assert worker_io.load_json(metric_path)["model_dir"] == str(trained_model_dir)
     assert worker_io.load_json(gather_path) == [
         {
             "candidate_index": 2,

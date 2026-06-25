@@ -165,6 +165,58 @@ def test_evaluate_model_resolves_decode_budget(monkeypatch):
     assert per_size == {4: 0.5}
 
 
+def test_evaluate_model_routes_to_vllm_subprocess(monkeypatch, tmp_path: Path):
+    calls = {}
+
+    def fake_resolve(examples, decode_max_new_tokens):
+        calls["resolve"] = (list(examples), decode_max_new_tokens)
+        return 13
+
+    def fake_vllm(**kwargs):
+        calls["vllm"] = kwargs
+        return 0.8, {3: 0.7}
+
+    monkeypatch.setattr(runtime, "resolve_max_new_tokens", fake_resolve)
+    monkeypatch.setattr(runtime, "evaluate_model_with_vllm_subprocess", fake_vllm)
+
+    accuracy, per_size = runtime.evaluate_model(
+        model=None,
+        tokenizer=None,
+        task=_Task(),
+        examples=["e0"],
+        batch_size=4,
+        decode_max_new_tokens=12,
+        backend="vllm",
+        model_dir=tmp_path / "model",
+        task_name="run_length",
+        output_dir=tmp_path / "candidate_00",
+        vllm_python_bin="/tmp/vllm/bin/python",
+        vllm_gpu_memory_utilization=0.75,
+        vllm_dtype="bfloat16",
+        vllm_flashinfer_sampler="off",
+        vllm_enforce_eager=True,
+        vllm_max_model_len=256,
+        vllm_max_num_seqs=8,
+        vllm_max_num_batched_tokens=1024,
+    )
+
+    assert calls["resolve"] == (["e0"], 12)
+    assert calls["vllm"]["model_dir"] == tmp_path / "model"
+    assert calls["vllm"]["task_name"] == "run_length"
+    assert calls["vllm"]["output_dir"] == tmp_path / "candidate_00"
+    assert calls["vllm"]["decode_max_new_tokens"] == 13
+    assert calls["vllm"]["python_bin"] == "/tmp/vllm/bin/python"
+    assert calls["vllm"]["gpu_memory_utilization"] == 0.75
+    assert calls["vllm"]["dtype"] == "bfloat16"
+    assert calls["vllm"]["flashinfer_sampler"] == "off"
+    assert calls["vllm"]["enforce_eager"] is True
+    assert calls["vllm"]["max_model_len"] == 256
+    assert calls["vllm"]["max_num_seqs"] == 8
+    assert calls["vllm"]["max_num_batched_tokens"] == 1024
+    assert accuracy == 0.8
+    assert per_size == {3: 0.7}
+
+
 def test_train_post_task_proposal_rehearsal_writes_summary_and_cleans_task_model(tmp_path: Path):
     calls = {}
     task_model_dir = tmp_path / "candidate" / "training" / "model"
@@ -207,4 +259,5 @@ def test_train_post_task_proposal_rehearsal_writes_summary_and_cleans_task_model
     assert summary["base_selected_trace_buffer_size"] == 1
     assert summary["repeat_count"] == 3
     assert summary["max_examples"] == 4
-    assert not task_model_dir.parent.exists()
+    assert not task_model_dir.exists()
+    assert task_model_dir.parent.exists()

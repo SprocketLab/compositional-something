@@ -24,26 +24,59 @@ def build_adaptive_candidate_submission_manifest(
     out_root: str,
     tasks: str,
     conditions: str,
+    model_name: str,
+    proposal_model_name: str,
     outcome_trace_target_modes: str,
+    proposal_grpo_reward_modes: str,
     proposal_grpo_zero_variance_modes: str,
+    candidate_eval_backends: str,
     num_candidates_list: str,
+    proposal_grpo_objective: str,
+    proposal_grpo_learning_rates: str,
+    proposal_grpo_kl_coef: str,
+    proposal_grpo_anchor_kl_coefs: str,
     adaptive_config_files: str,
     job_fields: Sequence[str],
 ) -> JsonDict:
-    if len(job_fields) % 7 != 0:
-        raise ValueError("adaptive candidate job_fields must be groups of 7 values.")
+    if len(job_fields) % 13 != 0:
+        raise ValueError("adaptive candidate job_fields must be groups of 13 values.")
 
     jobs: JsonDict = {}
-    for index in range(0, len(job_fields), 7):
-        task, condition, outcome_mode, zero_variance, num_candidates, job_id, output_dir = job_fields[
-            index : index + 7
+    for index in range(0, len(job_fields), 13):
+        (
+            task,
+            condition,
+            outcome_mode,
+            reward_mode,
+            zero_variance,
+            eval_backend,
+            num_candidates,
+            objective,
+            proposal_lr,
+            proposal_kl,
+            anchor_kl,
+            job_id,
+            output_dir,
+        ) = job_fields[
+            index : index + 13
         ]
-        jobs[f"{task}-{condition}-{outcome_mode}-n{num_candidates}-grpo-{zero_variance}"] = {
+        jobs[
+            (
+                f"{task}-{condition}-{outcome_mode}-n{num_candidates}-reward-{reward_mode}"
+                f"-grpo-{zero_variance}-obj-{objective}-lr-{proposal_lr}-akl-{anchor_kl}-eval-{eval_backend}"
+            )
+        ] = {
             "task": task,
             "condition": condition,
             "outcome_trace_target_mode": outcome_mode,
+            "proposal_grpo_reward_mode": reward_mode,
             "proposal_grpo_zero_variance": zero_variance,
+            "candidate_eval_backend": eval_backend,
             "num_candidates": int(num_candidates),
+            "proposal_grpo_objective": objective,
+            "proposal_grpo_learning_rate": proposal_lr,
+            "proposal_grpo_kl_coef": proposal_kl,
+            "proposal_grpo_anchor_kl_coef": anchor_kl,
             "job_id": job_id,
             "output_dir": output_dir,
             "status": "submitted",
@@ -53,9 +86,17 @@ def build_adaptive_candidate_submission_manifest(
         "out_root": out_root,
         "tasks": _split_words(tasks),
         "conditions": _split_words(conditions),
+        "model_name": model_name,
+        "proposal_model_name": proposal_model_name,
         "outcome_trace_target_modes": _split_words(outcome_trace_target_modes),
+        "proposal_grpo_reward_modes": _split_words(proposal_grpo_reward_modes),
         "proposal_grpo_zero_variance_modes": _split_words(proposal_grpo_zero_variance_modes),
+        "candidate_eval_backends": _split_words(candidate_eval_backends),
         "num_candidates_list": _split_int_words(num_candidates_list),
+        "proposal_grpo_objective": proposal_grpo_objective,
+        "proposal_grpo_learning_rates": _split_words(proposal_grpo_learning_rates),
+        "proposal_grpo_kl_coef": proposal_grpo_kl_coef,
+        "proposal_grpo_anchor_kl_coefs": _split_words(proposal_grpo_anchor_kl_coefs),
         "adaptive_config_files": adaptive_config_files,
         "jobs": jobs,
     }
@@ -144,9 +185,17 @@ def _build_parser() -> argparse.ArgumentParser:
     candidate.add_argument("--out-root", required=True)
     candidate.add_argument("--tasks", required=True)
     candidate.add_argument("--conditions", required=True)
+    candidate.add_argument("--model-name", default="Qwen/Qwen3-1.7B")
+    candidate.add_argument("--proposal-model-name", default="current")
     candidate.add_argument("--outcome-trace-target-modes", required=True)
+    candidate.add_argument("--proposal-grpo-reward-modes", required=True)
     candidate.add_argument("--proposal-grpo-zero-variance-modes", required=True)
+    candidate.add_argument("--candidate-eval-backends", default="transformers")
     candidate.add_argument("--num-candidates-list", required=True)
+    candidate.add_argument("--proposal-grpo-objective", required=True)
+    candidate.add_argument("--proposal-grpo-learning-rates", required=True)
+    candidate.add_argument("--proposal-grpo-kl-coef", required=True)
+    candidate.add_argument("--proposal-grpo-anchor-kl-coefs", required=True)
     candidate.add_argument("--adaptive-config-files", default="")
     candidate.add_argument("--job-fields", nargs="*", default=[])
 
@@ -180,9 +229,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             out_root=args.out_root,
             tasks=args.tasks,
             conditions=args.conditions,
+            model_name=args.model_name,
+            proposal_model_name=args.proposal_model_name,
             outcome_trace_target_modes=args.outcome_trace_target_modes,
+            proposal_grpo_reward_modes=args.proposal_grpo_reward_modes,
             proposal_grpo_zero_variance_modes=args.proposal_grpo_zero_variance_modes,
+            candidate_eval_backends=args.candidate_eval_backends,
             num_candidates_list=args.num_candidates_list,
+            proposal_grpo_objective=args.proposal_grpo_objective,
+            proposal_grpo_learning_rates=args.proposal_grpo_learning_rates,
+            proposal_grpo_kl_coef=args.proposal_grpo_kl_coef,
+            proposal_grpo_anchor_kl_coefs=args.proposal_grpo_anchor_kl_coefs,
             adaptive_config_files=args.adaptive_config_files,
             job_fields=args.job_fields,
         )

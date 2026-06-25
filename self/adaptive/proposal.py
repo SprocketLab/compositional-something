@@ -16,7 +16,20 @@ from self.core.data_io import sanitize_json_value
 
 
 JsonDict = Dict[str, Any]
-PROPOSAL_OUTPUT_SCHEMAS = ("plain", "action_prediction")
+PROPOSAL_OUTPUT_SCHEMAS = ("plain", "action_observation")
+PREDICTION_FIELD_ALIASES: Dict[str, str] = {
+    "expected_avg_delta_from_current": "expected_avg_delta_from_current",
+    "expected_current_avg_delta": "expected_avg_delta_from_current",
+    "predicted_avg_delta_from_current": "expected_avg_delta_from_current",
+    "predicted_current_avg_delta": "expected_avg_delta_from_current",
+    "expected_avg_delta_from_init": "expected_avg_delta_from_init",
+    "expected_final_delta_from_init": "expected_avg_delta_from_init",
+    "predicted_avg_delta_from_init": "expected_avg_delta_from_init",
+    "expected_target_delta": "expected_target_delta",
+    "predicted_target_delta": "expected_target_delta",
+    "expected_frontier_delta": "expected_frontier_delta",
+    "predicted_frontier_delta": "expected_frontier_delta",
+}
 
 
 @dataclass(frozen=True)
@@ -61,16 +74,23 @@ DEFAULT_CONFIG_SEARCH_SPACES: Dict[str, JsonDict] = {
 
 
 def extract_json_object(raw: str) -> Optional[JsonDict]:
+    text = str(raw).strip()
     try:
-        payload = json.loads(raw)
+        payload = json.loads(text)
     except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start < 0 or end <= start:
-            return None
-        try:
-            payload = json.loads(raw[start : end + 1])
-        except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        payload = None
+        for start, char in enumerate(text):
+            if char != "{":
+                continue
+            try:
+                candidate, _ = decoder.raw_decode(text[start:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(candidate, dict):
+                payload = candidate
+                break
+        if payload is None:
             return None
     if not isinstance(payload, dict):
         return None
@@ -97,54 +117,66 @@ def _finite_float(value: Any) -> Optional[float]:
     return numeric
 
 
+def _normalize_prediction_payload(payload: Mapping[str, Any]) -> JsonDict:
+    prediction: JsonDict = {}
+    for raw_key, value in payload.items():
+        key = PREDICTION_FIELD_ALIASES.get(str(raw_key))
+        if key is None:
+            continue
+        numeric = _finite_float(value)
+        if numeric is not None:
+            prediction[key] = float(numeric)
+    if "expected_avg_delta_from_init" in prediction:
+        prediction.setdefault("expected_final_delta_from_init", prediction["expected_avg_delta_from_init"])
+    return prediction
+
+
+def _extract_tagged_block(text: str, tag: str, *, start: int = 0) -> Optional[Tuple[int, int, int, int, str]]:
+    open_tag = f"<{tag}>"
+    close_tag = f"</{tag}>"
+    open_start = text.find(open_tag, start)
+    if open_start < 0:
+        return None
+    content_start = open_start + len(open_tag)
+    close_start = text.find(close_tag, content_start)
+    if close_start < 0:
+        return None
+    close_end = close_start + len(close_tag)
+    return open_start, content_start, close_start, close_end, text[content_start:close_start].strip()
+
+
+def _extract_json_observation_payload(raw: Any) -> Tuple[Any, Optional[JsonDict], Optional[str], Optional[str]]:
+    payload = _row_payload(raw)
+    if payload is None:
+        return raw, None, "parse_error", "action_observation output must contain a JSON object"
+    if not isinstance(payload, dict):
+        return raw, None, "parse_error", "action_observation output must contain a JSON object"
+    allowed = {"reasoning", "left", "right", "guard", "notes", "rationale", *PREDICTION_FIELD_ALIASES}
+    unexpected = sorted(set(payload) - allowed)
+    if unexpected:
+        return payload, None, "schema_error", (
+            "action_observation JSON may only contain reasoning/prediction fields/left/right/guard; unexpected: "
+            + ", ".join(unexpected)
+        )
+    normalized = dict(payload)
+    reasoning = str(
+        normalized.pop("reasoning", None)
+        or normalized.pop("notes", None)
+        or normalized.pop("rationale", None)
+        or ""
+    ).strip()
+    if reasoning:
+        normalized["notes"] = reasoning[:500]
+    prediction = _normalize_prediction_payload(payload)
+    return normalized, prediction or None, None, None
+
+
 def proposal_payload_for_schema(raw: Any, schema: str) -> Tuple[Any, Optional[JsonDict], Optional[str], Optional[str]]:
     if schema == "plain":
         return raw, None, None, None
-    if schema != "action_prediction":
-        return raw, None, "schema_error", f"unsupported proposal output schema={schema!r}"
-    payload = _row_payload(raw)
-    if payload is None:
-        return raw, None, "parse_error", "raw output is not a JSON object"
-    proposal_payload = payload.get("proposal")
-    if not isinstance(proposal_payload, Mapping):
-        return payload, None, "schema_error", "action_prediction output requires object field proposal"
-    prediction_payload = payload.get("prediction")
-    if not isinstance(prediction_payload, Mapping):
-        return proposal_payload, None, "schema_error", "action_prediction output requires object field prediction"
-    return dict(proposal_payload), dict(prediction_payload), None, None
-
-
-def validate_config_prediction(
-    *,
-    prediction_payload: Optional[Mapping[str, Any]],
-    proposal: ConfigProposal,
-    schema: str,
-) -> Tuple[Optional[JsonDict], Optional[str]]:
-    if schema == "plain":
-        return None, None
-    if prediction_payload is None:
-        return None, "missing prediction"
-    try:
-        target = int(prediction_payload["target"])
-    except (KeyError, TypeError, ValueError):
-        return None, "prediction.target must be an integer equal to left + right"
-    if target != int(proposal.target):
-        return None, "prediction.target must equal left + right"
-    expected_frontier_delta = _finite_float(prediction_payload.get("expected_frontier_delta"))
-    if expected_frontier_delta is None:
-        return None, "prediction.expected_frontier_delta must be a finite number"
-    expected_final_delta_from_init = _finite_float(prediction_payload.get("expected_final_delta_from_init"))
-    if expected_final_delta_from_init is None:
-        return None, "prediction.expected_final_delta_from_init must be a finite number"
-    return (
-        {
-            "target": target,
-            "expected_frontier_delta": expected_frontier_delta,
-            "expected_final_delta_from_init": expected_final_delta_from_init,
-            "rationale": str(prediction_payload.get("rationale", ""))[:240],
-        },
-        None,
-    )
+    if schema == "action_observation":
+        return _extract_json_observation_payload(raw)
+    return raw, None, "schema_error", f"unsupported proposal output schema={schema!r}"
 
 
 def proposal_payload_for_completion(proposal: ConfigProposal) -> JsonDict:
@@ -158,6 +190,24 @@ def proposal_payload_for_completion(proposal: ConfigProposal) -> JsonDict:
     return payload
 
 
+def action_payload_for_completion(proposal: ConfigProposal) -> JsonDict:
+    return {
+        "left": int(proposal.left),
+        "right": int(proposal.right),
+        "guard": str(proposal.guard),
+    }
+
+
+def _reasoning_for_completion(proposal: ConfigProposal) -> str:
+    reasoning = str(proposal.notes or "").strip()
+    if reasoning:
+        return reasoning
+    return (
+        f"I will compose source sizes {int(proposal.left)} and {int(proposal.right)} "
+        f"to target {int(proposal.target)} using guard {proposal.guard}."
+    )
+
+
 def normalized_config_completion(
     *,
     proposal: ConfigProposal,
@@ -166,13 +216,30 @@ def normalized_config_completion(
 ) -> str:
     if schema == "plain":
         return proposal.to_completion()
-    if schema != "action_prediction":
-        raise ValueError(f"Unsupported proposal output schema={schema!r}.")
-    payload = {
-        "proposal": proposal_payload_for_completion(proposal),
-        "prediction": dict(prediction or {}),
-    }
-    return json.dumps(sanitize_json_value(payload), sort_keys=True, separators=(",", ":"))
+    if schema == "action_observation":
+        payload: JsonDict = {
+            "reasoning": _reasoning_for_completion(proposal),
+        }
+        if prediction:
+            for key in (
+                "expected_avg_delta_from_current",
+                "expected_avg_delta_from_init",
+                "expected_target_delta",
+                "expected_frontier_delta",
+            ):
+                if key in prediction:
+                    payload[key] = prediction[key]
+            if "expected_avg_delta_from_init" not in payload and "expected_final_delta_from_init" in prediction:
+                payload["expected_avg_delta_from_init"] = prediction["expected_final_delta_from_init"]
+        payload.update(
+            {
+                "left": int(proposal.left),
+                "right": int(proposal.right),
+                "guard": str(proposal.guard),
+            }
+        )
+        return json.dumps(sanitize_json_value(payload), separators=(",", ":"))
+    raise ValueError(f"Unsupported proposal output schema={schema!r}.")
 
 
 def parse_config_proposal(
@@ -250,7 +317,7 @@ def parse_config_proposal(
         right=right,
         guard=guard,
         target=target,
-        notes=str(payload.get("notes", "")),
+        notes=str(payload.get("notes") or payload.get("reasoning") or payload.get("rationale") or ""),
     )
     return ProposalValidation(True, proposal=proposal, raw=raw)
 
@@ -268,7 +335,6 @@ from self.adaptive.proposal import (
     parse_config_proposal,
     proposal_output_schema,
     proposal_payload_for_schema,
-    validate_config_prediction,
 )
 
 JsonDict = Dict[str, Any]
@@ -343,20 +409,10 @@ def validate_config_rows(
             frontier_max_allowed=frontier_max,
             guards=guards,
         )
-        parsed_prediction = None
-        prediction_error = None
-        if validation.valid:
-            parsed_prediction, prediction_error = validate_config_prediction(
-                prediction_payload=prediction_payload,
-                proposal=validation.proposal,
-                schema=schema,
-            )
-        validation_valid = bool(validation.valid and prediction_error is None)
+        parsed_prediction = dict(prediction_payload) if prediction_payload else None
+        validation_valid = bool(validation.valid)
         category = validation.category
         message = validation.message
-        if validation.valid and prediction_error is not None:
-            category = "schema_error"
-            message = prediction_error
         completion = (
             normalized_config_completion(
                 proposal=validation.proposal,
@@ -493,6 +549,20 @@ def _format_choices(values: Sequence[str]) -> str:
     return ", ".join(json.dumps(value) for value in values)
 
 
+def _guard_decision_rule_text(task_name: str) -> str:
+    if task_name == "addition":
+        return (
+            "- Guard choice: use none when carrying across the component boundary is acceptable; "
+            "use reject_boundary_carry when boundary carries are likely to make composed pseudo-labels noisy.\n"
+        )
+    if task_name == "run_length":
+        return (
+            "- Guard choice: use none for broad coverage; use reject_boundary_continue when boundary-spanning runs "
+            "look risky; use require_boundary_continue when the target weakness seems tied to boundary-spanning runs.\n"
+        )
+    return "- Guard choice: choose the listed guard that best matches the likely composition failure mode.\n"
+
+
 def render_config_prompt(
     *,
     task_name: str,
@@ -504,13 +574,13 @@ def render_config_prompt(
     model_name: str = "Qwen/Qwen3-1.7B",
     proposal_output_schema: str = "plain",
 ) -> PromptBundle:
-    system = (
-        "You are generating a composition configuration for a compositional self-improvement pipeline.\n"
-        "You must output only valid JSON matching the requested schema.\n"
-        "Do not include explanations, markdown, or comments.\n"
-        "You cannot call tools. You only choose a composition configuration."
-    )
     if proposal_output_schema == "plain":
+        system = (
+            "You are generating a composition configuration for a compositional self-improvement pipeline.\n"
+            "You must output only valid JSON matching the requested schema.\n"
+            "Do not include explanations, markdown, or comments.\n"
+            "You cannot call tools. You only choose a composition configuration."
+        )
         schema = {
             "left": "integer source slice size",
             "right": "integer source slice size",
@@ -518,57 +588,90 @@ def render_config_prompt(
             "notes": "optional short string",
         }
         schema_notes = (
+            f"{json.dumps(schema, indent=2)}\n\n"
             "Output the configuration object directly. The driver will execute this proposal and measure reward."
         )
-    elif proposal_output_schema == "action_prediction":
-        schema = {
-            "proposal": {
-                "left": "integer source slice size",
-                "right": "integer source slice size",
-                "guard": f"one of {_format_choices(guard_choices)}",
-                "notes": "optional short string",
-            },
-            "prediction": {
-                "target": "integer equal to proposal.left + proposal.right",
-                "expected_frontier_delta": "number; expected mean accuracy change on the static frontier",
-                "expected_final_delta_from_init": "number; expected final accuracy minus initial final accuracy after training",
-                "rationale": "short string; no more than one sentence",
-            },
-        }
+        goal_extra = ""
+        objective_extra = ""
+        constraints_extra = ""
+    elif proposal_output_schema == "action_observation":
+        system = (
+            "You are generating a JSON action for a compositional self-improvement pipeline.\n"
+            "Output exactly one valid JSON object with reasoning, outcome predictions, left, right, and guard.\n"
+            "Do not include markdown or code fences.\n"
+            "You cannot call tools. You only choose a composition configuration."
+        )
         schema_notes = (
-            "Output one object containing both the executable proposal and your predicted outcome. "
-            "The driver will execute only proposal, then compare prediction against the realized outcome."
+            "Return exactly one JSON object with these keys:\n"
+            "- reasoning: brief string explaining which current source slices look reliable, which target size left + right reaches, "
+            "and why the guard is appropriate.\n"
+            "- expected_avg_delta_from_current: number predicting candidate_avg_accuracy - current_avg_accuracy.\n"
+            "- expected_target_delta: number predicting target-slice accuracy improvement.\n"
+            "- expected_frontier_delta: number predicting static-frontier accuracy improvement.\n"
+            "- left: integer source slice size from current_source_slices.\n"
+            "- right: integer source slice size from current_source_slices.\n"
+            f"- guard: one of {_format_choices(guard_choices)}.\n\n"
+            "Put prediction fields after reasoning and before left/right/guard.\n"
+            "Choose numeric left and right values only from current_source_slices in the current state above; "
+            "do not copy numbers from schema text, examples, or unrelated instructions. "
+            "Ensure left + right lands inside allowed_target_frontier.\n\n"
+            "The driver executes only left, right, and guard, stores reasoning and predictions, then appends the environment observation during training."
+        )
+        goal_extra = "Put reasoning first, then your expected outcome deltas, then the config action."
+        objective_extra = (
+            "- In reasoning, state which source slices look reliable, which target size you are aiming at, "
+            "and why the guard is appropriate.\n"
+            "- Predict expected outcome deltas before choosing left/right/guard so the proposal states its acquisition hypothesis.\n"
+        )
+        constraints_extra = (
+            "- The JSON object may contain only reasoning, expected_* prediction fields, left, right, and guard.\n"
+            "- Predict only expected deltas, not validity labels or post-execution observations; the driver supplies realized observations after execution.\n"
         )
     else:
         raise ValueError(f"Unsupported proposal_output_schema={proposal_output_schema!r}.")
+    goal_sentence = (
+        "Choose two source slices and a guard rule for composing model component predictions into pseudo-labels."
+    )
+    if goal_extra:
+        goal_sentence = f"{goal_sentence} {goal_extra}"
+    aggregate_payload = dict(aggregate_metrics)
+    final_output_instruction = (
+        "Output only JSON."
+    )
     user = (
         f"Task: {task_name}\n\n"
         "Goal:\n"
-        "Choose two source slices and a guard rule for composing model component predictions into pseudo-labels. "
-        "Also predict the improvement you expect from this choice when the schema asks for prediction.\n\n"
-        "Current round:\n"
-        f"- round_index: {round_index}\n"
+        f"{goal_sentence}\n\n"
+        "Current attempt context:\n"
+        f"- next_selected_trace_index_if_chosen: {round_index}\n"
         f"- current_source_slices: {json.dumps(sanitize_json_value(dict(current_source)), sort_keys=True)}\n"
-        f"- allowed_target_frontier: {json.dumps(sanitize_json_value(dict(allowed_target_frontier)), sort_keys=True)}\n"
-        f"- model: {model_name}\n\n"
+        f"- allowed_target_frontier: {json.dumps(sanitize_json_value(dict(allowed_target_frontier)), sort_keys=True)}\n\n"
         "Aggregate diagnostics from prior evaluation:\n"
-        f"{json.dumps(sanitize_json_value(dict(aggregate_metrics)), sort_keys=True, indent=2)}\n\n"
+        f"{json.dumps(sanitize_json_value(aggregate_payload), sort_keys=True, indent=2)}\n\n"
         "Objective:\n"
         "- Choose the valid configuration with the highest expected reward.\n"
-        "- Reward is frontier_delta + lambda_final * (candidate_final_accuracy - init_final_accuracy).\n"
-        "- Reusing an existing target slice is allowed; measured reward determines whether rehearsal helps.\n\n"
-        "Output schema:\n"
-        f"{json.dumps(schema, indent=2)}\n\n"
+        "- Reward is candidate_avg_accuracy - current_avg_accuracy.\n"
+        "- Reusing an existing target slice is allowed; measured reward determines whether rehearsal helps.\n"
+        f"{objective_extra}"
+        "\n"
+        "Decision rules:\n"
+        "- Identify reliable source sizes from per_size_accuracy; higher source-slice accuracy means component predictions are more trustworthy.\n"
+        "- Identify weak reachable targets: target = left + right must be inside allowed_target_frontier, and low current target accuracy means there is more room to improve.\n"
+        "- Prefer actions expected to improve current_avg_accuracy, not just the target slice in isolation.\n"
+        "- Prefer actions that may grow the source pool when source_admission_target_accuracy_threshold is shown in diagnostics.\n"
+        "- If recent_selected_actions is provided, avoid exact repeats of left/right/guard/target unless the current diagnostics justify trying the same action again.\n"
+        f"{_guard_decision_rule_text(task_name)}"
+        "\n"
+        "Output format:\n"
         f"{schema_notes}\n\n"
         "Constraints:\n"
         "- left and right must be source slice sizes currently available to the model.\n"
         "- left + right must land inside allowed_target_frontier.\n"
         "- Choose only a listed guard value.\n"
-        "- If prediction is requested, prediction.target must equal left + right.\n"
-        "- If prediction is requested, expected deltas must be finite numbers.\n"
+        f"{constraints_extra}"
         "- Do not choose frontier ranges, data budgets, sampling schedules, or composition paths; the driver owns those.\n"
         "- The driver composes pseudo-labels from model component predictions, not oracle labels.\n\n"
-        "Output only JSON."
+        f"{final_output_instruction}"
     )
     return PromptBundle(system=system, user=user)
 
@@ -669,8 +772,8 @@ def render_program_candidate_prompt(
     examples = component_prediction_examples_for_task(args.task, args)
     common = (
         f"Task: {args.task}\n\n"
-        "Current round context:\n"
-        f"- round_index: {round_index}\n"
+        "Current attempt context:\n"
+        f"- next_selected_trace_index_if_chosen: {round_index}\n"
         f"- current_source_slices: {json.dumps(sanitize_json_value(dict(current_source)), sort_keys=True)}\n"
         f"- allowed_target_frontier: {json.dumps(sanitize_json_value(dict(allowed_target_frontier)), sort_keys=True)}\n"
         f"- model: {current_checkpoint}\n"
@@ -866,17 +969,25 @@ def generate_proposals_from_model(
     max_new_tokens: int,
     temperature: float,
     top_p: float,
+    batch_size: int = 1,
 ) -> List[JsonDict]:
     import torch
     from self.core.evaluation import build_generation_encodings
 
     device = next(model.parameters()).device
-    encodings = build_generation_encodings(tokenizer, [prompt.text()], device)
     rows: List[JsonDict] = []
     model_was_training = model.training
     model.eval()
+    batch_size = max(1, int(batch_size))
+    prompt_text = prompt.text()
     with torch.no_grad():
-        for idx in range(num_candidates):
+        for start in range(0, int(num_candidates), batch_size):
+            current_batch_size = min(batch_size, int(num_candidates) - start)
+            encodings = build_generation_encodings(
+                tokenizer,
+                [prompt_text] * current_batch_size,
+                device,
+            )
             generation_kwargs: Dict[str, Any] = {
                 **encodings,
                 "max_new_tokens": max_new_tokens,
@@ -887,11 +998,157 @@ def generate_proposals_from_model(
                 generation_kwargs["top_p"] = top_p
             output_ids = model.generate(**generation_kwargs)
             prompt_width = encodings["input_ids"].shape[1]
-            decoded = tokenizer.decode(output_ids[0, prompt_width:].tolist(), skip_special_tokens=True)
-            rows.append({"id": f"model_candidate_{idx}", "raw_output": decoded})
+            for batch_index in range(current_batch_size):
+                decoded = tokenizer.decode(
+                    output_ids[batch_index, prompt_width:].tolist(),
+                    skip_special_tokens=True,
+                )
+                rows.append({"id": f"model_candidate_{start + batch_index}", "raw_output": decoded})
     if model_was_training:
         model.train()
     return rows
+
+
+def _config_valid_action_key(result: Mapping[str, Any]) -> Optional[Tuple[Any, ...]]:
+    if not bool(result.get("valid")):
+        return None
+    parsed = result.get("parsed_proposal")
+    if not isinstance(parsed, Mapping):
+        return None
+    try:
+        left = int(parsed["left"])
+        right = int(parsed["right"])
+        target = int(parsed.get("target", left + right))
+        guard = str(parsed["guard"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return ("proposal", left, right, guard, target)
+
+
+def _proposal_unique_max_draws(args: argparse.Namespace) -> int:
+    configured = int(getattr(args, "proposal_unique_max_draws", 0) or 0)
+    if configured > 0:
+        return configured
+    num_candidates = int(args.num_candidates)
+    return max(num_candidates * 8, num_candidates + 16)
+
+
+def generate_unique_config_proposals_from_model(
+    *,
+    args: argparse.Namespace,
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    prompt: PromptBundle,
+    source_sizes: set[int],
+    frontier_min: int,
+    frontier_max: int,
+) -> Tuple[List[JsonDict], JsonDict, List[JsonDict]]:
+    """Sample until config proposals contain unique normalized actions.
+
+    The returned candidate rows are strictly valid, unique config actions. Invalid
+    or duplicate draws are rejected for candidate training but returned in
+    draw_results so proposal-GRPO can still learn from the verifier outcome.
+    """
+
+    requested = int(args.num_candidates)
+    max_draws = _proposal_unique_max_draws(args)
+    sampling_batch_size = max(1, int(getattr(args, "proposal_sampling_batch_size", 1)))
+    kept_rows: List[JsonDict] = []
+    seen_valid_actions: set[Tuple[Any, ...]] = set()
+    draw_records: List[JsonDict] = []
+    draw_results: List[JsonDict] = []
+    draw_index = 0
+
+    while len(kept_rows) < requested and draw_index < max_draws:
+        batch_rows = generate_proposals_from_model(
+            model=model,
+            tokenizer=tokenizer,
+            prompt=prompt,
+            num_candidates=min(sampling_batch_size, max_draws - draw_index),
+            max_new_tokens=args.proposal_max_new_tokens,
+            temperature=args.proposal_temperature,
+            top_p=args.proposal_top_p,
+            batch_size=sampling_batch_size,
+        )
+        for row in batch_rows:
+            if draw_index >= max_draws:
+                break
+            row = dict(row)
+            row["id"] = f"model_candidate_draw_{draw_index}"
+            row["unique_draw_index"] = draw_index
+
+            result = validate_config_rows(
+                rows=[row],
+                args=args,
+                source_sizes=source_sizes,
+                frontier_min=frontier_min,
+                frontier_max=frontier_max,
+            )[0]
+            action_key = _config_valid_action_key(result)
+            kept_reason: Optional[str]
+            candidate_index: Optional[int] = None
+            if len(kept_rows) < requested and action_key is not None and action_key not in seen_valid_actions:
+                seen_valid_actions.add(action_key)
+                kept_reason = "unique_valid_action"
+                candidate_index = len(kept_rows)
+                kept_row = dict(row)
+                kept_row["id"] = f"model_candidate_{candidate_index}"
+                kept_row["unique_generation_kept_reason"] = kept_reason
+                kept_rows.append(kept_row)
+            else:
+                kept_reason = "duplicate_valid_action" if action_key is not None else "invalid"
+                row["unique_generation_reject_reason"] = kept_reason
+
+            draw_result = dict(result)
+            draw_result["proposal_index"] = draw_index
+            draw_result["draw_index"] = draw_index
+            draw_result["id"] = row["id"]
+            draw_result["action_key"] = list(action_key) if action_key is not None else None
+            draw_result["kept_for_candidate"] = kept_reason == "unique_valid_action"
+            draw_result["unique_generation_reason"] = kept_reason
+            if candidate_index is not None:
+                draw_result["candidate_proposal_index"] = candidate_index
+                draw_result["candidate_id"] = f"model_candidate_{candidate_index}"
+            draw_results.append(sanitize_json_value(draw_result))
+            draw_records.append(
+                sanitize_json_value(
+                    {
+                        "draw_index": draw_index,
+                        "valid": bool(result.get("valid")),
+                        "validation_category": result.get("validation_category"),
+                        "validation_message": result.get("validation_message"),
+                        "action_key": list(action_key) if action_key is not None else None,
+                        "kept": kept_reason == "unique_valid_action",
+                        "reason": kept_reason,
+                        "candidate_proposal_index": candidate_index,
+                    }
+                )
+            )
+            draw_index += 1
+            if len(kept_rows) >= requested:
+                break
+
+    unique_valid_count = len(seen_valid_actions)
+    summary: JsonDict = sanitize_json_value(
+        {
+            "enabled": True,
+            "semantic": "config_action",
+            "strict_valid_unique": True,
+            "requested_unique_proposals": requested,
+            "max_draws": max_draws,
+            "sampling_batch_size": sampling_batch_size,
+            "total_draws": draw_index,
+            "unique_valid_actions": unique_valid_count,
+            "returned_rows": len(kept_rows),
+            "fallback_rows_returned": 0,
+            "draw_result_count": len(draw_results),
+            "reached_requested_unique_count": unique_valid_count >= requested,
+            "temperature": args.proposal_temperature,
+            "top_p": args.proposal_top_p,
+            "draws": draw_records,
+        }
+    )
+    return kept_rows, summary, draw_results
 
 
 def load_or_generate_proposal_rows(
@@ -902,6 +1159,11 @@ def load_or_generate_proposal_rows(
     current_tokenizer: AutoTokenizer,
     round_index: int,
     attempt_index: Optional[int] = None,
+    source_sizes: Optional[set[int]] = None,
+    frontier_min: Optional[int] = None,
+    frontier_max: Optional[int] = None,
+    unique_log_path: Optional[Path] = None,
+    draw_results_log_path: Optional[Path] = None,
 ) -> List[JsonDict]:
     if args.proposal_fixture_jsonl is not None:
         rows = _rows_for_round(
@@ -912,6 +1174,27 @@ def load_or_generate_proposal_rows(
         return [dict(row) for row in rows[: args.num_candidates]]
 
     if args.proposal_model_name == "current":
+        if (
+            bool(getattr(args, "force_unique_proposals", False))
+            and args.condition == "config"
+            and source_sizes is not None
+            and frontier_min is not None
+            and frontier_max is not None
+        ):
+            rows, summary, draw_results = generate_unique_config_proposals_from_model(
+                args=args,
+                model=current_model,
+                tokenizer=current_tokenizer,
+                prompt=prompt,
+                source_sizes=source_sizes,
+                frontier_min=int(frontier_min),
+                frontier_max=int(frontier_max),
+            )
+            if unique_log_path is not None:
+                unique_log_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+            if draw_results_log_path is not None:
+                draw_results_log_path.write_text(json.dumps(draw_results, indent=2) + "\n", encoding="utf-8")
+            return rows
         return generate_proposals_from_model(
             model=current_model,
             tokenizer=current_tokenizer,
@@ -920,6 +1203,7 @@ def load_or_generate_proposal_rows(
             max_new_tokens=args.proposal_max_new_tokens,
             temperature=args.proposal_temperature,
             top_p=args.proposal_top_p,
+            batch_size=getattr(args, "proposal_sampling_batch_size", 1),
         )
 
     from self.core.model_io import instantiate_model_and_tokenizer
@@ -933,6 +1217,27 @@ def load_or_generate_proposal_rows(
         recipe="none",
     )
     try:
+        if (
+            bool(getattr(args, "force_unique_proposals", False))
+            and args.condition == "config"
+            and source_sizes is not None
+            and frontier_min is not None
+            and frontier_max is not None
+        ):
+            rows, summary, draw_results = generate_unique_config_proposals_from_model(
+                args=args,
+                model=proposal_model,
+                tokenizer=proposal_tokenizer,
+                prompt=prompt,
+                source_sizes=source_sizes,
+                frontier_min=int(frontier_min),
+                frontier_max=int(frontier_max),
+            )
+            if unique_log_path is not None:
+                unique_log_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+            if draw_results_log_path is not None:
+                draw_results_log_path.write_text(json.dumps(draw_results, indent=2) + "\n", encoding="utf-8")
+            return rows
         return generate_proposals_from_model(
             model=proposal_model,
             tokenizer=proposal_tokenizer,
@@ -941,6 +1246,7 @@ def load_or_generate_proposal_rows(
             max_new_tokens=args.proposal_max_new_tokens,
             temperature=args.proposal_temperature,
             top_p=args.proposal_top_p,
+            batch_size=getattr(args, "proposal_sampling_batch_size", 1),
         )
     finally:
         del proposal_model
@@ -958,7 +1264,6 @@ import argparse
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from self.core.data_io import sanitize_json_value
-from self.core.models import ExecutableProposal
 from self.adaptive.program_sandbox import validate_program_with_repair
 from self.adaptive.program_sandbox import ProgramValidationResult
 from self.adaptive.proposal import _raw_output
@@ -1218,6 +1523,8 @@ def validate_executable_rows(
             seen.add(completion)
         proposal = None
         if validation.valid:
+            from self.core.models import ExecutableProposal
+
             proposal = ExecutableProposal(
                 left=left,
                 right=right,
@@ -1337,7 +1644,10 @@ from self.adaptive.proposal import PromptBundle
 JsonDict = Dict[str, Any]
 
 PROPOSAL_GRPO_ZERO_VARIANCE_MODES = ("fixed_baseline", "skip")
-PROPOSAL_GRPO_REWARD_MODES = ("outcome", "validity")
+PROPOSAL_GRPO_REWARD_MODES = ("outcome", "rank", "validity")
+PROPOSAL_UPDATE_LOSS_MODES = ("legacy_grpo", "merged_agent")
+PROPOSAL_GRPO_SPAN_MODES = ("reasoning_action", "action_only")
+PROPOSAL_GRPO_OBJECTIVES = ("grpo", "dr_grpo")
 PROPOSAL_GRPO_REWARD_BY_CATEGORY: Dict[str, float] = {
     "valid": 1.0,
     "range_error": 0.6,
@@ -1417,6 +1727,138 @@ def _clamp(value: float, low: float, high: float) -> float:
     return min(high, max(low, value))
 
 
+def _finite_float_or_none(value: Any) -> Optional[float]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) else None
+
+
+def _proposal_action_key(result: Mapping[str, Any]) -> Tuple[Any, ...]:
+    parsed = result.get("parsed_proposal")
+    if isinstance(parsed, Mapping):
+        try:
+            left = int(parsed["left"])
+            right = int(parsed["right"])
+            target = int(parsed.get("target", left + right))
+            guard = str(parsed.get("guard", "none"))
+            return ("proposal", left, right, guard, target)
+        except (KeyError, TypeError, ValueError):
+            pass
+    completion = result.get("completion")
+    if isinstance(completion, str) and completion:
+        return ("completion", completion)
+    raw = result.get("raw_output", "")
+    if isinstance(raw, str):
+        return ("raw", raw)
+    return ("raw_json", json.dumps(sanitize_json_value(raw), sort_keys=True))
+
+
+def _is_config_proposal_action_key(key: Tuple[Any, ...]) -> bool:
+    return bool(key and key[0] == "proposal")
+
+
+def _proposal_trace_action_key(trace: Any) -> Optional[Tuple[Any, ...]]:
+    metadata = getattr(trace, "metadata", None)
+    if metadata is None and isinstance(trace, Mapping):
+        metadata = trace.get("metadata")
+    if not isinstance(metadata, Mapping):
+        return None
+    try:
+        left = int(metadata["left"])
+        right = int(metadata["right"])
+        target = int(metadata.get("target", left + right))
+        guard = str(metadata.get("guard", "none"))
+    except (KeyError, TypeError, ValueError):
+        return None
+    return ("proposal", left, right, guard, target)
+
+
+def _count_action_keys(keys: Sequence[Tuple[Any, ...]]) -> Dict[Tuple[Any, ...], int]:
+    counts: Dict[Tuple[Any, ...], int] = {}
+    for key in keys:
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _action_entropy_summary(keys: Sequence[Tuple[Any, ...]], *, prefix: str) -> JsonDict:
+    total = len(keys)
+    counts = _count_action_keys(keys)
+    unique = len(counts)
+    if total <= 0:
+        entropy = math.nan
+        effective = math.nan
+        duplicate_rate = math.nan
+    else:
+        entropy = 0.0
+        for count in counts.values():
+            probability = float(count) / float(total)
+            entropy -= probability * math.log(probability)
+        effective = math.exp(entropy)
+        duplicate_rate = 1.0 - (float(unique) / float(total))
+    top_counts = [
+        {"action_key": list(key), "count": int(count)}
+        for key, count in sorted(counts.items(), key=lambda item: (-item[1], str(item[0])))[:10]
+    ]
+    return {
+        f"{prefix}_action_count": total,
+        f"{prefix}_unique_action_count": unique,
+        f"{prefix}_action_entropy": entropy,
+        f"{prefix}_effective_action_count": effective,
+        f"{prefix}_duplicate_action_rate": duplicate_rate,
+        f"{prefix}_top_action_counts": top_counts,
+    }
+
+
+def _dedup_entry_score(entry: Mapping[str, Any]) -> Tuple[float, int]:
+    rank_score = _finite_float_or_none(entry.get("rank_score"))
+    reward = _finite_float_or_none(entry.get("reward"))
+    score = rank_score if rank_score is not None else (reward if reward is not None else float("-inf"))
+    proposal_index = int(entry.get("proposal_index", 0))
+    return score, -proposal_index
+
+
+def _deduplicate_reward_entries(entries: Sequence[JsonDict]) -> Tuple[List[JsonDict], int, int]:
+    best_by_key: Dict[Tuple[Any, ...], JsonDict] = {}
+    duplicate_count = 0
+    for entry in entries:
+        key = tuple(entry["action_key"])
+        current = best_by_key.get(key)
+        if current is None:
+            best_by_key[key] = dict(entry)
+            continue
+        duplicate_count += 1
+        if _dedup_entry_score(entry) > _dedup_entry_score(current):
+            best_by_key[key] = dict(entry)
+    kept = sorted(best_by_key.values(), key=lambda payload: int(payload["proposal_index"]))
+    return kept, duplicate_count, len(best_by_key)
+
+
+def _assign_rank_rewards(entries: Sequence[JsonDict]) -> None:
+    ranked = [
+        (index, _finite_float_or_none(entry.get("rank_score")))
+        for index, entry in enumerate(entries)
+        if entry.get("reward_source") == "rank_outcome"
+    ]
+    ranked = [(index, score) for index, score in ranked if score is not None]
+    if not ranked:
+        return
+    ranked.sort(key=lambda item: float(item[1]))
+    denominator = max(1, len(ranked) - 1)
+    position = 0
+    while position < len(ranked):
+        score = ranked[position][1]
+        end = position + 1
+        while end < len(ranked) and ranked[end][1] == score:
+            end += 1
+        mean_position = (position + end - 1) / 2.0
+        reward = 1.0 if len(ranked) == 1 else float(mean_position / denominator)
+        for entry_index, _ in ranked[position:end]:
+            entries[entry_index]["reward"] = reward
+        position = end
+
+
 def proposal_grpo_reward_for_result(
     result: Mapping[str, Any],
     *,
@@ -1444,15 +1886,20 @@ def proposal_grpo_advantages(
     *,
     zero_variance: str,
     fixed_baseline: float,
+    objective: str = "grpo",
     eps: float = 1e-6,
 ) -> Tuple[List[float], bool, str]:
     if not rewards:
         return [], True, "no_rewards"
+    if objective not in PROPOSAL_GRPO_OBJECTIVES:
+        raise ValueError(f"Unsupported proposal_grpo_objective={objective!r}.")
     reward_values = [float(reward) for reward in rewards]
     mean_reward = sum(reward_values) / len(reward_values)
     variance = sum((reward - mean_reward) ** 2 for reward in reward_values) / len(reward_values)
     std_reward = math.sqrt(variance)
     if std_reward > eps:
+        if objective == "dr_grpo":
+            return [reward - mean_reward for reward in reward_values], False, "mean_centered"
         return [(reward - mean_reward) / (std_reward + eps) for reward in reward_values], False, "normalized"
     if zero_variance == "skip":
         return [0.0 for _ in reward_values], True, "zero_variance"
@@ -1467,38 +1914,144 @@ def build_proposal_grpo_traces(
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
     candidate_metrics: Sequence[Any] = (),
+    action_history: Sequence[Any] = (),
 ) -> Tuple[List[ProposalGRPOTrace], JsonDict]:
     prompt_text = prompt.text()
     metrics_by_index = {int(metric.index): metric for metric in candidate_metrics}
-    rewards: List[float] = []
-    included_results: List[Tuple[int, Mapping[str, Any], Optional[Any], float, str]] = []
+
+    def metric_for_result(result: Mapping[str, Any], proposal_index: int) -> Optional[Any]:
+        candidate_index = result.get("candidate_proposal_index")
+        if candidate_index is None and result.get("kept_for_candidate") is not False:
+            candidate_index = proposal_index
+        try:
+            return metrics_by_index.get(int(candidate_index)) if candidate_index is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    included_entries: List[JsonDict] = []
     reward_source_counts: Dict[str, int] = {}
     skipped_system_failure_count = 0
+    skipped_candidate_duplicate_count = 0
+    reward_mode = args.proposal_grpo_reward_mode
     for index, result in enumerate(proposal_results):
         proposal_index = _proposal_index(result, index)
-        metric = metrics_by_index.get(proposal_index)
-        reward, reward_source = proposal_grpo_reward_for_result(
-            result,
-            metric=metric,
-            reward_mode=args.proposal_grpo_reward_mode,
-            outcome_scale=args.proposal_grpo_outcome_scale,
-        )
+        if bool(result.get("candidate_dedup_skipped")):
+            reward_source_counts["candidate_dedup_skipped"] = (
+                reward_source_counts.get("candidate_dedup_skipped", 0) + 1
+            )
+            skipped_candidate_duplicate_count += 1
+            continue
+        metric = metric_for_result(result, proposal_index)
+        rank_score: Optional[float] = None
+        if reward_mode == "rank":
+            if not bool(result.get("valid")):
+                reward, reward_source = proposal_grpo_outcome_invalid_reward(result), "invalid"
+            elif metric is None:
+                reward, reward_source = 0.0, "valid_untrained"
+            elif not metric.valid:
+                if _is_system_candidate_failure(metric):
+                    reward, reward_source = None, "skipped_system_failure"
+                else:
+                    reward, reward_source = 0.0, "valid_untrained"
+            else:
+                rank_score = _finite_float_or_none(metric.reward)
+                reward, reward_source = None, "rank_outcome"
+        else:
+            reward, reward_source = proposal_grpo_reward_for_result(
+                result,
+                metric=metric,
+                reward_mode=reward_mode,
+                outcome_scale=args.proposal_grpo_outcome_scale,
+            )
         reward_source_counts[reward_source] = reward_source_counts.get(reward_source, 0) + 1
         if reward is None:
-            skipped_system_failure_count += 1
+            if reward_source == "skipped_system_failure":
+                skipped_system_failure_count += 1
+                continue
+            if reward_source != "rank_outcome":
+                continue
+        included_entries.append(
+            {
+                "proposal_index": proposal_index,
+                "result": result,
+                "metric": metric,
+                "reward": reward,
+                "reward_source": reward_source,
+                "rank_score": rank_score,
+                "action_key": _proposal_action_key(result),
+            }
+        )
+
+    pre_dedup_count = len(included_entries)
+    pre_dedup_action_keys = [tuple(entry["action_key"]) for entry in included_entries]
+    current_action_counts = _count_action_keys(pre_dedup_action_keys)
+    action_history_keys = [
+        key for key in (_proposal_trace_action_key(trace) for trace in action_history) if key is not None
+    ]
+    action_history_counts = _count_action_keys(action_history_keys)
+    deduplicated_action_count = 0
+    unique_action_count = len(set(pre_dedup_action_keys))
+    if bool(getattr(args, "proposal_grpo_deduplicate_actions", True)) and included_entries:
+        included_entries, deduplicated_action_count, unique_action_count = _deduplicate_reward_entries(
+            included_entries
+        )
+    if reward_mode == "rank":
+        _assign_rank_rewards(included_entries)
+
+    novelty_beta = float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0))
+    novelty_bonus_values: List[float] = []
+    for entry in included_entries:
+        entry["base_reward"] = entry.get("reward")
+        entry["novelty_bonus"] = 0.0
+        entry["action_history_count"] = 0
+        entry["current_action_multiplicity"] = current_action_counts.get(tuple(entry["action_key"]), 0)
+        if novelty_beta <= 0.0:
             continue
+        result = entry["result"]
+        action_key = tuple(entry["action_key"])
+        if not bool(result.get("valid")) or not _is_config_proposal_action_key(action_key):
+            continue
+        reward = _finite_float_or_none(entry.get("reward"))
+        if reward is None:
+            continue
+        history_count = int(action_history_counts.get(action_key, 0))
+        current_multiplicity = int(current_action_counts.get(action_key, 1))
+        novelty_count = history_count + max(0, current_multiplicity - 1)
+        novelty_bonus = float(novelty_beta) / math.sqrt(float(novelty_count + 1))
+        entry["action_history_count"] = history_count
+        entry["novelty_count"] = novelty_count
+        entry["novelty_bonus"] = novelty_bonus
+        entry["reward"] = _clamp(float(reward) + novelty_bonus, -1.0, 1.0)
+        novelty_bonus_values.append(novelty_bonus)
+
+    trainable_reward_source_counts: Dict[str, int] = {}
+    rewards: List[float] = []
+    for entry in included_entries:
+        reward = _finite_float_or_none(entry.get("reward"))
+        if reward is None:
+            continue
+        entry["reward"] = float(reward)
+        reward_source = str(entry["reward_source"])
+        trainable_reward_source_counts[reward_source] = trainable_reward_source_counts.get(reward_source, 0) + 1
         rewards.append(float(reward))
-        included_results.append((proposal_index, result, metric, float(reward), reward_source))
+    included_entries = [entry for entry in included_entries if _finite_float_or_none(entry.get("reward")) is not None]
+    invalid_only_fixed_baseline = bool(rewards) and trainable_reward_source_counts.get("invalid", 0) == len(rewards)
+    zero_variance_mode = str(args.proposal_grpo_zero_variance)
+    if invalid_only_fixed_baseline and zero_variance_mode == "skip":
+        zero_variance_mode = "fixed_baseline"
     advantages, skip_update, advantage_mode = proposal_grpo_advantages(
         rewards,
-        zero_variance=args.proposal_grpo_zero_variance,
+        zero_variance=zero_variance_mode,
         fixed_baseline=args.proposal_grpo_fixed_baseline,
+        objective=str(getattr(args, "proposal_grpo_objective", "grpo")),
     )
     traces: List[ProposalGRPOTrace] = []
-    for proposal_index, result, metric, reward, reward_source, advantage in (
-        (*payload, advantage)
-        for payload, advantage in zip(included_results, advantages)
-    ):
+    for entry, advantage in zip(included_entries, advantages):
+        proposal_index = int(entry["proposal_index"])
+        result = entry["result"]
+        metric = entry["metric"]
+        reward = float(entry["reward"])
+        reward_source = str(entry["reward_source"])
         raw = result.get("raw_output", "")
         normalized_completion = result.get("completion")
         if result.get("valid") and isinstance(normalized_completion, str) and normalized_completion:
@@ -1528,10 +2081,27 @@ def build_proposal_grpo_traces(
                     "proposal_output_schema": result.get("proposal_output_schema"),
                     "completion_source": completion_source,
                     "reward_source": reward_source,
+                    "base_reward": entry.get("base_reward"),
+                    "novelty_bonus": entry.get("novelty_bonus", 0.0),
+                    "action_history_count": entry.get("action_history_count", 0),
+                    "current_action_multiplicity": entry.get("current_action_multiplicity", 0),
+                    "novelty_count": entry.get("novelty_count", entry.get("action_history_count", 0)),
+                    "rank_score": entry.get("rank_score"),
+                    "deduplicated_for_policy": bool(
+                        getattr(args, "proposal_grpo_deduplicate_actions", True)
+                    ),
                     "candidate_reward": metric.reward if metric is not None else None,
                     "frontier_delta": metric.frontier_delta if metric is not None else None,
+                    "final_accuracy": metric.final_accuracy if metric is not None else None,
+                    "final_accuracy_delta": metric.final_accuracy_delta if metric is not None else None,
+                    "final_accuracy_delta_from_current": (
+                        metric.final_accuracy_delta_from_current if metric is not None else None
+                    ),
                     "target_delta": metric.target_delta if metric is not None else None,
-                    "proposal_prediction": metric.proposal_prediction if metric is not None else None,
+                    "per_size_delta": getattr(metric, "per_size_delta", None) if metric is not None else None,
+                    "per_size_accuracy": getattr(metric, "per_size_accuracy", None) if metric is not None else None,
+                    "failure_reason": getattr(metric, "failure_reason", None) if metric is not None else None,
+                    "proposal_prediction": getattr(metric, "proposal_prediction", None) if metric is not None else None,
                 },
             )
         )
@@ -1546,12 +2116,29 @@ def build_proposal_grpo_traces(
         "reward_std": reward_std,
         "advantage_mode": advantage_mode,
         "zero_variance_skip": bool(skip_update),
+        "invalid_only_fixed_baseline": bool(invalid_only_fixed_baseline),
+        "requested_zero_variance_mode": str(args.proposal_grpo_zero_variance),
         "reward_mode": args.proposal_grpo_reward_mode,
+        "objective": str(getattr(args, "proposal_grpo_objective", "grpo")),
         "outcome_scale": float(args.proposal_grpo_outcome_scale),
+        "novelty_bonus_beta": float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0)),
+        "novelty_bonus_mean": (
+            sum(novelty_bonus_values) / len(novelty_bonus_values) if novelty_bonus_values else 0.0
+        ),
+        "novelty_bonus_max": max(novelty_bonus_values) if novelty_bonus_values else 0.0,
         "reward_source_counts": reward_source_counts,
+        "trainable_reward_source_counts": trainable_reward_source_counts,
         "skipped_system_failure_count": skipped_system_failure_count,
+        "skipped_candidate_duplicate_count": skipped_candidate_duplicate_count,
+        "deduplicate_actions": bool(getattr(args, "proposal_grpo_deduplicate_actions", True)),
+        "pre_dedup_trace_count": pre_dedup_count,
+        "deduplicated_action_count": deduplicated_action_count,
+        "unique_action_count": unique_action_count,
+        "action_history_count": len(action_history_keys),
         "input_proposal_count": len(proposal_results),
         "trace_candidate_metric_count": len(candidate_metrics),
+        **_action_entropy_summary(pre_dedup_action_keys, prefix="pre_dedup"),
+        **_action_entropy_summary([tuple(entry["action_key"]) for entry in included_entries], prefix="trainable"),
     }
 
 
@@ -1568,6 +2155,8 @@ from self.adaptive.proposal import (
     PROPOSAL_GRPO_OUTCOME_INVALID_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_BY_CATEGORY,
     PROPOSAL_GRPO_REWARD_MODES,
+    PROPOSAL_GRPO_OBJECTIVES,
+    PROPOSAL_GRPO_SPAN_MODES,
     PROPOSAL_GRPO_ZERO_VARIANCE_MODES,
     ProposalGRPOTrace,
     build_proposal_grpo_traces,
@@ -1588,6 +2177,8 @@ def _encode_proposal_grpo_sample(
     tokenizer: AutoTokenizer,
     prompt_text: str,
     completion: str,
+    completion_char_span: Optional[Tuple[int, int]] = None,
+    completion_char_exclude_spans: Sequence[Tuple[int, int]] = (),
 ) -> Optional[JsonDict]:
     if completion == "":
         return None
@@ -1595,6 +2186,13 @@ def _encode_proposal_grpo_sample(
     completion_ids = tokenizer.encode(completion, add_special_tokens=False)
     if not completion_ids:
         return None
+    completion_token_mask = _completion_token_mask(
+        tokenizer=tokenizer,
+        completion=completion,
+        completion_token_count=len(completion_ids),
+        char_span=completion_char_span,
+        exclude_spans=completion_char_exclude_spans,
+    )
     input_ids: List[int] = []
     if tokenizer.bos_token_id is not None:
         input_ids.append(int(tokenizer.bos_token_id))
@@ -1603,15 +2201,384 @@ def _encode_proposal_grpo_sample(
     input_ids.extend(int(token_id) for token_id in completion_ids)
     if len(input_ids) < 2:
         return None
-    completion_mask = [bool(position + 1 >= completion_start) for position in range(len(input_ids) - 1)]
+    completion_mask: List[bool] = []
+    for position in range(len(input_ids) - 1):
+        target_index = position + 1
+        if completion_start <= target_index < completion_start + len(completion_ids):
+            completion_mask.append(bool(completion_token_mask[target_index - completion_start]))
+        else:
+            completion_mask.append(False)
     if not any(completion_mask):
         return None
     return {
         "input_ids": input_ids,
         "attention_mask": [1] * len(input_ids),
         "completion_mask": completion_mask,
-        "completion_tokens": len(completion_ids),
+        "completion_tokens": int(sum(1 for keep in completion_token_mask if keep)),
+        "total_completion_tokens": len(completion_ids),
     }
+
+
+def _completion_token_mask(
+    *,
+    tokenizer: AutoTokenizer,
+    completion: str,
+    completion_token_count: int,
+    char_span: Optional[Tuple[int, int]],
+    exclude_spans: Sequence[Tuple[int, int]] = (),
+) -> List[bool]:
+    if char_span is None:
+        mask = [True] * completion_token_count
+    else:
+        include_span = _completion_char_span_to_token_span(
+            tokenizer=tokenizer,
+            completion=completion,
+            completion_token_count=completion_token_count,
+            char_span=char_span,
+            force_nonempty=True,
+        )
+        if include_span is None:
+            mask = [True] * completion_token_count
+        else:
+            start_token, end_token = include_span
+            mask = [start_token <= index < end_token for index in range(completion_token_count)]
+    for exclude_span in exclude_spans:
+        token_span = _completion_char_span_to_token_span(
+            tokenizer=tokenizer,
+            completion=completion,
+            completion_token_count=completion_token_count,
+            char_span=exclude_span,
+            force_nonempty=False,
+        )
+        if token_span is None:
+            continue
+        start_token, end_token = token_span
+        for index in range(start_token, end_token):
+            if 0 <= index < completion_token_count:
+                mask[index] = False
+    return mask
+
+
+def _completion_char_span_to_token_span(
+    *,
+    tokenizer: AutoTokenizer,
+    completion: str,
+    completion_token_count: int,
+    char_span: Tuple[int, int],
+    force_nonempty: bool,
+) -> Optional[Tuple[int, int]]:
+    start_char, end_char = char_span
+    start_char = max(0, min(len(completion), int(start_char)))
+    end_char = max(start_char, min(len(completion), int(end_char)))
+    if end_char <= start_char:
+        return None
+    start_token = len(tokenizer.encode(completion[:start_char], add_special_tokens=False))
+    end_token = len(tokenizer.encode(completion[:end_char], add_special_tokens=False))
+    start_token = max(0, min(completion_token_count, start_token))
+    end_token = min(completion_token_count, end_token)
+    if force_nonempty:
+        end_token = max(start_token + 1, end_token)
+    end_token = min(completion_token_count, end_token)
+    if end_token <= start_token:
+        return None
+    return start_token, end_token
+
+
+def _json_value_char_span(completion: str, key: str) -> Optional[Tuple[int, int]]:
+    marker = json.dumps(str(key), separators=(",", ":")) + ":"
+    start = completion.find(marker)
+    if start < 0:
+        return None
+    value_start = start + len(marker)
+    try:
+        _, value_length = json.JSONDecoder().raw_decode(completion[value_start:])
+    except json.JSONDecodeError:
+        return None
+    return value_start, value_start + value_length
+
+
+FORMAT_CONFIG_VALUE_KEYS = (
+    "reasoning",
+    "notes",
+    "rationale",
+    "expected_avg_delta_from_current",
+    "expected_avg_delta_from_init",
+    "expected_final_delta_from_init",
+    "expected_target_delta",
+    "expected_frontier_delta",
+    "left",
+    "right",
+    "guard",
+    "target",
+)
+
+
+def _json_value_content_char_span(completion: str, key: str) -> Optional[Tuple[int, int]]:
+    span = _json_value_char_span(completion, key)
+    if span is None:
+        return None
+    start, end = span
+    if end - start >= 2 and completion[start] == '"' and completion[end - 1] == '"':
+        start += 1
+        end -= 1
+    if end <= start:
+        return None
+    return start, end
+
+
+def _proposal_format_value_char_spans(completion: str) -> List[Tuple[int, int]]:
+    spans: List[Tuple[int, int]] = []
+    seen: set[Tuple[int, int]] = set()
+    for key in FORMAT_CONFIG_VALUE_KEYS:
+        span = _json_value_content_char_span(completion, key)
+        if span is None or span in seen:
+            continue
+        seen.add(span)
+        spans.append(span)
+    return spans
+
+
+def _tagged_action_json_span(completion: str) -> Optional[Tuple[int, int]]:
+    block = _extract_tagged_block(completion, "action")
+    if block is None:
+        return None
+    _, content_start, close_start, _, content = block
+    raw_content = completion[content_start:close_start]
+    leading_ws = len(raw_content) - len(raw_content.lstrip())
+    trailing_ws = len(raw_content) - len(raw_content.rstrip())
+    start = content_start + leading_ws
+    end = close_start - trailing_ws
+    if end <= start or not content:
+        return None
+    return start, end
+
+
+def _proposal_policy_span(trace: ProposalGRPOTrace, *, span_mode: str) -> Optional[Tuple[int, int]]:
+    if span_mode == "reasoning_action":
+        return None
+    if span_mode != "action_only":
+        raise ValueError(f"Unsupported proposal_grpo_span={span_mode!r}.")
+    tagged_span = _tagged_action_json_span(trace.completion)
+    if tagged_span is not None:
+        return tagged_span
+    start = trace.completion.find("{")
+    end = trace.completion.rfind("}")
+    if start >= 0 and end > start:
+        return start, end + 1
+    return None
+
+
+def _completion_loss(model: AutoModelForCausalLM, batch: Optional[Mapping[str, torch.Tensor]]) -> torch.Tensor:
+    import torch
+
+    if batch is None:
+        device = next(model.parameters()).device
+        return torch.zeros((), dtype=torch.float32, device=device)
+    return -_proposal_completion_mean_logprobs(model, batch).mean()
+
+
+def _completion_loss_values(
+    model: AutoModelForCausalLM,
+    batch: Mapping[str, torch.Tensor],
+) -> torch.Tensor:
+    return -_proposal_completion_mean_logprobs(model, batch)
+
+
+def _trace_prompt_text(trace: Any, fallback: str) -> str:
+    if hasattr(trace, "prompt"):
+        return str(trace.prompt())
+    if hasattr(trace, "prompt_text"):
+        return str(trace.prompt_text)
+    if isinstance(trace, Mapping):
+        return str(trace.get("prompt") or trace.get("prompt_text") or fallback)
+    return fallback
+
+
+def _trace_completion(trace: Any) -> str:
+    if hasattr(trace, "target"):
+        return str(trace.target())
+    if hasattr(trace, "completion"):
+        return str(trace.completion)
+    if isinstance(trace, Mapping):
+        return str(trace.get("completion") or trace.get("target") or "")
+    return ""
+
+
+def _finite_metric_float(value: Any) -> Optional[float]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) else None
+
+
+def _round_observation_float(value: Any, digits: int = 6) -> Optional[float]:
+    numeric = _finite_metric_float(value)
+    if numeric is None:
+        return None
+    return round(numeric, digits)
+
+
+def _prediction_observation_error(
+    *,
+    prediction: Optional[Mapping[str, Any]],
+    key: str,
+    realized: Optional[float],
+) -> Optional[float]:
+    if prediction is None or realized is None:
+        return None
+    expected = _finite_metric_float(prediction.get(key))
+    if expected is None and key == "expected_avg_delta_from_init":
+        expected = _finite_metric_float(prediction.get("expected_final_delta_from_init"))
+    if expected is None:
+        return None
+    return float(realized) - expected
+
+
+def _compact_observation_map(payload: Any) -> JsonDict:
+    if not isinstance(payload, Mapping):
+        return {}
+    compact: JsonDict = {}
+    for key, value in sorted(payload.items(), key=lambda item: int(item[0])):
+        numeric = _round_observation_float(value)
+        if numeric is not None:
+            compact[str(int(key))] = numeric
+    return compact
+
+
+def _proposal_from_metadata(payload: Any) -> Optional[ConfigProposal]:
+    if not isinstance(payload, Mapping):
+        return None
+    try:
+        left = int(payload["left"])
+        right = int(payload["right"])
+        target = int(payload.get("target", left + right))
+    except (KeyError, TypeError, ValueError):
+        return None
+    return ConfigProposal(
+        left=left,
+        right=right,
+        guard=str(payload.get("guard", "none")),
+        target=target,
+        notes=str(payload.get("notes") or ""),
+    )
+
+
+def _observation_trace_prompt(prompt_text: str, trace_completion: str) -> str:
+    return (
+        f"{prompt_text}\n\n"
+        "Assistant trace:\n"
+        f"{trace_completion}\n\n"
+        "Environment observation:\n"
+    )
+
+
+def _realized_observation_payload(trace: ProposalGRPOTrace) -> Optional[JsonDict]:
+    metadata = trace.metadata
+    reward_source = str(metadata.get("reward_source") or "")
+    payload: JsonDict = {
+        "valid": bool(trace.valid),
+        "trained": reward_source in {"outcome", "rank_outcome"},
+        "validation_category": trace.validation_category,
+    }
+    if trace.validation_message and not trace.valid:
+        payload["message"] = trace.validation_message[:160]
+    proposal = _proposal_from_metadata(trace.metadata.get("parsed_proposal"))
+    if proposal is not None:
+        payload["target"] = int(proposal.target)
+    realized_values: Dict[str, Optional[float]] = {}
+    for output_key, metadata_key in (
+        ("frontier_delta", "frontier_delta"),
+        ("target_delta", "target_delta"),
+        ("avg_delta_from_init", "final_accuracy_delta"),
+        ("avg_delta_from_current", "final_accuracy_delta_from_current"),
+        ("avg_accuracy", "final_accuracy"),
+    ):
+        value = _round_observation_float(metadata.get(metadata_key))
+        realized_values[output_key] = value
+        if value is not None:
+            payload[output_key] = value
+    prediction = metadata.get("proposal_prediction") or metadata.get("parsed_prediction")
+    if isinstance(prediction, Mapping):
+        prediction_payload = dict(prediction)
+        payload["prediction"] = sanitize_json_value(prediction_payload)
+        for output_key, prediction_key in (
+            ("frontier_delta_error", "expected_frontier_delta"),
+            ("target_delta_error", "expected_target_delta"),
+            ("avg_delta_from_current_error", "expected_avg_delta_from_current"),
+            ("avg_delta_from_init_error", "expected_avg_delta_from_init"),
+        ):
+            realized_key = output_key.removesuffix("_error")
+            error = _round_observation_float(
+                _prediction_observation_error(
+                    prediction=prediction_payload,
+                    key=prediction_key,
+                    realized=realized_values.get(realized_key),
+                )
+            )
+            if error is not None:
+                payload[output_key] = error
+    per_size_delta = _compact_observation_map(metadata.get("per_size_delta"))
+    if per_size_delta:
+        payload["delta_per_size"] = per_size_delta
+    per_size_accuracy = _compact_observation_map(metadata.get("per_size_accuracy"))
+    if per_size_accuracy:
+        payload["accuracy_per_size"] = per_size_accuracy
+    failure_reason = metadata.get("failure_reason")
+    if failure_reason:
+        payload["failure"] = str(failure_reason)[:160]
+    return sanitize_json_value(payload)
+
+
+def _realized_observation_completion(trace: ProposalGRPOTrace) -> Optional[str]:
+    payload = _realized_observation_payload(trace)
+    if payload is None:
+        return None
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def _build_format_replay_rows(
+    *,
+    traces: Sequence[ProposalGRPOTrace],
+    proposal_trace_buffer: Sequence[Any],
+    fallback_prompt: str,
+    max_examples: int,
+) -> List[JsonDict]:
+    if max_examples <= 0:
+        return []
+    seen_completions: set[str] = set()
+    current_rows: List[JsonDict] = []
+    for trace in traces:
+        if not trace.valid or not trace.completion or trace.completion in seen_completions:
+            continue
+        seen_completions.add(trace.completion)
+        current_rows.append({"prompt": trace.prompt_text, "completion": trace.completion, "source": "current_valid"})
+    remaining = max(0, int(max_examples) - len(current_rows))
+    history_rows: List[JsonDict] = []
+    if remaining > 0:
+        for trace in list(proposal_trace_buffer)[-remaining:]:
+            completion = _trace_completion(trace)
+            if completion and completion not in seen_completions:
+                seen_completions.add(completion)
+                history_rows.append(
+                    {
+                        "prompt": _trace_prompt_text(trace, fallback_prompt),
+                        "completion": completion,
+                        "source": "selected_trace_buffer",
+                    }
+                )
+    return (current_rows + history_rows)[: int(max_examples)]
+
+
+def _collate_optional_proposal_samples(
+    *,
+    tokenizer: AutoTokenizer,
+    samples: Sequence[JsonDict],
+    device: torch.device,
+) -> Optional[JsonDict]:
+    if not samples:
+        return None
+    return _collate_proposal_grpo_samples(tokenizer=tokenizer, samples=samples, device=device)
 
 
 def _collate_proposal_grpo_samples(
@@ -1645,28 +2612,150 @@ def _collate_proposal_grpo_samples(
     }
 
 
-def _proposal_completion_mean_logprobs(model: AutoModelForCausalLM, batch: Mapping[str, torch.Tensor]) -> torch.Tensor:
+def _proposal_sample_batches(samples: Sequence[JsonDict], microbatch_size: int) -> Sequence[Sequence[JsonDict]]:
+    if microbatch_size <= 0:
+        raise ValueError("microbatch_size must be positive.")
+    return [samples[index : index + microbatch_size] for index in range(0, len(samples), microbatch_size)]
+
+
+def _proposal_completion_logprobs(
+    model: AutoModelForCausalLM,
+    batch: Mapping[str, torch.Tensor],
+    *,
+    normalize_by_length: bool,
+) -> torch.Tensor:
     import torch
+    import torch.nn.functional as F
 
     outputs = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"])
-    logits = outputs.logits[:, :-1, :].float()
+    logits = outputs.logits[:, :-1, :]
     labels = batch["input_ids"][:, 1:]
     mask = batch["completion_mask"][:, : labels.shape[1]]
-    token_logprobs = torch.log_softmax(logits, dim=-1).gather(-1, labels.unsqueeze(-1)).squeeze(-1)
+    token_losses = F.cross_entropy(
+        logits.reshape(-1, logits.shape[-1]),
+        labels.reshape(-1),
+        reduction="none",
+    ).view_as(labels)
+    token_logprobs = -token_losses
     masked_logprobs = token_logprobs * mask.float()
+    summed_logprobs = masked_logprobs.sum(dim=1)
+    if not normalize_by_length:
+        return summed_logprobs
     token_counts = mask.sum(dim=1).clamp_min(1).float()
-    return masked_logprobs.sum(dim=1) / token_counts
+    return summed_logprobs / token_counts
+
+
+def _proposal_completion_mean_logprobs(model: AutoModelForCausalLM, batch: Mapping[str, torch.Tensor]) -> torch.Tensor:
+    return _proposal_completion_logprobs(model, batch, normalize_by_length=True)
+
+
+def _proposal_completion_mean_logprobs_for_samples(
+    *,
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    samples: Sequence[JsonDict],
+    device: torch.device,
+    microbatch_size: int,
+    normalize_by_length: bool = True,
+) -> torch.Tensor:
+    import torch
+
+    if not samples:
+        return torch.empty(0, dtype=torch.float32, device=device)
+    chunks: List[torch.Tensor] = []
+    for sample_batch in _proposal_sample_batches(samples, microbatch_size):
+        batch = _collate_proposal_grpo_samples(tokenizer=tokenizer, samples=sample_batch, device=device)
+        chunks.append(_proposal_completion_logprobs(model, batch, normalize_by_length=normalize_by_length))
+    return torch.cat(chunks, dim=0) if chunks else torch.empty(0, dtype=torch.float32, device=device)
+
+
+def _backward_policy_microbatches(
+    *,
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    samples: Sequence[JsonDict],
+    advantages: torch.Tensor,
+    old_logprobs: torch.Tensor,
+    anchor_logprobs: Optional[torch.Tensor],
+    device: torch.device,
+    microbatch_size: int,
+    kl_coef: float,
+    anchor_kl_coef: float,
+    normalize_by_length: bool,
+) -> JsonDict:
+    import torch
+
+    denominator = max(1, len(samples))
+    policy_sum = torch.zeros((), dtype=torch.float32, device=device)
+    kl_sum = torch.zeros((), dtype=torch.float32, device=device)
+    anchor_kl_sum = torch.zeros((), dtype=torch.float32, device=device)
+    mean_after_sum = torch.zeros((), dtype=torch.float32, device=device)
+    offset = 0
+    for sample_batch in _proposal_sample_batches(samples, microbatch_size):
+        batch_size = len(sample_batch)
+        batch = _collate_proposal_grpo_samples(tokenizer=tokenizer, samples=sample_batch, device=device)
+        new_logprobs = _proposal_completion_logprobs(
+            model,
+            batch,
+            normalize_by_length=normalize_by_length,
+        )
+        batch_advantages = advantages[offset : offset + batch_size]
+        batch_old_logprobs = old_logprobs[offset : offset + batch_size]
+        policy_terms = -(batch_advantages * new_logprobs)
+        kl_terms = (new_logprobs - batch_old_logprobs) ** 2
+        loss_terms = policy_terms.sum() + float(kl_coef) * kl_terms.sum()
+        if anchor_logprobs is not None and float(anchor_kl_coef) > 0.0:
+            batch_anchor_logprobs = anchor_logprobs[offset : offset + batch_size]
+            anchor_kl_terms = (new_logprobs - batch_anchor_logprobs) ** 2
+            loss_terms = loss_terms + float(anchor_kl_coef) * anchor_kl_terms.sum()
+            anchor_kl_sum = anchor_kl_sum + anchor_kl_terms.detach().sum()
+        (loss_terms / denominator).backward()
+        policy_sum = policy_sum + policy_terms.detach().sum()
+        kl_sum = kl_sum + kl_terms.detach().sum()
+        mean_after_sum = mean_after_sum + new_logprobs.detach().sum()
+        offset += batch_size
+    return {
+        "policy_loss": float((policy_sum / denominator).detach().cpu()),
+        "kl_proxy": float((kl_sum / denominator).detach().cpu()),
+        "anchor_kl_proxy": float((anchor_kl_sum / denominator).detach().cpu()),
+        "mean_logprob_after": float((mean_after_sum / denominator).detach().cpu()),
+    }
+
+
+def _backward_completion_loss_microbatches(
+    *,
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    samples: Sequence[JsonDict],
+    device: torch.device,
+    microbatch_size: int,
+    loss_weight: float,
+) -> float:
+    import torch
+
+    if not samples:
+        return 0.0
+    denominator = len(samples)
+    loss_sum = torch.zeros((), dtype=torch.float32, device=device)
+    for sample_batch in _proposal_sample_batches(samples, microbatch_size):
+        batch = _collate_proposal_grpo_samples(tokenizer=tokenizer, samples=sample_batch, device=device)
+        loss_values = _completion_loss_values(model, batch)
+        loss_values.sum().mul(float(loss_weight) / denominator).backward()
+        loss_sum = loss_sum + loss_values.detach().sum()
+    return float((loss_sum / denominator).detach().cpu())
 
 
 def apply_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
+    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
     candidate_metrics: Sequence[Any],
     seed: int,
+    proposal_trace_buffer: Sequence[Any] = (),
 ) -> Tuple[str, JsonDict]:
     import torch
     from transformers import set_seed
@@ -1681,14 +2770,29 @@ def apply_proposal_grpo_update(
         "model_dir": None,
         "proposal_count": len(proposal_results),
         "steps": int(args.proposal_grpo_steps),
+        "objective": str(getattr(args, "proposal_grpo_objective", "grpo")),
         "learning_rate": float(args.proposal_grpo_learning_rate),
         "kl_coef": float(args.proposal_grpo_kl_coef),
+        "anchor_kl_coef": float(getattr(args, "proposal_grpo_anchor_kl_coef", 0.0)),
+        "anchor_kl_reference": str(getattr(args, "proposal_grpo_anchor_kl_reference", "none")),
+        "anchor_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
+        "anchor_kl_enabled": False,
+        "anchor_kl_skip_reason": None,
         "grad_clip": float(args.proposal_grpo_grad_clip),
         "zero_variance": args.proposal_grpo_zero_variance,
         "fixed_baseline": float(args.proposal_grpo_fixed_baseline),
         "reward_mode": args.proposal_grpo_reward_mode,
         "outcome_scale": float(args.proposal_grpo_outcome_scale),
+        "novelty_bonus_beta": float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0)),
+        "proposal_grpo_span": str(getattr(args, "proposal_grpo_span", "reasoning_action")),
         "candidate_metric_count": len(candidate_metrics),
+        "loss_mode": getattr(args, "proposal_update_loss_mode", "legacy_grpo"),
+        "observation_loss_weight": float(getattr(args, "proposal_observation_loss_weight", 0.0)),
+        "format_loss_weight": float(getattr(args, "proposal_format_loss_weight", 0.0)),
+        "format_replay_max_examples": int(getattr(args, "proposal_format_replay_max_examples", 0)),
+        "format_mask_config_values": bool(getattr(args, "proposal_format_mask_config_values", True)),
+        "microbatch_size": int(getattr(args, "proposal_update_microbatch_size", 8)),
+        "proposal_trace_buffer_count": len(proposal_trace_buffer),
     }
     if args.proposal_grpo_steps <= 0:
         metrics["skip_reason"] = "disabled"
@@ -1716,6 +2820,7 @@ def apply_proposal_grpo_update(
         prompt=prompt,
         proposal_results=proposal_results,
         candidate_metrics=candidate_metrics,
+        action_history=proposal_trace_buffer,
     )
     write_trace_jsonl(output_dir / "proposal_grpo_traces.jsonl", [trace.to_json_dict() for trace in traces])
     metrics.update(trace_summary)
@@ -1735,6 +2840,13 @@ def apply_proposal_grpo_update(
     )
     try:
         device = next(model.parameters()).device
+        loss_mode = str(getattr(args, "proposal_update_loss_mode", "legacy_grpo"))
+        span_mode = str(getattr(args, "proposal_grpo_span", "reasoning_action"))
+        objective = str(getattr(args, "proposal_grpo_objective", "grpo"))
+        if objective not in PROPOSAL_GRPO_OBJECTIVES:
+            raise ValueError(f"Unsupported proposal_grpo_objective={objective!r}.")
+        normalize_policy_logprobs = objective != "dr_grpo"
+        metrics["policy_logprob_normalization"] = "mean" if normalize_policy_logprobs else "sum"
         encoded_samples: List[JsonDict] = []
         encoded_traces: List[ProposalGRPOTrace] = []
         for trace in traces:
@@ -1742,6 +2854,9 @@ def apply_proposal_grpo_update(
                 tokenizer=tokenizer,
                 prompt_text=trace.prompt_text,
                 completion=trace.completion,
+                completion_char_span=(
+                    _proposal_policy_span(trace, span_mode=span_mode) if loss_mode == "merged_agent" else None
+                ),
             )
             if sample is None:
                 continue
@@ -1750,12 +2865,86 @@ def apply_proposal_grpo_update(
         metrics["trace_count"] = len(traces)
         metrics["trainable_trace_count"] = len(encoded_samples)
         metrics["completion_token_counts"] = [int(sample["completion_tokens"]) for sample in encoded_samples]
+        metrics["total_completion_token_counts"] = [
+            int(sample["total_completion_tokens"]) for sample in encoded_samples
+        ]
         if not encoded_samples:
             metrics["skip_reason"] = "no_tokenizable_completions"
             write_json(output_dir / "proposal_grpo_metrics.json", metrics)
             return source_checkpoint, metrics
 
-        batch = _collate_proposal_grpo_samples(tokenizer=tokenizer, samples=encoded_samples, device=device)
+        observation_rows: List[JsonDict] = []
+        observation_samples: List[JsonDict] = []
+        format_rows: List[JsonDict] = []
+        format_samples: List[JsonDict] = []
+        if loss_mode == "merged_agent":
+            format_loss_weight = float(getattr(args, "proposal_format_loss_weight", 0.0))
+            for trace in traces:
+                completion = _realized_observation_completion(trace)
+                if not completion:
+                    continue
+                observation_prompt = _observation_trace_prompt(trace.prompt_text, trace.completion)
+                sample = _encode_proposal_grpo_sample(
+                    tokenizer=tokenizer,
+                    prompt_text=observation_prompt,
+                    completion=completion,
+                    completion_char_span=None,
+                )
+                if sample is None:
+                    continue
+                observation_rows.append(
+                    {
+                        "proposal_index": trace.proposal_index,
+                        "prompt": observation_prompt,
+                        "trace_completion": trace.completion,
+                        "completion": completion,
+                        "policy_reward": trace.reward,
+                    }
+                )
+                observation_samples.append(sample)
+            if format_loss_weight > 0.0:
+                format_rows = _build_format_replay_rows(
+                    traces=traces,
+                    proposal_trace_buffer=proposal_trace_buffer,
+                    fallback_prompt=prompt.text(),
+                    max_examples=int(getattr(args, "proposal_format_replay_max_examples", 0)),
+                )
+                mask_format_values = bool(getattr(args, "proposal_format_mask_config_values", True))
+                for row in format_rows:
+                    completion = str(row["completion"])
+                    exclude_spans = _proposal_format_value_char_spans(completion) if mask_format_values else ()
+                    sample = _encode_proposal_grpo_sample(
+                        tokenizer=tokenizer,
+                        prompt_text=str(row["prompt"]),
+                        completion=completion,
+                        completion_char_span=None,
+                        completion_char_exclude_spans=exclude_spans,
+                    )
+                    if sample is not None:
+                        sample["masked_value_tokens"] = int(sample["total_completion_tokens"]) - int(
+                            sample["completion_tokens"]
+                        )
+                        format_samples.append(sample)
+        if observation_rows:
+            write_trace_jsonl(output_dir / "proposal_observation_targets.jsonl", observation_rows)
+        if format_rows:
+            write_trace_jsonl(output_dir / "proposal_format_targets.jsonl", format_rows)
+        metrics["observation_trace_count"] = len(observation_rows)
+        metrics["trainable_observation_trace_count"] = len(observation_samples)
+        metrics["format_trace_count"] = len(format_rows)
+        metrics["trainable_format_trace_count"] = len(format_samples)
+        metrics["format_masked_value_token_counts"] = [
+            int(sample.get("masked_value_tokens", 0)) for sample in format_samples
+        ]
+        metrics["format_completion_token_counts"] = [int(sample["completion_tokens"]) for sample in format_samples]
+        metrics["format_total_completion_token_counts"] = [
+            int(sample["total_completion_tokens"]) for sample in format_samples
+        ]
+        microbatch_size = int(getattr(args, "proposal_update_microbatch_size", 8))
+        metrics["microbatch_size"] = microbatch_size
+        metrics["policy_microbatch_count"] = len(_proposal_sample_batches(encoded_samples, microbatch_size))
+        metrics["observation_microbatch_count"] = len(_proposal_sample_batches(observation_samples, microbatch_size))
+        metrics["format_microbatch_count"] = len(_proposal_sample_batches(format_samples, microbatch_size))
         advantages = torch.tensor(
             [trace.advantage for trace in encoded_traces],
             dtype=torch.float32,
@@ -1763,30 +2952,140 @@ def apply_proposal_grpo_update(
         )
         model.eval()
         with torch.no_grad():
-            old_logprobs = _proposal_completion_mean_logprobs(model, batch).detach()
+            old_logprobs = _proposal_completion_mean_logprobs_for_samples(
+                model=model,
+                tokenizer=tokenizer,
+                samples=encoded_samples,
+                device=device,
+                microbatch_size=microbatch_size,
+                normalize_by_length=normalize_policy_logprobs,
+            ).detach()
+        anchor_logprobs: Optional[torch.Tensor] = None
+        anchor_reference_mode = str(getattr(args, "proposal_grpo_anchor_kl_reference", "none"))
+        anchor_kl_coef = float(getattr(args, "proposal_grpo_anchor_kl_coef", 0.0))
+        if anchor_kl_coef > 0.0 and anchor_reference_mode != "none":
+            if not proposal_kl_reference_checkpoint:
+                metrics["anchor_kl_skip_reason"] = "missing_reference_checkpoint"
+            elif str(proposal_kl_reference_checkpoint) == str(source_checkpoint):
+                anchor_logprobs = old_logprobs
+                metrics["anchor_kl_enabled"] = True
+                metrics["anchor_kl_skip_reason"] = None
+                metrics["anchor_kl_reused_old_logprobs"] = True
+                metrics["anchor_mean_logprob_reference"] = float(old_logprobs.mean().detach().cpu())
+            else:
+                anchor_model = None
+                anchor_tokenizer = None
+                try:
+                    anchor_checkpoint_path = Path(str(proposal_kl_reference_checkpoint))
+                    anchor_checkpoint_for_load = (
+                        str(anchor_checkpoint_path.resolve())
+                        if anchor_checkpoint_path.exists()
+                        else str(proposal_kl_reference_checkpoint)
+                    )
+                    metrics["anchor_kl_reference_checkpoint_resolved"] = anchor_checkpoint_for_load
+                    anchor_model, anchor_tokenizer = instantiate_model_and_tokenizer(
+                        anchor_checkpoint_for_load,
+                        bf16=args.bf16,
+                        fp16=args.fp16,
+                        init_from_scratch=False,
+                        tokenizer_mode=args.tokenizer_mode,
+                        recipe=args.recipe,
+                    )
+                    anchor_model.eval()
+                    with torch.no_grad():
+                        anchor_logprobs = _proposal_completion_mean_logprobs_for_samples(
+                            model=anchor_model,
+                            tokenizer=tokenizer,
+                            samples=encoded_samples,
+                            device=next(anchor_model.parameters()).device,
+                            microbatch_size=microbatch_size,
+                            normalize_by_length=normalize_policy_logprobs,
+                        ).detach().to(device)
+                    metrics["anchor_kl_enabled"] = True
+                    metrics["anchor_kl_skip_reason"] = None
+                    metrics["anchor_kl_reused_old_logprobs"] = False
+                    metrics["anchor_mean_logprob_reference"] = float(anchor_logprobs.mean().detach().cpu())
+                finally:
+                    if anchor_model is not None:
+                        del anchor_model
+                    if anchor_tokenizer is not None:
+                        del anchor_tokenizer
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=float(args.proposal_grpo_learning_rate))
         loss_history: List[JsonDict] = []
         for step_index in range(int(args.proposal_grpo_steps)):
             model.train()
             optimizer.zero_grad(set_to_none=True)
-            new_logprobs = _proposal_completion_mean_logprobs(model, batch)
-            policy_loss = -(advantages * new_logprobs).mean()
-            kl_proxy = ((new_logprobs - old_logprobs) ** 2).mean()
-            loss = policy_loss + float(args.proposal_grpo_kl_coef) * kl_proxy
-            loss.backward()
+            policy_metrics = _backward_policy_microbatches(
+                model=model,
+                tokenizer=tokenizer,
+                samples=encoded_samples,
+                advantages=advantages,
+                old_logprobs=old_logprobs,
+                anchor_logprobs=anchor_logprobs,
+                device=device,
+                microbatch_size=microbatch_size,
+                kl_coef=float(args.proposal_grpo_kl_coef),
+                anchor_kl_coef=anchor_kl_coef,
+                normalize_by_length=normalize_policy_logprobs,
+            )
+            policy_loss = float(policy_metrics["policy_loss"])
+            kl_proxy = float(policy_metrics["kl_proxy"])
+            anchor_kl_proxy = float(policy_metrics["anchor_kl_proxy"])
+            mean_logprob_after = float(policy_metrics["mean_logprob_after"])
+            observation_loss = 0.0
+            format_loss = 0.0
+            if loss_mode != "merged_agent":
+                observation_samples_for_loss: Sequence[JsonDict] = []
+                format_samples_for_loss: Sequence[JsonDict] = []
+            else:
+                observation_samples_for_loss = observation_samples
+                format_samples_for_loss = format_samples
+            if observation_samples_for_loss:
+                observation_loss = _backward_completion_loss_microbatches(
+                    model=model,
+                    tokenizer=tokenizer,
+                    samples=observation_samples_for_loss,
+                    device=device,
+                    microbatch_size=microbatch_size,
+                    loss_weight=float(getattr(args, "proposal_observation_loss_weight", 0.0)),
+                )
+            if format_samples_for_loss:
+                format_loss = _backward_completion_loss_microbatches(
+                    model=model,
+                    tokenizer=tokenizer,
+                    samples=format_samples_for_loss,
+                    device=device,
+                    microbatch_size=microbatch_size,
+                    loss_weight=float(getattr(args, "proposal_format_loss_weight", 0.0)),
+                )
+            loss = (
+                policy_loss
+                + float(args.proposal_grpo_kl_coef) * kl_proxy
+                + anchor_kl_coef * anchor_kl_proxy
+                + float(getattr(args, "proposal_observation_loss_weight", 0.0)) * observation_loss
+                + float(getattr(args, "proposal_format_loss_weight", 0.0)) * format_loss
+            )
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), float(args.proposal_grpo_grad_clip))
             optimizer.step()
             loss_history.append(
                 sanitize_json_value(
                     {
                         "step": step_index + 1,
-                        "loss": float(loss.detach().cpu()),
-                        "policy_loss": float(policy_loss.detach().cpu()),
-                        "kl_proxy": float(kl_proxy.detach().cpu()),
+                        "loss": float(loss),
+                        "policy_loss": policy_loss,
+                        "observation_loss": observation_loss,
+                        "format_loss": format_loss,
+                        "kl_proxy": kl_proxy,
+                        "anchor_kl_proxy": anchor_kl_proxy,
                         "grad_norm": float(grad_norm.detach().cpu() if torch.is_tensor(grad_norm) else grad_norm),
                         "mean_logprob_before": float(old_logprobs.mean().detach().cpu()),
-                        "mean_logprob_after": float(new_logprobs.mean().detach().cpu()),
+                        "anchor_mean_logprob_reference": (
+                            float(anchor_logprobs.mean().detach().cpu()) if anchor_logprobs is not None else None
+                        ),
+                        "mean_logprob_after": mean_logprob_after,
                     }
                 )
             )
@@ -1829,7 +3128,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Sequence
 
 from self.adaptive.phases import PHASE_PROPOSAL_GRPO
-from self.core.models import CandidateMetrics
 from self.adaptive.proposal import PromptBundle
 
 
@@ -1848,40 +3146,54 @@ def apply_or_dispatch_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
+    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
     candidate_metrics: Sequence[CandidateMetrics],
     seed: int,
     deps: ProposalGrpoDispatchDeps,
+    proposal_trace_buffer: Sequence[Any] = (),
 ) -> tuple[str, JsonDict]:
     if args.controller_execution_mode != "slurm":
         return deps.apply_proposal_grpo_update(
             args=args,
             source_checkpoint=source_checkpoint,
+            proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
             output_dir=output_dir,
             prompt=prompt,
             proposal_results=proposal_results,
             candidate_metrics=candidate_metrics,
+            proposal_trace_buffer=proposal_trace_buffer,
             seed=seed,
         )
     deps.ensure_dir(output_dir)
     prompt_path = output_dir / "proposal_prompt.json"
     proposal_results_path = output_dir / "proposal_results.json"
     candidate_metrics_path = output_dir / "candidate_metrics.json"
+    proposal_trace_buffer_path = output_dir / "proposal_trace_buffer.json"
     deps.write_json(prompt_path, {"system": prompt.system, "user": prompt.user})
     deps.write_json(proposal_results_path, proposal_results)
     deps.write_json(candidate_metrics_path, [metric.to_json_dict() for metric in candidate_metrics])
+    deps.write_json(
+        proposal_trace_buffer_path,
+        [
+            trace.to_json_dict() if hasattr(trace, "to_json_dict") else dict(trace)
+            for trace in proposal_trace_buffer
+        ],
+    )
     worker_output = deps.run_controller_worker_slurm(
         args=args,
         worker_dir=output_dir / "controller_worker",
         phase=PHASE_PROPOSAL_GRPO,
         payload={
             "source_checkpoint": source_checkpoint,
+            "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
             "proposal_grpo_dir": str(output_dir),
             "prompt_path": str(prompt_path),
             "proposal_results_path": str(proposal_results_path),
             "candidate_metrics_path": str(candidate_metrics_path),
+            "proposal_trace_buffer_path": str(proposal_trace_buffer_path),
             "seed": seed,
         },
     )
@@ -1923,6 +3235,10 @@ def pilot_reward(
 ) -> JsonDict:
     frontier_delta = float(row.get("frontier_delta", 0.0))
     final_accuracy = float(row.get("final_accuracy", 0.0))
+    row_current_final_accuracy = row.get("current_final_accuracy")
+    current_final_accuracy_value = (
+        None if row_current_final_accuracy is None else float(row_current_final_accuracy)
+    )
     row_init_final_accuracy = row.get("init_final_accuracy", init_final_accuracy)
     init_final_accuracy_value = (
         None if row_init_final_accuracy is None else float(row_init_final_accuracy)
@@ -1933,15 +3249,27 @@ def pilot_reward(
             final_accuracy - (init_final_accuracy_value if init_final_accuracy_value is not None else 0.0),
         )
     )
+    final_accuracy_delta_from_current = float(
+        row.get(
+            "final_accuracy_delta_from_current",
+            (
+                final_accuracy - current_final_accuracy_value
+                if current_final_accuracy_value is not None
+                else final_accuracy_delta
+            ),
+        )
+    )
     if "reward" in row:
         reward = float(row["reward"])
     else:
-        reward = frontier_delta + lambda_final * final_accuracy_delta
+        reward = final_accuracy_delta_from_current
     return {
         "frontier_delta": frontier_delta,
         "final_accuracy": final_accuracy,
+        "current_final_accuracy": current_final_accuracy_value,
         "init_final_accuracy": init_final_accuracy_value,
         "final_accuracy_delta": final_accuracy_delta,
+        "final_accuracy_delta_from_current": final_accuracy_delta_from_current,
         "reward": reward,
     }
 
@@ -2204,7 +3532,6 @@ from self.adaptive.proposal import (
     parse_config_proposal,
     proposal_output_schema,
     proposal_payload_for_schema,
-    validate_config_prediction,
 )
 from self.adaptive.proposal import build_trace_row, load_fixture_proposals, write_trace_jsonl
 from self.adaptive.proposal import (
@@ -2233,6 +3560,8 @@ class ProgramProposal:
 
 __all__ = [
     "DEFAULT_CONFIG_SEARCH_SPACES",
+    "PROPOSAL_GRPO_OBJECTIVES",
+    "PROPOSAL_GRPO_SPAN_MODES",
     "PROPOSAL_OUTPUT_SCHEMAS",
     "ConfigProposal",
     "JsonDict",
@@ -2249,6 +3578,5 @@ __all__ = [
     "render_config_prompt",
     "render_program_prompt",
     "render_program_repair_prompt",
-    "validate_config_prediction",
     "write_trace_jsonl",
 ]

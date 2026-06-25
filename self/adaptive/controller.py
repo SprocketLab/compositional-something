@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 # --- from controller_phases.py ---
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from self.adaptive.phases import PHASE_PROPOSAL_GRPO, PHASE_ROUND_MODEL, PHASE_SEED
 
@@ -288,6 +288,7 @@ def run_round_model_controller_worker_from_spec(
         selected_rounds=int(payload["selected_rounds"]),
         consecutive_no_selection=int(payload["consecutive_no_selection"]),
         init_final_accuracy=float(payload["init_final_accuracy"]),
+        extra_aggregate_metrics=dict(payload.get("extra_aggregate_metrics") or {}),
         seed=seed,
     )
     return {
@@ -297,6 +298,13 @@ def run_round_model_controller_worker_from_spec(
         },
         "prompt_path": str(round_dir / "proposal_prompt.json"),
         "proposal_results_path": str(round_dir / "proposal_results.json"),
+        "proposal_grpo_results_path": str(
+            round_dir / (
+                "proposal_draw_results.json"
+                if (round_dir / "proposal_draw_results.json").exists()
+                else "proposal_results.json"
+            )
+        ),
         "raw_proposals_path": str(round_dir / "raw_proposals.json"),
         "work_items": [
             deps.work_item_to_worker_payload(item=item, round_dir=round_dir)
@@ -324,6 +332,11 @@ def run_proposal_grpo_controller_worker_from_spec(
     next_checkpoint, metrics = deps.apply_proposal_grpo_update(
         args=args,
         source_checkpoint=str(payload["source_checkpoint"]),
+        proposal_kl_reference_checkpoint=(
+            str(payload["proposal_kl_reference_checkpoint"])
+            if payload.get("proposal_kl_reference_checkpoint")
+            else None
+        ),
         output_dir=Path(payload["proposal_grpo_dir"]),
         prompt=prompt,
         proposal_results=deps.load_json(Path(payload["proposal_results_path"])),
@@ -331,6 +344,11 @@ def run_proposal_grpo_controller_worker_from_spec(
             deps.candidate_metrics_from_json(item)
             for item in (deps.load_json(Path(payload["candidate_metrics_path"])) or [])
         ],
+        proposal_trace_buffer=(
+            deps.load_json(Path(payload["proposal_trace_buffer_path"]))
+            if payload.get("proposal_trace_buffer_path")
+            else []
+        ),
         seed=int(payload["seed"]),
     )
     return {
@@ -416,13 +434,16 @@ def run_seed_phase(
         model_dir: Optional[Path] = None
     else:
         seed_dir = output_dir / "round_00" / "seed_training"
+        configured_seed_max_steps = getattr(args, "seed_max_steps", None)
+        seed_max_steps = args.max_steps if configured_seed_max_steps is None else configured_seed_max_steps
+        seed_config = replace(config, max_steps=seed_max_steps if seed_max_steps > 0 else None)
         model, tokenizer, model_dir = train_checkpoint(
             source_checkpoint=args.model_name,
             train_examples=source_examples,
             output_dir=seed_dir,
             task=task,
             args=args,
-            config=config,
+            config=seed_config,
             seed=seed,
             recipe_phase_name="seed",
         )
@@ -493,6 +514,7 @@ def run_round_model_phase(
     selected_rounds: int,
     consecutive_no_selection: int,
     init_final_accuracy: float,
+    extra_aggregate_metrics: Mapping[str, Any] | None = None,
     seed: int,
 ) -> RoundModelPhaseResult:
     set_seed(seed)
@@ -516,6 +538,8 @@ def run_round_model_phase(
             batch_size=config.per_device_eval_batch_size,
             decode_max_new_tokens=config.decode_max_new_tokens,
         )
+        aggregate_extras: JsonDict = dict(extra_aggregate_metrics or {})
+        aggregate_extras["proposal_output_schema"] = args.proposal_output_schema
         attempt_prompt = build_attempt_prompt(
             args=args,
             current_checkpoint=current_checkpoint,
@@ -527,7 +551,7 @@ def run_round_model_phase(
             attempt_index=attempt_index,
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
-            extra_aggregate_metrics={"proposal_output_schema": args.proposal_output_schema},
+            extra_aggregate_metrics=aggregate_extras,
         )
         prompt = attempt_prompt.prompt
         default_program_pair = attempt_prompt.default_program_pair
@@ -540,6 +564,11 @@ def run_round_model_phase(
             current_tokenizer=current_tokenizer,
             round_index=selected_round_for_prompt,
             attempt_index=attempt_index,
+            source_sizes=source_sizes,
+            frontier_min=frontier_min,
+            frontier_max=frontier_max,
+            unique_log_path=round_dir / "proposal_unique_sampling.json",
+            draw_results_log_path=round_dir / "proposal_draw_results.json",
         )
         proposal_results = validate_proposal_rows(
             rows=rows,
@@ -553,6 +582,12 @@ def run_round_model_phase(
         )
         worker_io.write_json(round_dir / "raw_proposals.json", rows)
         worker_io.write_json(round_dir / "proposal_results.json", proposal_results)
+        proposal_draw_results_path = round_dir / "proposal_draw_results.json"
+        proposal_grpo_results = (
+            worker_io.load_json(proposal_draw_results_path)
+            if proposal_draw_results_path.exists()
+            else proposal_results
+        )
 
         work_items = build_candidate_work_items(
             args=args,
@@ -579,7 +614,7 @@ def run_round_model_phase(
                 int(size): float(score) for size, score in current_per_size_accuracy.items()
             },
             prompt=prompt,
-            proposal_results=list(proposal_results),
+            proposal_results=list(proposal_grpo_results),
             work_items=list(work_items),
         )
     finally:

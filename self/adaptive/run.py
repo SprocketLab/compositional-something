@@ -83,28 +83,71 @@ class CheckpointManager:
     keep_candidate_models: bool = False
     keep_proposal_grpo_checkpoints: bool = False
 
+    def _is_protected_checkpoint(self, model_dir: Path, protected_checkpoints: Sequence[str] = ()) -> bool:
+        try:
+            resolved_model_dir = model_dir.resolve()
+        except OSError:
+            return False
+        for checkpoint in protected_checkpoints:
+            if not checkpoint:
+                continue
+            try:
+                if Path(checkpoint).resolve() == resolved_model_dir:
+                    return True
+            except OSError:
+                continue
+        return False
+
+    def _cleanup_model_dir(self, model_dir: Path) -> List[str]:
+        if model_dir.name != "model":
+            return []
+        if not model_dir.exists():
+            return []
+        try:
+            model_dir.resolve().relative_to(self.output_dir.resolve())
+        except (ValueError, OSError):
+            return []
+        shutil.rmtree(model_dir, ignore_errors=True)
+        return [str(model_dir)]
+
     def cleanup_unselected_candidates(
         self,
         *,
         metrics: Sequence[Any],
         selected: Optional[Any],
-    ) -> None:
+    ) -> List[str]:
         if self.keep_candidate_models:
-            return
+            return []
+        deleted: List[str] = []
         selected_dir = selected.model_dir if selected is not None else None
         for metric in metrics:
             model_dir = metric.model_dir
             if model_dir is None or model_dir == selected_dir:
                 continue
-            parent = model_dir.parent
-            if parent.exists():
-                shutil.rmtree(parent, ignore_errors=True)
+            deleted.extend(self._cleanup_model_dir(model_dir))
+        return deleted
+
+    def cleanup_final_checkpoint(
+        self,
+        *,
+        checkpoint: str,
+        keep_final: bool,
+    ) -> List[str]:
+        if keep_final:
+            return []
+        model_dir = Path(checkpoint)
+        if model_dir.parent.name == "proposal_grpo" and self.keep_proposal_grpo_checkpoints:
+            return []
+        if "candidates" in model_dir.parts and self.keep_candidate_models:
+            return []
+        return self._cleanup_model_dir(model_dir)
 
     def cleanup_replaced_checkpoint(
         self,
         *,
         old_checkpoint: str,
         new_checkpoint: str,
+        protected_checkpoints: Sequence[str] = (),
     ) -> List[str]:
         if old_checkpoint == new_checkpoint:
             return []
@@ -122,8 +165,9 @@ class CheckpointManager:
             return []
         if "candidates" in old_model_dir.parts and self.keep_candidate_models:
             return []
-        shutil.rmtree(old_model_dir, ignore_errors=True)
-        return [str(old_model_dir)]
+        if self._is_protected_checkpoint(old_model_dir, protected_checkpoints):
+            return []
+        return self._cleanup_model_dir(old_model_dir)
 
 
 @dataclass(frozen=True)
@@ -218,10 +262,12 @@ def finalize_adaptive_run(
     *,
     args: Any,
     output_dir: Path,
+    checkpoint_manager: Any,
     summary_records: Sequence[Mapping[str, Any]],
     selected_rounds: int,
     attempt_index: int,
     current_checkpoint: str,
+    proposal_kl_reference_checkpoint: str,
     source_sizes: set[int],
     proposal_trace_buffer: Sequence[Any],
     outcome_trace_buffer: Sequence[Any],
@@ -234,17 +280,47 @@ def finalize_adaptive_run(
     """Write final adaptive artifacts and return the sanitized summary."""
 
     results_path = output_dir / "adaptive_candidate_training_results.json"
+    max_selected_rounds = int(getattr(args, "max_selected_rounds", 0) or 0)
+    max_selected_label = str(max_selected_rounds) if max_selected_rounds > 0 else "unlimited"
     write_json(results_path, summary_records)
+    deleted_final_model_dirs = checkpoint_manager.cleanup_final_checkpoint(
+        checkpoint=current_checkpoint,
+        keep_final=bool(getattr(args, "keep_final_model_checkpoint", False)),
+    )
+    deleted_anchor_model_dirs: List[str] = []
+    if proposal_kl_reference_checkpoint and proposal_kl_reference_checkpoint != current_checkpoint:
+        deleted_anchor_model_dirs = checkpoint_manager.cleanup_final_checkpoint(
+            checkpoint=proposal_kl_reference_checkpoint,
+            keep_final=bool(getattr(args, "keep_final_model_checkpoint", False)),
+        )
+        deleted_final_model_dirs.extend(deleted_anchor_model_dirs)
+    if deleted_final_model_dirs:
+        write_json(
+            output_dir / "deleted_final_model_dirs.json",
+            {
+                "current_checkpoint": current_checkpoint,
+                "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
+                "deleted_model_dirs": deleted_final_model_dirs,
+                "deleted_anchor_model_dirs": deleted_anchor_model_dirs,
+                "keep_final_model_checkpoint": bool(getattr(args, "keep_final_model_checkpoint", False)),
+            },
+        )
     append_plan_log(
         args.plan_log_path,
         [
             "Implemented/running adaptive candidate-training loop.",
             (
-                f"Task: `{args.task}`; selected rounds requested: {args.num_rounds}; "
-                f"attempts used: {attempt_index}; candidates per attempt: {args.num_candidates}."
+                f"Task: `{args.task}`; max attempts: `{args.max_attempt_rounds}`; "
+                f"max selected candidates: `{max_selected_label}`; attempts used: `{attempt_index}`; "
+                f"candidates per attempt: `{args.num_candidates}`."
             ),
             f"Output directory: `{output_dir}`.",
             f"Proposal output schema: `{args.proposal_output_schema}`.",
+            (
+                "Proposal prompt action history: "
+                f"`{args.proposal_prompt_action_history}`; max items: "
+                f"`{args.proposal_prompt_action_history_max_items}`."
+            ),
             f"Final source sizes tracked by driver: `{sorted(source_sizes)}`.",
             f"Selected proposal traces retained for replay: `{len(proposal_trace_buffer)}`.",
             (
@@ -258,6 +334,21 @@ def finalize_adaptive_run(
                 f"steps/update: `{args.proposal_grpo_steps}`; reward mode: `{args.proposal_grpo_reward_mode}`; "
                 f"zero-variance mode: `{args.proposal_grpo_zero_variance}`."
             ),
+            (
+                "Proposal GRPO KL: "
+                f"old-policy coef `{args.proposal_grpo_kl_coef}`; "
+                f"anchor `{args.proposal_grpo_anchor_kl_reference}` coef "
+                f"`{args.proposal_grpo_anchor_kl_coef}`."
+            ),
+            f"Proposal GRPO anchor checkpoint: `{proposal_kl_reference_checkpoint}`.",
+            f"Proposal GRPO action dedup: `{args.proposal_grpo_deduplicate_actions}`.",
+            f"Proposal GRPO novelty beta: `{args.proposal_grpo_novelty_bonus_beta}`.",
+            f"Source admission target-accuracy threshold: `{args.source_admission_target_accuracy_threshold}`.",
+            (
+                f"Proposal update loss: `{args.proposal_update_loss_mode}`; "
+                f"observation/format weights: `{args.proposal_observation_loss_weight}`/`{args.proposal_format_loss_weight}`."
+            ),
+            f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
             f"Keep all proposal-GRPO checkpoints: `{args.keep_all_proposal_grpo_checkpoints}`.",
         ],
     )
@@ -268,14 +359,18 @@ def finalize_adaptive_run(
         "rounds_recorded": len(summary_records),
         "selected_rounds_completed": selected_rounds,
         "attempts_completed": attempt_index,
-        "target_selected_rounds": args.num_rounds,
+        "max_selected_rounds": max_selected_rounds,
+        "target_selected_rounds": getattr(args, "num_rounds", None),
         "max_attempt_rounds": args.max_attempt_rounds,
         "no_selection_patience": args.no_selection_patience,
         "num_candidates": args.num_candidates,
         "current_checkpoint": current_checkpoint,
+        "proposal_kl_reference_checkpoint": proposal_kl_reference_checkpoint,
         "source_sizes": sorted(source_sizes),
         "proposal_trace_buffer_size": len(proposal_trace_buffer),
         "proposal_output_schema": args.proposal_output_schema,
+        "proposal_prompt_action_history": args.proposal_prompt_action_history,
+        "proposal_prompt_action_history_max_items": args.proposal_prompt_action_history_max_items,
         "proposal_trace_buffer_path": str(output_dir / "selected_proposal_trace_buffer.jsonl"),
         "proposal_trace_replay_ratio": args.proposal_trace_replay_ratio,
         "proposal_trace_replay_max_examples": args.proposal_trace_replay_max_examples,
@@ -291,10 +386,23 @@ def finalize_adaptive_run(
         "proposal_grpo_steps": args.proposal_grpo_steps,
         "proposal_grpo_learning_rate": args.proposal_grpo_learning_rate,
         "proposal_grpo_kl_coef": args.proposal_grpo_kl_coef,
+        "proposal_grpo_anchor_kl_coef": args.proposal_grpo_anchor_kl_coef,
+        "proposal_grpo_anchor_kl_reference": args.proposal_grpo_anchor_kl_reference,
         "proposal_grpo_zero_variance": args.proposal_grpo_zero_variance,
         "proposal_grpo_reward_mode": args.proposal_grpo_reward_mode,
+        "proposal_grpo_span": args.proposal_grpo_span,
         "proposal_grpo_outcome_scale": args.proposal_grpo_outcome_scale,
         "proposal_grpo_fixed_baseline": args.proposal_grpo_fixed_baseline,
+        "proposal_grpo_deduplicate_actions": args.proposal_grpo_deduplicate_actions,
+        "proposal_grpo_novelty_bonus_beta": args.proposal_grpo_novelty_bonus_beta,
+        "proposal_update_loss_mode": args.proposal_update_loss_mode,
+        "proposal_observation_loss_weight": args.proposal_observation_loss_weight,
+        "proposal_format_loss_weight": args.proposal_format_loss_weight,
+        "proposal_format_replay_max_examples": args.proposal_format_replay_max_examples,
+        "source_admission_target_accuracy_threshold": args.source_admission_target_accuracy_threshold,
+        "keep_final_model_checkpoint": args.keep_final_model_checkpoint,
+        "deleted_final_model_dirs": deleted_final_model_dirs,
+        "deleted_anchor_model_dirs": deleted_anchor_model_dirs,
         "keep_all_proposal_grpo_checkpoints": args.keep_all_proposal_grpo_checkpoints,
         "init_final_accuracy": init_final_accuracy,
         "results_path": str(results_path),
@@ -481,6 +589,7 @@ def run_round_model_dispatch(
     selected_rounds: int,
     consecutive_no_selection: int,
     init_final_accuracy: float,
+    extra_aggregate_metrics: Mapping[str, Any] | None = None,
     deps: RoundModelDispatchDeps,
 ) -> RoundModelDispatchResult:
     if args.controller_execution_mode == "slurm":
@@ -498,6 +607,7 @@ def run_round_model_dispatch(
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
             init_final_accuracy=init_final_accuracy,
+            extra_aggregate_metrics=extra_aggregate_metrics,
             deps=deps,
         )
 
@@ -516,6 +626,7 @@ def run_round_model_dispatch(
         selected_rounds=selected_rounds,
         consecutive_no_selection=consecutive_no_selection,
         init_final_accuracy=init_final_accuracy,
+        extra_aggregate_metrics=extra_aggregate_metrics,
         seed=args.seed + attempt_index * 7919,
     )
     return RoundModelDispatchResult(
@@ -542,6 +653,7 @@ def _run_round_model_slurm(
     selected_rounds: int,
     consecutive_no_selection: int,
     init_final_accuracy: float,
+    extra_aggregate_metrics: Mapping[str, Any] | None = None,
     deps: RoundModelDispatchDeps,
 ) -> RoundModelDispatchResult:
     controller_input_dir = round_dir / "controller_worker" / "inputs"
@@ -568,6 +680,7 @@ def _run_round_model_slurm(
             "selected_rounds": selected_rounds,
             "consecutive_no_selection": consecutive_no_selection,
             "init_final_accuracy": init_final_accuracy,
+            "extra_aggregate_metrics": dict(extra_aggregate_metrics or {}),
             "seed": args.seed + attempt_index * 7919,
         },
     )
@@ -576,7 +689,9 @@ def _run_round_model_slurm(
         system=str(prompt_payload.get("system", "")),
         user=str(prompt_payload.get("user", "")),
     )
-    proposal_results = deps.load_json(Path(round_output["proposal_results_path"]))
+    proposal_results = deps.load_json(
+        Path(round_output.get("proposal_grpo_results_path") or round_output["proposal_results_path"])
+    )
     work_items = [
         deps.work_item_from_worker_payload(payload=item_payload, task=task)
         for item_payload in round_output.get("work_items", [])
@@ -725,10 +840,12 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
     return finalize_adaptive_run(
         args=args,
         output_dir=output_dir,
+        checkpoint_manager=checkpoint_manager,
         summary_records=summary_records,
         selected_rounds=loop_result.selected_rounds,
         attempt_index=loop_result.attempt_index,
         current_checkpoint=loop_result.current_checkpoint,
+        proposal_kl_reference_checkpoint=loop_result.proposal_kl_reference_checkpoint,
         source_sizes=loop_result.source_sizes,
         proposal_trace_buffer=loop_result.proposal_trace_buffer,
         outcome_trace_buffer=loop_result.outcome_trace_buffer,

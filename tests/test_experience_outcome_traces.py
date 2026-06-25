@@ -16,7 +16,7 @@ def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity
         proposal=proposal,
         proposal_prediction={
             "expected_frontier_delta": 0.10,
-            "expected_final_delta_from_init": 0.20,
+            "expected_avg_delta_from_init": 0.20,
         },
         valid=True,
         reward=0.75,
@@ -52,7 +52,7 @@ def test_outcome_trace_builder_uses_compact_state_prediction_and_legacy_identity
     assert completion["selected"] is True
     assert completion["repeat_target"] is False
     assert completion["frontier_delta_error"] == 0.05
-    assert completion["final_delta_from_init_error"] == 0.05
+    assert completion["avg_delta_from_init_error"] == 0.05
     assert "feedback" in completion
 
 

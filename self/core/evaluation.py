@@ -131,9 +131,16 @@ def evaluate_accuracy_with_breakdown(
     size_totals: Dict[int, int] = defaultdict(int)
     size_correct: Dict[int, int] = defaultdict(int)
 
+    sized_examples = [
+        (size_getter(example), index, example)
+        for index, example in enumerate(examples)
+    ]
+    sized_examples.sort(key=lambda row: (row[0], row[1]))
+
     with torch.no_grad():
         for start in range(0, total, batch_size):
-            batch = examples[start : start + batch_size]
+            batch_rows = sized_examples[start : start + batch_size]
+            batch = [row[2] for row in batch_rows]
             prompts = [example.prompt() for example in batch]
             encodings = build_generation_encodings(tokenizer, prompts, device)
             output_ids = model.generate(
@@ -142,8 +149,7 @@ def evaluate_accuracy_with_breakdown(
                 do_sample=False,
             )
             prompt_width = encodings["input_ids"].shape[1]
-            for idx, example in enumerate(batch):
-                size_value = size_getter(example)
+            for idx, (size_value, _, example) in enumerate(batch_rows):
                 size_totals[size_value] += 1
                 generated_slice = output_ids[idx, prompt_width:].tolist()
                 text = tokenizer.decode(generated_slice, skip_special_tokens=True)

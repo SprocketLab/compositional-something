@@ -469,11 +469,13 @@ def apply_or_dispatch_proposal_grpo_update(
     *,
     args: argparse.Namespace,
     source_checkpoint: str,
+    proposal_kl_reference_checkpoint: Optional[str] = None,
     output_dir: Path,
     prompt: PromptBundle,
     proposal_results: Sequence[Mapping[str, Any]],
     candidate_metrics: Sequence[CandidateMetrics],
     seed: int,
+    proposal_trace_buffer: Sequence[Any] = (),
 ) -> tuple[str, JsonDict]:
     from self.adaptive.proposal import (
         apply_or_dispatch_proposal_grpo_update as apply_or_dispatch_proposal_grpo_update_impl,
@@ -482,10 +484,12 @@ def apply_or_dispatch_proposal_grpo_update(
     return apply_or_dispatch_proposal_grpo_update_impl(
         args=args,
         source_checkpoint=source_checkpoint,
+        proposal_kl_reference_checkpoint=proposal_kl_reference_checkpoint,
         output_dir=output_dir,
         prompt=prompt,
         proposal_results=proposal_results,
         candidate_metrics=candidate_metrics,
+        proposal_trace_buffer=proposal_trace_buffer,
         seed=seed,
         deps=proposal_grpo_dispatch_deps(bindings),
     )
