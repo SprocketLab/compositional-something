@@ -21,6 +21,12 @@ def test_args_normalization_preserves_task_defaults() -> None:
     assert addition_args.max_selected_rounds == 0
     assert addition_args.no_selection_patience == 100
     assert addition_args.proposal_format_mask_config_values is True
+    assert addition_args.synthetic_proposal_sft is False
+    assert addition_args.synthetic_proposal_sft_examples == 0
+    assert addition_args.synthetic_proposal_sft_num_epochs == 1
+    assert addition_args.synthetic_proposal_sft_learning_rate == 1e-6
+    assert addition_args.synthetic_proposal_sft_top_k == 4
+    assert addition_args.synthetic_proposal_sft_temperature == 0.7
 
     run_length_args = adaptive_args.normalize_args(parser.parse_args(["--task", "run_length"]))
     assert run_length_args.initial_min_size == 8

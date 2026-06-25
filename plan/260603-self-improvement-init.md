@@ -6588,3 +6588,33 @@ Acceptance criteria for first pilot:
   - run_length: `10231603`
 - Initial monitor result: both jobs were pending on `ailab` with reason
   `Priority`; no runtime logs had been created yet.
+
+### Implementation Log: 2026-06-25 Synthetic Proposal SFT Sweep
+
+- Added an optional seed-stage synthetic proposal SFT pass for config-only
+  adaptive runs. This pass is disabled by default and activates when
+  `--synthetic-proposal-sft` and a positive
+  `--synthetic-proposal-sft-examples` value are supplied.
+- Synthetic traces are generated from sampled accuracy profiles:
+  reliable source sizes are chosen from high-accuracy slices, weak reachable
+  targets are chosen from `left + right`, and guard rules are scored by a
+  simple expected pseudolabel-quality heuristic.
+- The synthetic completion supervises the full normalized config completion,
+  including concrete `left`, `right`, and `guard` values. This is intentional:
+  the synthetic pass is meant to teach the proposal prior before online GRPO,
+  not preserve the masked-format-only behavior used for online traces.
+- The seed dispatcher now runs synthetic SFT after seed/base checkpoint
+  preparation and before attempt 1. It re-evaluates the post-SFT checkpoint so
+  the first online proposal sees the current post-synthetic accuracy state.
+- The launcher now supports sweeping synthetic amount with
+  `SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST`, producing job/output suffixes such as
+  `syn0`, `syn2048`, `syn4096`, and `syn8192`.
+- Dry-run checked the intended 8-job matrix:
+  `{addition, run_length} x {0, 2048, 4096, 8192}` synthetic examples.
+  Manifest:
+  `artifacts/runs/adaptive_candidate_training_ailab_20260624_235435/submission_manifest.json`.
+- Verification:
+  - `python -m py_compile self/adaptive/proposal.py self/adaptive/args.py self/adaptive/run.py self/adaptive/driver.py self/launcher_manifests.py`
+  - `bash -n launchers/self/submit_adaptive_candidate_training_ailab.sh launchers/self/run_adaptive_candidate_training_ailab.sbatch`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_synthetic_proposal_sft.py tests/test_adaptive_args_normalization.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py -q`
+  - `~/.conda/envs/torch-env/bin/python -m pytest tests/test_adaptive_candidate_training.py tests/test_attempt_outcome_runtime.py tests/test_candidate_dispatch_runtime.py tests/test_synthetic_proposal_sft.py tests/test_adaptive_candidate_launcher.py tests/test_launcher_manifests.py tests/test_adaptive_args_normalization.py -q`

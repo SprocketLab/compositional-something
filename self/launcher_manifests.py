@@ -32,14 +32,19 @@ def build_adaptive_candidate_submission_manifest(
     num_candidates_list: str,
     proposal_grpo_learning_rates: str,
     proposal_grpo_kl_coef: str,
+    synthetic_proposal_sft_examples_list: str,
+    synthetic_proposal_sft_num_epochs: str,
+    synthetic_proposal_sft_learning_rate: str,
+    synthetic_proposal_sft_top_k: str,
+    synthetic_proposal_sft_temperature: str,
     adaptive_config_files: str,
     job_fields: Sequence[str],
 ) -> JsonDict:
-    if len(job_fields) % 10 != 0:
-        raise ValueError("adaptive candidate job_fields must be groups of 10 values.")
+    if len(job_fields) % 11 != 0:
+        raise ValueError("adaptive candidate job_fields must be groups of 11 values.")
 
     jobs: JsonDict = {}
-    for index in range(0, len(job_fields), 10):
+    for index in range(0, len(job_fields), 11):
         (
             task,
             condition,
@@ -49,15 +54,16 @@ def build_adaptive_candidate_submission_manifest(
             num_candidates,
             proposal_lr,
             proposal_kl,
+            synthetic_examples,
             job_id,
             output_dir,
         ) = job_fields[
-            index : index + 10
+            index : index + 11
         ]
         jobs[
             (
                 f"{task}-{condition}-{outcome_mode}-n{num_candidates}-reward-{reward_mode}"
-                f"-grpo-{zero_variance}-lr-{proposal_lr}"
+                f"-grpo-{zero_variance}-lr-{proposal_lr}-syn{synthetic_examples}"
             )
         ] = {
             "task": task,
@@ -68,6 +74,7 @@ def build_adaptive_candidate_submission_manifest(
             "num_candidates": int(num_candidates),
             "proposal_grpo_learning_rate": proposal_lr,
             "proposal_grpo_kl_coef": proposal_kl,
+            "synthetic_proposal_sft_examples": int(synthetic_examples),
             "job_id": job_id,
             "output_dir": output_dir,
             "status": "submitted",
@@ -85,6 +92,11 @@ def build_adaptive_candidate_submission_manifest(
         "num_candidates_list": _split_int_words(num_candidates_list),
         "proposal_grpo_learning_rates": _split_words(proposal_grpo_learning_rates),
         "proposal_grpo_kl_coef": proposal_grpo_kl_coef,
+        "synthetic_proposal_sft_examples_list": _split_int_words(synthetic_proposal_sft_examples_list),
+        "synthetic_proposal_sft_num_epochs": int(synthetic_proposal_sft_num_epochs),
+        "synthetic_proposal_sft_learning_rate": synthetic_proposal_sft_learning_rate,
+        "synthetic_proposal_sft_top_k": int(synthetic_proposal_sft_top_k),
+        "synthetic_proposal_sft_temperature": float(synthetic_proposal_sft_temperature),
         "adaptive_config_files": adaptive_config_files,
         "jobs": jobs,
     }
@@ -112,6 +124,11 @@ def _build_parser() -> argparse.ArgumentParser:
     candidate.add_argument("--num-candidates-list", required=True)
     candidate.add_argument("--proposal-grpo-learning-rates", required=True)
     candidate.add_argument("--proposal-grpo-kl-coef", required=True)
+    candidate.add_argument("--synthetic-proposal-sft-examples-list", default="0")
+    candidate.add_argument("--synthetic-proposal-sft-num-epochs", default="1")
+    candidate.add_argument("--synthetic-proposal-sft-learning-rate", default="1e-6")
+    candidate.add_argument("--synthetic-proposal-sft-top-k", default="4")
+    candidate.add_argument("--synthetic-proposal-sft-temperature", default="0.7")
     candidate.add_argument("--adaptive-config-files", default="")
     candidate.add_argument("--job-fields", nargs="*", default=[])
 
@@ -134,6 +151,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             num_candidates_list=args.num_candidates_list,
             proposal_grpo_learning_rates=args.proposal_grpo_learning_rates,
             proposal_grpo_kl_coef=args.proposal_grpo_kl_coef,
+            synthetic_proposal_sft_examples_list=args.synthetic_proposal_sft_examples_list,
+            synthetic_proposal_sft_num_epochs=args.synthetic_proposal_sft_num_epochs,
+            synthetic_proposal_sft_learning_rate=args.synthetic_proposal_sft_learning_rate,
+            synthetic_proposal_sft_top_k=args.synthetic_proposal_sft_top_k,
+            synthetic_proposal_sft_temperature=args.synthetic_proposal_sft_temperature,
             adaptive_config_files=args.adaptive_config_files,
             job_fields=args.job_fields,
         )

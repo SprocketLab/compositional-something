@@ -330,6 +330,10 @@ def finalize_adaptive_run(
                 "Proposal update loss: `merged_agent`; "
                 f"observation/format weights: `{args.proposal_observation_loss_weight}`/`{args.proposal_format_loss_weight}`."
             ),
+            (
+                "Synthetic proposal SFT: "
+                f"`{args.synthetic_proposal_sft}`; examples: `{args.synthetic_proposal_sft_examples}`."
+            ),
             f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
             f"Keep all proposal-GRPO checkpoints: `{args.keep_all_proposal_grpo_checkpoints}`.",
         ],
@@ -374,6 +378,12 @@ def finalize_adaptive_run(
         "proposal_observation_loss_weight": args.proposal_observation_loss_weight,
         "proposal_format_loss_weight": args.proposal_format_loss_weight,
         "proposal_format_replay_max_examples": args.proposal_format_replay_max_examples,
+        "synthetic_proposal_sft": args.synthetic_proposal_sft,
+        "synthetic_proposal_sft_examples": args.synthetic_proposal_sft_examples,
+        "synthetic_proposal_sft_num_epochs": args.synthetic_proposal_sft_num_epochs,
+        "synthetic_proposal_sft_learning_rate": args.synthetic_proposal_sft_learning_rate,
+        "synthetic_proposal_sft_top_k": args.synthetic_proposal_sft_top_k,
+        "synthetic_proposal_sft_temperature": args.synthetic_proposal_sft_temperature,
         "source_admission_target_accuracy_threshold": args.source_admission_target_accuracy_threshold,
         "keep_final_model_checkpoint": args.keep_final_model_checkpoint,
         "deleted_final_model_dirs": deleted_final_model_dirs,
@@ -408,6 +418,7 @@ class SeedDispatchDeps:
     run_controller_worker_slurm: Callable[..., Mapping[str, Any]]
     float_or_nan: Callable[[Any], float]
     run_seed_phase: Callable[..., Any]
+    apply_synthetic_proposal_sft: Callable[..., tuple[str, JsonDict]]
 
 
 @dataclass(frozen=True)
@@ -472,6 +483,33 @@ def run_seed_dispatch(
         current_per_size_accuracy = seed_result.current_per_size_accuracy
         init_final_accuracy = seed_result.init_final_accuracy
 
+    synthetic_metrics = None
+    if (
+        not args.dry_run_data_only
+        and bool(getattr(args, "synthetic_proposal_sft", False))
+        and int(getattr(args, "synthetic_proposal_sft_examples", 0)) > 0
+    ):
+        next_checkpoint, synthetic_metrics = deps.apply_synthetic_proposal_sft(
+            args=args,
+            task=task,
+            source_checkpoint=current_checkpoint,
+            output_dir=output_dir / "round_00" / "synthetic_proposal_sft",
+            eval_examples=eval_examples,
+            source_sizes=source_sizes,
+            current_final_accuracy=current_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
+            init_final_accuracy=init_final_accuracy,
+            config=config,
+            seed=args.seed + 7919,
+        )
+        if not synthetic_metrics.get("skipped", True):
+            current_checkpoint = next_checkpoint
+            current_final_accuracy = float(synthetic_metrics["post_sft_eval_accuracy"])
+            current_per_size_accuracy = {
+                int(size): float(score)
+                for size, score in dict(synthetic_metrics["post_sft_per_size_accuracy"]).items()
+            }
+
     return SeedDispatchResult(
         current_checkpoint=current_checkpoint,
         current_final_accuracy=current_final_accuracy,
@@ -483,6 +521,7 @@ def run_seed_dispatch(
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy=current_per_size_accuracy,
             init_final_accuracy=init_final_accuracy,
+            synthetic_proposal_sft=synthetic_metrics,
         ),
     )
 
@@ -494,18 +533,20 @@ def build_initial_summary_records(
     current_final_accuracy: float,
     current_per_size_accuracy: Mapping[int, float],
     init_final_accuracy: float,
+    synthetic_proposal_sft: Mapping[str, Any] | None = None,
 ) -> list[JsonDict]:
-    return [
-        {
-            "round": 0,
-            "selected": None,
-            "current_checkpoint": current_checkpoint,
-            "source_sizes": sorted(source_sizes),
-            "eval_accuracy": current_final_accuracy,
-            "per_size_accuracy": current_per_size_accuracy,
-            "init_final_accuracy": init_final_accuracy,
-        }
-    ]
+    record: JsonDict = {
+        "round": 0,
+        "selected": None,
+        "current_checkpoint": current_checkpoint,
+        "source_sizes": sorted(source_sizes),
+        "eval_accuracy": current_final_accuracy,
+        "per_size_accuracy": current_per_size_accuracy,
+        "init_final_accuracy": init_final_accuracy,
+    }
+    if synthetic_proposal_sft is not None:
+        record["synthetic_proposal_sft"] = dict(synthetic_proposal_sft)
+    return [record]
 
 
 # --- from round_model_dispatch.py ---
@@ -745,6 +786,7 @@ def run_adaptive_candidate_training(args: argparse.Namespace, deps: AdaptiveRunD
             run_controller_worker_slurm=deps.run_controller_worker_slurm,
             float_or_nan=deps.float_or_nan,
             run_seed_phase=deps.run_seed_phase,
+            apply_synthetic_proposal_sft=deps.apply_synthetic_proposal_sft,
         ),
     )
     current_checkpoint = seed_result.current_checkpoint

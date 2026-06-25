@@ -23,6 +23,11 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         num_candidates_list="8 16",
         proposal_grpo_learning_rates="1e-6 3e-6",
         proposal_grpo_kl_coef="0.01",
+        synthetic_proposal_sft_examples_list="0 2048",
+        synthetic_proposal_sft_num_epochs="1",
+        synthetic_proposal_sft_learning_rate="1e-6",
+        synthetic_proposal_sft_top_k="4",
+        synthetic_proposal_sft_temperature="0.7",
         adaptive_config_files="/tmp/base.env",
         job_fields=[
             "addition",
@@ -33,8 +38,9 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
             "8",
             "1e-6",
             "0.01",
+            "0",
             "123",
-            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-syn0",
             "run_length",
             "config",
             "textual",
@@ -43,8 +49,9 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
             "16",
             "3e-6",
             "0.01",
+            "2048",
             "124",
-            "/tmp/run/run_length-config-textual-n16-reward-rank-grpo-skip-lr-3em6",
+            "/tmp/run/run_length-config-textual-n16-reward-rank-grpo-skip-lr-3em6-syn2048",
         ],
     )
 
@@ -59,8 +66,13 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
     assert payload["num_candidates_list"] == [8, 16]
     assert payload["proposal_grpo_learning_rates"] == ["1e-6", "3e-6"]
     assert payload["proposal_grpo_kl_coef"] == "0.01"
+    assert payload["synthetic_proposal_sft_examples_list"] == [0, 2048]
+    assert payload["synthetic_proposal_sft_num_epochs"] == 1
+    assert payload["synthetic_proposal_sft_learning_rate"] == "1e-6"
+    assert payload["synthetic_proposal_sft_top_k"] == 4
+    assert payload["synthetic_proposal_sft_temperature"] == 0.7
     assert payload["adaptive_config_files"] == "/tmp/base.env"
-    assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6"] == {
+    assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-syn0"] == {
         "task": "addition",
         "condition": "config",
         "outcome_trace_target_mode": "numeric",
@@ -69,20 +81,27 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         "num_candidates": 8,
         "proposal_grpo_learning_rate": "1e-6",
         "proposal_grpo_kl_coef": "0.01",
+        "synthetic_proposal_sft_examples": 0,
         "job_id": "123",
-        "output_dir": "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6",
+        "output_dir": "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-syn0",
         "status": "submitted",
     }
     assert (
-        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-lr-3e-6"][
+        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-lr-3e-6-syn2048"][
             "proposal_grpo_learning_rate"
         ]
         == "3e-6"
     )
+    assert (
+        payload["jobs"]["run_length-config-textual-n16-reward-rank-grpo-skip-lr-3e-6-syn2048"][
+            "synthetic_proposal_sft_examples"
+        ]
+        == 2048
+    )
 
 
 def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> None:
-    with pytest.raises(ValueError, match="groups of 10"):
+    with pytest.raises(ValueError, match="groups of 11"):
         build_adaptive_candidate_submission_manifest(
             out_root="/tmp/run",
             tasks="addition",
@@ -95,6 +114,11 @@ def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> 
             num_candidates_list="8",
             proposal_grpo_learning_rates="1e-6",
             proposal_grpo_kl_coef="0.01",
+            synthetic_proposal_sft_examples_list="0",
+            synthetic_proposal_sft_num_epochs="1",
+            synthetic_proposal_sft_learning_rate="1e-6",
+            synthetic_proposal_sft_top_k="4",
+            synthetic_proposal_sft_temperature="0.7",
             adaptive_config_files="",
             job_fields=["addition", "config"],
         )
@@ -129,6 +153,16 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "1e-6",
             "--proposal-grpo-kl-coef",
             "0.01",
+            "--synthetic-proposal-sft-examples-list",
+            "0",
+            "--synthetic-proposal-sft-num-epochs",
+            "1",
+            "--synthetic-proposal-sft-learning-rate",
+            "1e-6",
+            "--synthetic-proposal-sft-top-k",
+            "4",
+            "--synthetic-proposal-sft-temperature",
+            "0.7",
             "--adaptive-config-files",
             "/tmp/base.env",
             "--job-fields",
@@ -140,8 +174,9 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "8",
             "1e-6",
             "0.01",
+            "0",
             "123",
-            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6",
+            "/tmp/run/addition-config-numeric-n8-reward-outcome-grpo-fixed-baseline-lr-1em6-syn0",
         ]
     )
 
@@ -150,7 +185,7 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
     assert payload["model_name"] == "Qwen/Qwen3-4B"
     assert payload["proposal_model_name"] == "current"
     assert (
-        payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6"][
+        payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-syn0"][
             "job_id"
         ]
         == "123"

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import random
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
@@ -2160,6 +2161,438 @@ def _backward_completion_loss_microbatches(
         loss_values.sum().mul(float(loss_weight) / denominator).backward()
         loss_sum = loss_sum + loss_values.detach().sum()
     return float((loss_sum / denominator).detach().cpu())
+
+
+def _clamp_accuracy(value: Any, default: float = 0.0) -> float:
+    numeric = _finite_metric_float(value)
+    if numeric is None:
+        numeric = default
+    return max(0.0, min(1.0, float(numeric)))
+
+
+def _synthetic_guard_factor(task_name: str, guard: str, *, target: int, source_max: int) -> float:
+    if task_name == "addition":
+        if guard == "reject_boundary_carry":
+            return 1.05 if target > source_max else 0.98
+        return 1.0
+    if task_name == "run_length":
+        if guard == "reject_boundary_continue":
+            return 1.04
+        if guard == "require_boundary_continue":
+            return 0.96 if target <= source_max else 1.01
+        return 1.0
+    return 1.0
+
+
+def _synthetic_source_sizes(
+    *,
+    base_source_sizes: Sequence[int],
+    frontier_max: int,
+    rng: random.Random,
+) -> List[int]:
+    base = sorted({int(size) for size in base_source_sizes})
+    if not base:
+        return []
+    source_sizes = set(base)
+    future_pool = [size for size in range(min(base), frontier_max + 1) if size not in source_sizes]
+    if future_pool:
+        max_extra = min(3, len(future_pool))
+        extra_count = rng.randint(0, max_extra)
+        source_sizes.update(rng.sample(future_pool, extra_count))
+    return sorted(source_sizes)
+
+
+def _synthetic_accuracy_profile(
+    *,
+    source_sizes: Sequence[int],
+    frontier_min: int,
+    frontier_max: int,
+    current_per_size_accuracy: Mapping[int, float],
+    rng: random.Random,
+) -> Dict[int, float]:
+    source_set = {int(size) for size in source_sizes}
+    profile: Dict[int, float] = {}
+    for size in range(max(1, min(source_set | {frontier_min})), frontier_max + 1):
+        if size in current_per_size_accuracy:
+            base = _clamp_accuracy(current_per_size_accuracy[size], default=0.75)
+            value = base + rng.uniform(-0.10, 0.08)
+        elif size in source_set:
+            value = rng.uniform(0.70, 0.98)
+        else:
+            distance = max(0, size - max(source_set))
+            high = max(0.12, 0.70 - 0.03 * distance)
+            low = max(0.02, high - 0.45)
+            value = rng.uniform(low, high)
+        profile[size] = round(_clamp_accuracy(value), 4)
+    return profile
+
+
+def _synthetic_action_candidates(
+    *,
+    task_name: str,
+    source_sizes: Sequence[int],
+    frontier_min: int,
+    frontier_max: int,
+    per_size_accuracy: Mapping[int, float],
+    guard_choices: Sequence[str],
+) -> List[JsonDict]:
+    candidates: List[JsonDict] = []
+    source = sorted({int(size) for size in source_sizes})
+    source_max = max(source) if source else 0
+    eval_size_count = max(1, frontier_max - max(1, min(source or [frontier_min])) + 1)
+    for left in source:
+        for right in source:
+            target = left + right
+            if target < frontier_min or target > frontier_max:
+                continue
+            left_acc = _clamp_accuracy(per_size_accuracy.get(left), default=0.75)
+            right_acc = _clamp_accuracy(per_size_accuracy.get(right), default=0.75)
+            target_acc = _clamp_accuracy(per_size_accuracy.get(target), default=0.0)
+            for guard in guard_choices:
+                pseudo_acc = _clamp_accuracy(
+                    left_acc
+                    * right_acc
+                    * _synthetic_guard_factor(task_name, str(guard), target=target, source_max=source_max)
+                )
+                expected_target_delta = max(0.0, pseudo_acc - target_acc)
+                expected_avg_delta = expected_target_delta / eval_size_count
+                candidates.append(
+                    {
+                        "left": left,
+                        "right": right,
+                        "target": target,
+                        "guard": str(guard),
+                        "left_accuracy": round(left_acc, 6),
+                        "right_accuracy": round(right_acc, 6),
+                        "target_accuracy": round(target_acc, 6),
+                        "expected_pseudo_accuracy": round(pseudo_acc, 6),
+                        "expected_target_delta": round(expected_target_delta, 6),
+                        "expected_avg_delta_from_current": round(expected_avg_delta, 6),
+                        "expected_frontier_delta": round(expected_target_delta, 6),
+                        "score": round(expected_avg_delta, 8),
+                    }
+                )
+    return candidates
+
+
+def _sample_synthetic_action(
+    candidates: Sequence[JsonDict],
+    *,
+    top_k: int,
+    temperature: float,
+    rng: random.Random,
+) -> Optional[JsonDict]:
+    if not candidates:
+        return None
+    ordered = sorted(candidates, key=lambda row: float(row.get("score", 0.0)), reverse=True)
+    top = ordered[: max(1, min(int(top_k), len(ordered)))]
+    temp = max(1e-6, float(temperature))
+    max_score = max(float(row.get("score", 0.0)) for row in top)
+    weights = [math.exp((float(row.get("score", 0.0)) - max_score) / temp) for row in top]
+    total = sum(weights)
+    if total <= 0.0 or not math.isfinite(total):
+        return dict(top[0])
+    threshold = rng.random() * total
+    cumulative = 0.0
+    for row, weight in zip(top, weights):
+        cumulative += weight
+        if cumulative >= threshold:
+            return dict(row)
+    return dict(top[-1])
+
+
+def generate_synthetic_proposal_sft_rows(
+    *,
+    args: argparse.Namespace,
+    task_name: str,
+    source_sizes: Sequence[int],
+    current_per_size_accuracy: Mapping[int, float],
+    current_avg_accuracy: float,
+    init_avg_accuracy: float,
+    count: int,
+    seed: int,
+) -> List[JsonDict]:
+    rng = random.Random(seed)
+    rows: List[JsonDict] = []
+    if count <= 0:
+        return rows
+    guard_choices = DEFAULT_CONFIG_SEARCH_SPACES[task_name]["guards"]
+    frontier_min = int(args.frontier_min_size)
+    frontier_max = int(args.frontier_max_size)
+    base_source = sorted({int(size) for size in source_sizes})
+    if not base_source:
+        return rows
+    attempts = 0
+    max_attempts = max(10 * int(count), int(count) + 100)
+    while len(rows) < int(count) and attempts < max_attempts:
+        attempts += 1
+        synthetic_source = _synthetic_source_sizes(
+            base_source_sizes=base_source,
+            frontier_max=frontier_max,
+            rng=rng,
+        )
+        if len(synthetic_source) < 2:
+            continue
+        profile = _synthetic_accuracy_profile(
+            source_sizes=synthetic_source,
+            frontier_min=frontier_min,
+            frontier_max=frontier_max,
+            current_per_size_accuracy=current_per_size_accuracy,
+            rng=rng,
+        )
+        candidates = _synthetic_action_candidates(
+            task_name=task_name,
+            source_sizes=synthetic_source,
+            frontier_min=frontier_min,
+            frontier_max=frontier_max,
+            per_size_accuracy=profile,
+            guard_choices=guard_choices,
+        )
+        selected = _sample_synthetic_action(
+            candidates,
+            top_k=int(getattr(args, "synthetic_proposal_sft_top_k", 4)),
+            temperature=float(getattr(args, "synthetic_proposal_sft_temperature", 0.7)),
+            rng=rng,
+        )
+        if selected is None:
+            continue
+        current_avg = _clamp_accuracy(
+            current_avg_accuracy + rng.uniform(-0.08, 0.05),
+            default=0.5,
+        )
+        init_avg = _clamp_accuracy(init_avg_accuracy, default=current_avg)
+        aggregate_metrics: JsonDict = {
+            "current_avg_accuracy": round(current_avg, 6),
+            "init_avg_accuracy": round(init_avg, 6),
+            "per_size_accuracy": {str(size): score for size, score in sorted(profile.items())},
+            "source_sizes": synthetic_source,
+            "attempt_index": rng.randint(1, 100),
+            "selected_rounds_completed": rng.randint(0, 25),
+            "consecutive_no_selection": rng.randint(0, 4),
+            "reward_formula": "candidate_avg_accuracy - current_avg_accuracy",
+            "source_admission_target_accuracy_threshold": getattr(
+                args,
+                "source_admission_target_accuracy_threshold",
+                0.8,
+            ),
+        }
+        prompt = render_config_prompt(
+            task_name=task_name,
+            round_index=int(aggregate_metrics["selected_rounds_completed"]) + 1,
+            current_source={
+                "sizes": synthetic_source,
+                "min": min(synthetic_source),
+                "max": max(synthetic_source),
+            },
+            allowed_target_frontier={"min": frontier_min, "max": frontier_max},
+            aggregate_metrics=aggregate_metrics,
+            guard_choices=guard_choices,
+            model_name="synthetic_proposal_sft",
+            proposal_output_schema=str(getattr(args, "proposal_output_schema", "action_observation")),
+        )
+        reasoning = (
+            f"Source sizes {selected['left']} and {selected['right']} look reliable "
+            f"({selected['left_accuracy']:.2f} and {selected['right_accuracy']:.2f}), "
+            f"and target {selected['target']} is weak ({selected['target_accuracy']:.2f}). "
+            f"I expect composed pseudo-label quality near {selected['expected_pseudo_accuracy']:.2f}, "
+            f"so this should improve the target and current average."
+        )
+        proposal = ConfigProposal(
+            left=int(selected["left"]),
+            right=int(selected["right"]),
+            target=int(selected["target"]),
+            guard=str(selected["guard"]),
+            notes=reasoning,
+        )
+        prediction = {
+            "expected_avg_delta_from_current": selected["expected_avg_delta_from_current"],
+            "expected_target_delta": selected["expected_target_delta"],
+            "expected_frontier_delta": selected["expected_frontier_delta"],
+            "expected_avg_delta_from_init": round(max(0.0, current_avg - init_avg), 6),
+        }
+        rows.append(
+            {
+                "prompt": prompt.text(),
+                "completion": normalized_config_completion(
+                    proposal=proposal,
+                    prediction=prediction,
+                    schema=str(getattr(args, "proposal_output_schema", "action_observation")),
+                ),
+                "metadata": {
+                    "task": task_name,
+                    "left": proposal.left,
+                    "right": proposal.right,
+                    "target": proposal.target,
+                    "guard": proposal.guard,
+                    "score": selected["score"],
+                    "top_k": int(getattr(args, "synthetic_proposal_sft_top_k", 4)),
+                    "temperature": float(getattr(args, "synthetic_proposal_sft_temperature", 0.7)),
+                },
+            }
+        )
+    return rows
+
+
+def apply_synthetic_proposal_sft(
+    *,
+    args: argparse.Namespace,
+    task: Any,
+    source_checkpoint: str,
+    output_dir: Path,
+    eval_examples: Sequence[Any],
+    source_sizes: Sequence[int],
+    current_final_accuracy: float,
+    current_per_size_accuracy: Mapping[int, float],
+    init_final_accuracy: float,
+    config: Any,
+    seed: int,
+) -> Tuple[str, JsonDict]:
+    import torch
+    from transformers import set_seed
+    from self.adaptive.candidate import evaluate_model
+    from self.core.model_io import instantiate_model_and_tokenizer
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    requested_examples = int(getattr(args, "synthetic_proposal_sft_examples", 0))
+    enabled = bool(getattr(args, "synthetic_proposal_sft", False)) and requested_examples > 0
+    metrics: JsonDict = {
+        "enabled": enabled,
+        "skipped": True,
+        "skip_reason": None,
+        "source_checkpoint": source_checkpoint,
+        "model_dir": None,
+        "requested_examples": requested_examples,
+        "num_epochs": int(getattr(args, "synthetic_proposal_sft_num_epochs", 1)),
+        "learning_rate": float(getattr(args, "synthetic_proposal_sft_learning_rate", 1e-6)),
+        "top_k": int(getattr(args, "synthetic_proposal_sft_top_k", 4)),
+        "temperature": float(getattr(args, "synthetic_proposal_sft_temperature", 0.7)),
+    }
+    if not enabled:
+        metrics["skip_reason"] = "disabled"
+        write_json(output_dir / "synthetic_proposal_sft_metrics.json", metrics)
+        return source_checkpoint, metrics
+    if getattr(args, "condition", "config") != "config":
+        metrics["skip_reason"] = "non_config_condition"
+        write_json(output_dir / "synthetic_proposal_sft_metrics.json", metrics)
+        return source_checkpoint, metrics
+
+    rows = generate_synthetic_proposal_sft_rows(
+        args=args,
+        task_name=str(args.task),
+        source_sizes=source_sizes,
+        current_per_size_accuracy=current_per_size_accuracy,
+        current_avg_accuracy=current_final_accuracy,
+        init_avg_accuracy=init_final_accuracy,
+        count=requested_examples,
+        seed=seed,
+    )
+    write_trace_jsonl(output_dir / "synthetic_proposal_sft_examples.jsonl", rows)
+    metrics["generated_examples"] = len(rows)
+    if not rows:
+        metrics["skip_reason"] = "no_examples"
+        write_json(output_dir / "synthetic_proposal_sft_metrics.json", metrics)
+        return source_checkpoint, metrics
+
+    set_seed(seed)
+    model, tokenizer = instantiate_model_and_tokenizer(
+        source_checkpoint,
+        bf16=args.bf16,
+        fp16=args.fp16,
+        init_from_scratch=False,
+        tokenizer_mode=args.tokenizer_mode,
+        recipe=args.recipe,
+    )
+    try:
+        device = next(model.parameters()).device
+        samples: List[JsonDict] = []
+        for row in rows:
+            sample = _encode_proposal_grpo_sample(
+                tokenizer=tokenizer,
+                prompt_text=str(row["prompt"]),
+                completion=str(row["completion"]),
+            )
+            if sample is not None:
+                samples.append(sample)
+        metrics["trainable_examples"] = len(samples)
+        metrics["completion_token_counts"] = [int(sample["completion_tokens"]) for sample in samples[:128]]
+        if not samples:
+            metrics["skip_reason"] = "no_tokenizable_examples"
+            write_json(output_dir / "synthetic_proposal_sft_metrics.json", metrics)
+            return source_checkpoint, metrics
+
+        rng = random.Random(seed)
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=float(getattr(args, "synthetic_proposal_sft_learning_rate", 1e-6)),
+        )
+        batch_size = int(getattr(args, "proposal_update_microbatch_size", 8))
+        grad_clip = float(getattr(args, "proposal_grpo_grad_clip", 1.0))
+        loss_history: List[JsonDict] = []
+        step_index = 0
+        for epoch_index in range(int(getattr(args, "synthetic_proposal_sft_num_epochs", 1))):
+            epoch_samples = list(samples)
+            rng.shuffle(epoch_samples)
+            for sample_batch in _proposal_sample_batches(epoch_samples, batch_size):
+                step_index += 1
+                model.train()
+                optimizer.zero_grad(set_to_none=True)
+                loss_value = _backward_completion_loss_microbatches(
+                    model=model,
+                    tokenizer=tokenizer,
+                    samples=sample_batch,
+                    device=device,
+                    microbatch_size=batch_size,
+                    loss_weight=1.0,
+                )
+                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                optimizer.step()
+                if step_index <= 20 or step_index % 25 == 0:
+                    loss_history.append(
+                        {
+                            "step": step_index,
+                            "epoch": epoch_index + 1,
+                            "loss": float(loss_value),
+                            "grad_norm": float(
+                                grad_norm.detach().cpu() if torch.is_tensor(grad_norm) else grad_norm
+                            ),
+                        }
+                    )
+
+        model_dir = output_dir / "model"
+        model.save_pretrained(model_dir)
+        tokenizer.save_pretrained(model_dir)
+        eval_accuracy, per_size_accuracy = evaluate_model(
+            model=model,
+            tokenizer=tokenizer,
+            task=task,
+            examples=eval_examples,
+            batch_size=config.per_device_eval_batch_size,
+            decode_max_new_tokens=config.decode_max_new_tokens,
+        )
+        metrics.update(
+            {
+                "skipped": False,
+                "skip_reason": None,
+                "model_dir": str(model_dir),
+                "steps": step_index,
+                "loss_history": loss_history,
+                "post_sft_eval_accuracy": float(eval_accuracy),
+                "post_sft_per_size_accuracy": {
+                    int(size): float(score) for size, score in per_size_accuracy.items()
+                },
+                "pre_sft_eval_accuracy": float(current_final_accuracy),
+                "pre_sft_per_size_accuracy": {
+                    int(size): float(score) for size, score in current_per_size_accuracy.items()
+                },
+            }
+        )
+        write_json(output_dir / "synthetic_proposal_sft_metrics.json", metrics)
+        return str(model_dir), metrics
+    finally:
+        del model
+        del tokenizer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 def apply_proposal_grpo_update(

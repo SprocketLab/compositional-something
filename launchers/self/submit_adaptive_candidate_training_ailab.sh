@@ -26,6 +26,12 @@ PROPOSAL_PROMPT_ACTION_HISTORY="${PROPOSAL_PROMPT_ACTION_HISTORY:-1}"
 PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS="${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS:-5}"
 FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
 PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
+SYNTHETIC_PROPOSAL_SFT_EXAMPLES="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES:-0}"
+SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST:-${SYNTHETIC_PROPOSAL_SFT_EXAMPLES}}"
+SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS="${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS:-1}"
+SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE="${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE:-1e-6}"
+SYNTHETIC_PROPOSAL_SFT_TOP_K="${SYNTHETIC_PROPOSAL_SFT_TOP_K:-4}"
+SYNTHETIC_PROPOSAL_SFT_TEMPERATURE="${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE:-0.7}"
 MAX_ATTEMPT_ROUNDS="${MAX_ATTEMPT_ROUNDS:-100}"
 MAX_SELECTED_ROUNDS="${MAX_SELECTED_ROUNDS:-0}"
 NO_SELECTION_PATIENCE="${NO_SELECTION_PATIENCE:-${MAX_ATTEMPT_ROUNDS}}"
@@ -62,6 +68,7 @@ submit_cell() {
   local zero_variance="$5"
   local num_candidates="$6"
   local proposal_lr="$7"
+  local synthetic_examples="$8"
   local task_slug
   task_slug="${task//_/-}"
   local condition_slug
@@ -76,7 +83,12 @@ submit_cell() {
   lr_slug="${proposal_lr//./p}"
   lr_slug="${lr_slug//-/m}"
   local sweep_slug="lr-${lr_slug}"
-  local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}"
+  local synthetic_slug="syn${synthetic_examples}"
+  local synthetic_enabled="0"
+  if [[ "${synthetic_examples}" != "0" ]]; then
+    synthetic_enabled="1"
+  fi
+  local out_dir="${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-${synthetic_slug}"
   local -a sbatch_resources
   sbatch_resources=(--mem "${SBATCH_MEM}")
   if [[ -n "${SBATCH_TIME}" ]]; then
@@ -87,10 +99,10 @@ submit_cell() {
   fi
 
   self_submit_sbatch_script \
-    "dryrun-adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}" \
-    "adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}" \
-    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-%j.out" \
-    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-%j.err" \
+    "dryrun-adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-${synthetic_slug}" \
+    "adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-${synthetic_slug}" \
+    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-${synthetic_slug}-%j.out" \
+    "${LOG_DIR}/adaptive-cand-${task_slug}-${condition_slug}-${outcome_slug}-n${num_candidates}-${reward_slug}-${zero_slug}-${sweep_slug}-${synthetic_slug}-%j.err" \
     "$(self_sbatch_export_all \
       "TASK=${task}" \
       "CONDITION=${condition}" \
@@ -112,6 +124,12 @@ submit_cell() {
       "PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS=${PROPOSAL_PROMPT_ACTION_HISTORY_MAX_ITEMS}" \
       "FORCE_UNIQUE_PROPOSALS=${FORCE_UNIQUE_PROPOSALS}" \
       "PROPOSAL_UNIQUE_MAX_DRAWS=${PROPOSAL_UNIQUE_MAX_DRAWS}" \
+      "SYNTHETIC_PROPOSAL_SFT=${synthetic_enabled}" \
+      "SYNTHETIC_PROPOSAL_SFT_EXAMPLES=${synthetic_examples}" \
+      "SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS=${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}" \
+      "SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE=${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}" \
+      "SYNTHETIC_PROPOSAL_SFT_TOP_K=${SYNTHETIC_PROPOSAL_SFT_TOP_K}" \
+      "SYNTHETIC_PROPOSAL_SFT_TEMPERATURE=${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE}" \
       "OUT_DIR=${out_dir}" \
       "CANDIDATE_LOCAL_PARALLELISM=${CANDIDATE_LOCAL_PARALLELISM}" \
       "CANDIDATE_LOCAL_PACK_SIZE=${CANDIDATE_LOCAL_PACK_SIZE}" \
@@ -140,13 +158,15 @@ for task in ${TASKS}; do
         for zero_variance in ${PROPOSAL_GRPO_ZERO_VARIANCE_MODES}; do
           for num_candidates in ${NUM_CANDIDATES_LIST}; do
             for proposal_lr in ${PROPOSAL_GRPO_LEARNING_RATES}; do
+              for synthetic_examples in ${SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST}; do
                 outcome_slug="${outcome_mode//_/-}"
                 reward_slug="${reward_mode//_/-}"
                 zero_slug="${zero_variance//_/-}"
                 lr_slug="${proposal_lr//./p}"
                 lr_slug="${lr_slug//-/m}"
                 sweep_slug="lr-${lr_slug}"
-                job_id="$(submit_cell "${task}" "${condition}" "${outcome_mode}" "${reward_mode}" "${zero_variance}" "${num_candidates}" "${proposal_lr}")"
+                synthetic_slug="syn${synthetic_examples}"
+                job_id="$(submit_cell "${task}" "${condition}" "${outcome_mode}" "${reward_mode}" "${zero_variance}" "${num_candidates}" "${proposal_lr}" "${synthetic_examples}")"
                 MANIFEST_ARGS+=(
                   "${task}"
                   "${condition}"
@@ -156,9 +176,11 @@ for task in ${TASKS}; do
                   "${num_candidates}"
                   "${proposal_lr}"
                   "${PROPOSAL_GRPO_KL_COEF}"
+                  "${synthetic_examples}"
                   "${job_id}"
-                  "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}"
+                  "${OUT_ROOT}/${task}-${condition}-${outcome_slug}-n${num_candidates}-reward-${reward_slug}-grpo-${zero_slug}-${sweep_slug}-${synthetic_slug}"
                 )
+              done
             done
           done
         done
@@ -179,6 +201,11 @@ MANIFEST="${OUT_ROOT}/submission_manifest.json"
   --num-candidates-list "${NUM_CANDIDATES_LIST}" \
   --proposal-grpo-learning-rates "${PROPOSAL_GRPO_LEARNING_RATES}" \
   --proposal-grpo-kl-coef "${PROPOSAL_GRPO_KL_COEF}" \
+  --synthetic-proposal-sft-examples-list "${SYNTHETIC_PROPOSAL_SFT_EXAMPLES_LIST}" \
+  --synthetic-proposal-sft-num-epochs "${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}" \
+  --synthetic-proposal-sft-learning-rate "${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}" \
+  --synthetic-proposal-sft-top-k "${SYNTHETIC_PROPOSAL_SFT_TOP_K}" \
+  --synthetic-proposal-sft-temperature "${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE}" \
   --adaptive-config-files "${ADAPTIVE_CONFIG_EXPORT}" \
   --model-name "${MODEL_NAME}" \
   --proposal-model-name "${PROPOSAL_MODEL_NAME}" \

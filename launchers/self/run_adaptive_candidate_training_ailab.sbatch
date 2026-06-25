@@ -43,6 +43,12 @@ PROPOSAL_TEMPERATURE="${PROPOSAL_TEMPERATURE:-0.9}"
 PROPOSAL_TOP_P="${PROPOSAL_TOP_P:-0.95}"
 FORCE_UNIQUE_PROPOSALS="${FORCE_UNIQUE_PROPOSALS:-1}"
 PROPOSAL_UNIQUE_MAX_DRAWS="${PROPOSAL_UNIQUE_MAX_DRAWS:-0}"
+SYNTHETIC_PROPOSAL_SFT="${SYNTHETIC_PROPOSAL_SFT:-0}"
+SYNTHETIC_PROPOSAL_SFT_EXAMPLES="${SYNTHETIC_PROPOSAL_SFT_EXAMPLES:-0}"
+SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS="${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS:-1}"
+SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE="${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE:-1e-6}"
+SYNTHETIC_PROPOSAL_SFT_TOP_K="${SYNTHETIC_PROPOSAL_SFT_TOP_K:-4}"
+SYNTHETIC_PROPOSAL_SFT_TEMPERATURE="${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE:-0.7}"
 MAX_STEPS="${MAX_STEPS:-100}"
 SEED_MAX_STEPS="${SEED_MAX_STEPS:-0}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-16}"
@@ -246,6 +252,9 @@ if [[ "${FORCE_UNIQUE_PROPOSALS}" == "1" ]]; then
 else
   OPTIONAL_ARGS+=(--no-force-unique-proposals)
 fi
+if [[ "${SYNTHETIC_PROPOSAL_SFT}" == "1" ]]; then
+  OPTIONAL_ARGS+=(--synthetic-proposal-sft)
+fi
 if [[ "${PROPOSAL_PROMPT_ACTION_HISTORY}" == "1" ]]; then
   OPTIONAL_ARGS+=(--proposal-prompt-action-history)
 else
@@ -275,6 +284,7 @@ echo "[INFO] Model: ${MODEL_NAME}"
 echo "[INFO] Proposal model: ${PROPOSAL_MODEL_NAME}"
 echo "[INFO] Treat seed as round zero: ${TREAT_SEED_AS_ROUND_ZERO}"
 echo "[INFO] Proposal sampling temp/top_p/force-unique/max-draws/batch-size: ${PROPOSAL_TEMPERATURE}/${PROPOSAL_TOP_P}/${FORCE_UNIQUE_PROPOSALS}/${PROPOSAL_UNIQUE_MAX_DRAWS}/${PROPOSAL_SAMPLING_BATCH_SIZE}"
+echo "[INFO] Synthetic proposal SFT enabled/examples/epochs/lr/top-k/temp: ${SYNTHETIC_PROPOSAL_SFT}/${SYNTHETIC_PROPOSAL_SFT_EXAMPLES}/${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}/${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}/${SYNTHETIC_PROPOSAL_SFT_TOP_K}/${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE}"
 echo "[INFO] Attempts/candidates: ${MAX_ATTEMPT_ROUNDS}/${NUM_CANDIDATES}"
 echo "[INFO] Max selected candidates: ${MAX_SELECTED_ROUNDS}"
 echo "[INFO] Max attempts / no-selection patience: ${MAX_ATTEMPT_ROUNDS}/${NO_SELECTION_PATIENCE}"
@@ -353,6 +363,11 @@ fi
   --proposal-top-p "${PROPOSAL_TOP_P}" \
   --proposal-sampling-batch-size "${PROPOSAL_SAMPLING_BATCH_SIZE}" \
   --proposal-unique-max-draws "${PROPOSAL_UNIQUE_MAX_DRAWS}" \
+  --synthetic-proposal-sft-examples "${SYNTHETIC_PROPOSAL_SFT_EXAMPLES}" \
+  --synthetic-proposal-sft-num-epochs "${SYNTHETIC_PROPOSAL_SFT_NUM_EPOCHS}" \
+  --synthetic-proposal-sft-learning-rate "${SYNTHETIC_PROPOSAL_SFT_LEARNING_RATE}" \
+  --synthetic-proposal-sft-top-k "${SYNTHETIC_PROPOSAL_SFT_TOP_K}" \
+  --synthetic-proposal-sft-temperature "${SYNTHETIC_PROPOSAL_SFT_TEMPERATURE}" \
   --proposal-trace-replay-ratio "${PROPOSAL_TRACE_REPLAY_RATIO}" \
   --proposal-trace-replay-max-examples "${PROPOSAL_TRACE_REPLAY_MAX_EXAMPLES}" \
   --outcome-trace-target-mode "${OUTCOME_TRACE_TARGET_MODE}" \

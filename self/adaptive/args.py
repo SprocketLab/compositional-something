@@ -245,6 +245,44 @@ def build_parser() -> argparse.ArgumentParser:
             "0 uses an automatic budget of max(8 * num_candidates, num_candidates + 16)."
         ),
     )
+    parser.add_argument(
+        "--synthetic-proposal-sft",
+        action="store_true",
+        help=(
+            "Run a seed-only synthetic acquisition SFT stage before the first adaptive "
+            "proposal. Disabled by default so online GRPO baselines are unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-examples",
+        type=int,
+        default=0,
+        help="Number of synthetic proposal SFT examples. 0 disables the stage.",
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-num-epochs",
+        type=int,
+        default=1,
+        help="Epochs over synthetic proposal SFT examples.",
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-learning-rate",
+        type=float,
+        default=1e-6,
+        help="Learning rate for seed-only synthetic proposal SFT.",
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-top-k",
+        type=int,
+        default=4,
+        help="Top-k synthetic acquisition actions used for temperature sampling.",
+    )
+    parser.add_argument(
+        "--synthetic-proposal-sft-temperature",
+        type=float,
+        default=0.7,
+        help="Temperature for sampling among top synthetic acquisition actions.",
+    )
     parser.add_argument("--lambda-final", type=float, default=0.1)
     parser.add_argument("--selection-min-reward", type=float, default=0.0)
     parser.add_argument(
@@ -500,6 +538,20 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("proposal_trace_replay_max_examples must be non-negative.")
     if args.proposal_prompt_action_history_max_items < 0:
         raise ValueError("proposal_prompt_action_history_max_items must be non-negative.")
+    if args.synthetic_proposal_sft_examples < 0:
+        raise ValueError("synthetic_proposal_sft_examples must be non-negative.")
+    if args.synthetic_proposal_sft_num_epochs < 0:
+        raise ValueError("synthetic_proposal_sft_num_epochs must be non-negative.")
+    if args.synthetic_proposal_sft_examples > 0 and args.synthetic_proposal_sft_num_epochs == 0:
+        raise ValueError("synthetic_proposal_sft_num_epochs must be positive when examples are requested.")
+    if args.synthetic_proposal_sft_learning_rate <= 0.0:
+        raise ValueError("synthetic_proposal_sft_learning_rate must be positive.")
+    if args.synthetic_proposal_sft_top_k <= 0:
+        raise ValueError("synthetic_proposal_sft_top_k must be positive.")
+    if args.synthetic_proposal_sft_temperature <= 0.0:
+        raise ValueError("synthetic_proposal_sft_temperature must be positive.")
+    if args.synthetic_proposal_sft and args.controller_execution_mode == "slurm":
+        raise ValueError("synthetic_proposal_sft currently requires controller_execution_mode=local.")
     if args.outcome_trace_replay_ratio < 0.0:
         raise ValueError("outcome_trace_replay_ratio must be non-negative.")
     if args.outcome_trace_replay_max_examples < 0:
