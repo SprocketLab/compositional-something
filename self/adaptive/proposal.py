@@ -341,6 +341,59 @@ from self.adaptive.proposal import (
 JsonDict = Dict[str, Any]
 
 
+def canonical_config_action_key(
+    *,
+    left: Any,
+    right: Any,
+    guard: Any,
+    target: Any,
+) -> tuple[Any, ...]:
+    """Canonical key for equivalent config actions used by retry cooldowns."""
+    left_i = int(left)
+    right_i = int(right)
+    target_i = int(target)
+    ordered_left, ordered_right = sorted((left_i, right_i))
+    return ("proposal", ordered_left, ordered_right, str(guard), target_i)
+
+
+def config_action_key_from_payload(payload: Any) -> tuple[Any, ...] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    try:
+        left = int(payload["left"])
+        right = int(payload["right"])
+        target = int(payload.get("target", left + right))
+        guard = str(payload["guard"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return canonical_config_action_key(left=left, right=right, guard=guard, target=target)
+
+
+def _coerce_config_action_key(value: Any) -> tuple[Any, ...] | None:
+    if isinstance(value, Mapping):
+        return config_action_key_from_payload(value)
+    if isinstance(value, (list, tuple)) and len(value) >= 5 and value[0] == "proposal":
+        try:
+            return canonical_config_action_key(
+                left=value[1],
+                right=value[2],
+                guard=value[3],
+                target=value[4],
+            )
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def normalize_config_action_cooldown(actions: Sequence[Any] | None) -> set[tuple[Any, ...]]:
+    keys: set[tuple[Any, ...]] = set()
+    for action in actions or ():
+        key = _coerce_config_action_key(action)
+        if key is not None:
+            keys.add(key)
+    return keys
+
+
 def _raw_output(row: Mapping[str, Any]) -> Any:
     if "code_lines" in row:
         code_lines = row["code_lines"]
@@ -359,11 +412,13 @@ def validate_config_rows(
     source_sizes: set[int],
     frontier_min: int,
     frontier_max: int,
+    failed_action_cooldown: Sequence[Any] | None = None,
 ) -> List[JsonDict]:
     source_min = min(source_sizes) if source_sizes else args.initial_min_size
     source_max = max(source_sizes) if source_sizes else args.initial_max_size
     guards = DEFAULT_CONFIG_SEARCH_SPACES[args.task]["guards"]
     schema = proposal_output_schema(args)
+    failed_action_keys = normalize_config_action_cooldown(failed_action_cooldown)
     results: List[JsonDict] = []
     seen: set[str] = set()
     for index, row in enumerate(rows):
@@ -414,6 +469,12 @@ def validate_config_rows(
         validation_valid = bool(validation.valid)
         category = validation.category
         message = validation.message
+        proposal_payload = validation.proposal.to_json_dict() if validation.proposal is not None else None
+        action_key = config_action_key_from_payload(proposal_payload)
+        if validation_valid and action_key in failed_action_keys:
+            validation_valid = False
+            category = "failed_action_cooldown"
+            message = "config action is in the current failed-action cooldown"
         completion = (
             normalized_config_completion(
                 proposal=validation.proposal,
@@ -426,8 +487,7 @@ def validate_config_rows(
         duplicate = bool(completion and completion in seen)
         if completion:
             seen.add(completion)
-        repeat_target = bool(validation_valid and validation.proposal.target in source_sizes)
-        proposal_payload = validation.proposal.to_json_dict() if validation.valid else None
+        repeat_target = bool(validation.proposal is not None and validation.proposal.target in source_sizes)
         results.append(
             sanitize_json_value(
                 {
@@ -443,6 +503,7 @@ def validate_config_rows(
                     "completion": completion,
                     "duplicate": duplicate,
                     "repeat_target": repeat_target,
+                    "action_key": list(action_key) if action_key is not None else None,
                 }
             )
         )
@@ -623,6 +684,7 @@ def render_config_prompt(
         "- Prefer actions expected to improve current_avg_accuracy, not just the target slice in isolation.\n"
         "- Prefer actions that may grow the source pool when source_admission_target_accuracy_threshold is shown in diagnostics.\n"
         "- If recent_selected_actions is provided, avoid exact repeats of left/right/guard/target unless the current diagnostics justify trying the same action again.\n"
+        "- If recent_failed_actions is provided, do not repeat those left/right/guard/target choices until a new candidate has been selected.\n"
         f"{_guard_decision_rule_text(task_name)}"
         "\n"
         "Output format:\n"
@@ -744,6 +806,24 @@ def generate_proposals_from_model(
     import torch
     from self.core.evaluation import build_generation_encodings
 
+    def _decode_token(token_id: Optional[int]) -> Optional[str]:
+        if token_id is None:
+            return None
+        try:
+            return tokenizer.decode([int(token_id)], skip_special_tokens=False)
+        except Exception:
+            return None
+
+    def _special_token_generation_kwargs() -> JsonDict:
+        kwargs: JsonDict = {}
+        if tokenizer.pad_token_id is not None:
+            kwargs["pad_token_id"] = int(tokenizer.pad_token_id)
+        if tokenizer.eos_token_id is not None:
+            kwargs["eos_token_id"] = int(tokenizer.eos_token_id)
+        if tokenizer.bos_token_id is not None:
+            kwargs["bos_token_id"] = int(tokenizer.bos_token_id)
+        return kwargs
+
     device = next(model.parameters()).device
     rows: List[JsonDict] = []
     model_was_training = model.training
@@ -762,6 +842,7 @@ def generate_proposals_from_model(
                 **encodings,
                 "max_new_tokens": max_new_tokens,
                 "do_sample": temperature > 0.0,
+                **_special_token_generation_kwargs(),
             }
             if temperature > 0.0:
                 generation_kwargs["temperature"] = temperature
@@ -769,11 +850,37 @@ def generate_proposals_from_model(
             output_ids = model.generate(**generation_kwargs)
             prompt_width = encodings["input_ids"].shape[1]
             for batch_index in range(current_batch_size):
-                decoded = tokenizer.decode(
-                    output_ids[batch_index, prompt_width:].tolist(),
-                    skip_special_tokens=True,
+                generated_token_ids = [
+                    int(token_id) for token_id in output_ids[batch_index, prompt_width:].tolist()
+                ]
+                decoded = tokenizer.decode(generated_token_ids, skip_special_tokens=True)
+                decoded_with_special_tokens = tokenizer.decode(
+                    generated_token_ids,
+                    skip_special_tokens=False,
                 )
-                rows.append({"id": f"model_candidate_{start + batch_index}", "raw_output": decoded})
+                first_token_id = generated_token_ids[0] if generated_token_ids else None
+                rows.append(
+                    {
+                        "id": f"model_candidate_{start + batch_index}",
+                        "raw_output": decoded,
+                        "raw_output_with_special_tokens": decoded_with_special_tokens,
+                        "generated_token_count": len(generated_token_ids),
+                        "generated_token_ids_head": generated_token_ids[:32],
+                        "generated_token_ids_tail": generated_token_ids[-16:],
+                        "first_generated_token_id": first_token_id,
+                        "first_generated_token_text": _decode_token(first_token_id),
+                        "generation_prompt_width": int(prompt_width),
+                        "generation_pad_token_id": (
+                            int(tokenizer.pad_token_id) if tokenizer.pad_token_id is not None else None
+                        ),
+                        "generation_eos_token_id": (
+                            int(tokenizer.eos_token_id) if tokenizer.eos_token_id is not None else None
+                        ),
+                        "generation_bos_token_id": (
+                            int(tokenizer.bos_token_id) if tokenizer.bos_token_id is not None else None
+                        ),
+                    }
+                )
     if model_was_training:
         model.train()
     return rows
@@ -812,6 +919,7 @@ def generate_unique_config_proposals_from_model(
     source_sizes: set[int],
     frontier_min: int,
     frontier_max: int,
+    failed_action_cooldown: Sequence[Any] | None = None,
 ) -> Tuple[List[JsonDict], JsonDict, List[JsonDict]]:
     """Sample until config proposals contain unique normalized actions.
 
@@ -853,6 +961,7 @@ def generate_unique_config_proposals_from_model(
                 source_sizes=source_sizes,
                 frontier_min=frontier_min,
                 frontier_max=frontier_max,
+                failed_action_cooldown=failed_action_cooldown,
             )[0]
             action_key = _config_valid_action_key(result)
             kept_reason: Optional[str]
@@ -873,6 +982,20 @@ def generate_unique_config_proposals_from_model(
             draw_result["proposal_index"] = draw_index
             draw_result["draw_index"] = draw_index
             draw_result["id"] = row["id"]
+            for diagnostic_key in (
+                "raw_output_with_special_tokens",
+                "generated_token_count",
+                "generated_token_ids_head",
+                "generated_token_ids_tail",
+                "first_generated_token_id",
+                "first_generated_token_text",
+                "generation_prompt_width",
+                "generation_pad_token_id",
+                "generation_eos_token_id",
+                "generation_bos_token_id",
+            ):
+                if diagnostic_key in row:
+                    draw_result[diagnostic_key] = row[diagnostic_key]
             draw_result["action_key"] = list(action_key) if action_key is not None else None
             draw_result["kept_for_candidate"] = kept_reason == "unique_valid_action"
             draw_result["unique_generation_reason"] = kept_reason
@@ -887,6 +1010,12 @@ def generate_unique_config_proposals_from_model(
                         "valid": bool(result.get("valid")),
                         "validation_category": result.get("validation_category"),
                         "validation_message": result.get("validation_message"),
+                        "raw_output": row.get("raw_output"),
+                        "raw_output_with_special_tokens": row.get("raw_output_with_special_tokens"),
+                        "generated_token_count": row.get("generated_token_count"),
+                        "generated_token_ids_head": row.get("generated_token_ids_head"),
+                        "first_generated_token_id": row.get("first_generated_token_id"),
+                        "first_generated_token_text": row.get("first_generated_token_text"),
                         "action_key": list(action_key) if action_key is not None else None,
                         "kept": kept_reason == "unique_valid_action",
                         "reason": kept_reason,
@@ -913,6 +1042,7 @@ def generate_unique_config_proposals_from_model(
             "fallback_rows_returned": 0,
             "draw_result_count": len(draw_results),
             "reached_requested_unique_count": unique_valid_count >= requested,
+            "failed_action_cooldown_size": len(normalize_config_action_cooldown(failed_action_cooldown)),
             "temperature": args.proposal_temperature,
             "top_p": args.proposal_top_p,
             "draws": draw_records,
@@ -932,6 +1062,7 @@ def load_or_generate_proposal_rows(
     source_sizes: Optional[set[int]] = None,
     frontier_min: Optional[int] = None,
     frontier_max: Optional[int] = None,
+    failed_action_cooldown: Sequence[Any] | None = None,
     unique_log_path: Optional[Path] = None,
     draw_results_log_path: Optional[Path] = None,
 ) -> List[JsonDict]:
@@ -959,6 +1090,7 @@ def load_or_generate_proposal_rows(
                 source_sizes=source_sizes,
                 frontier_min=int(frontier_min),
                 frontier_max=int(frontier_max),
+                failed_action_cooldown=failed_action_cooldown,
             )
             if unique_log_path is not None:
                 unique_log_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -1002,6 +1134,7 @@ def load_or_generate_proposal_rows(
                 source_sizes=source_sizes,
                 frontier_min=int(frontier_min),
                 frontier_max=int(frontier_max),
+                failed_action_cooldown=failed_action_cooldown,
             )
             if unique_log_path is not None:
                 unique_log_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -1054,6 +1187,7 @@ def validate_proposal_rows(
     default_pair: Optional[ConfigProposal],
     current_model: Optional[Any] = None,
     current_tokenizer: Optional[Any] = None,
+    failed_action_cooldown: Sequence[Any] | None = None,
 ) -> List[JsonDict]:
     return validate_config_rows(
         rows=rows,
@@ -1061,6 +1195,7 @@ def validate_proposal_rows(
         source_sizes=source_sizes,
         frontier_min=frontier_min,
         frontier_max=frontier_max,
+        failed_action_cooldown=failed_action_cooldown,
     )
 
 
@@ -1091,6 +1226,7 @@ PROPOSAL_GRPO_REWARD_BY_CATEGORY: Dict[str, float] = {
 }
 PROPOSAL_GRPO_OUTCOME_INVALID_REWARD_BY_CATEGORY: Dict[str, float] = {
     "range_error": -0.4,
+    "failed_action_cooldown": -0.4,
     "enum_error": -0.5,
     "schema_error": -0.7,
     "parse_error": -1.0,
@@ -1255,9 +1391,14 @@ def _dedup_entry_score(entry: Mapping[str, Any]) -> Tuple[float, int]:
 
 def _deduplicate_reward_entries(entries: Sequence[JsonDict]) -> Tuple[List[JsonDict], int, int]:
     best_by_key: Dict[Tuple[Any, ...], JsonDict] = {}
+    kept_without_dedup: List[JsonDict] = []
     duplicate_count = 0
     for entry in entries:
         key = tuple(entry["action_key"])
+        result = entry.get("result", {})
+        if not bool(result.get("valid")) or not _is_config_proposal_action_key(key):
+            kept_without_dedup.append(dict(entry))
+            continue
         current = best_by_key.get(key)
         if current is None:
             best_by_key[key] = dict(entry)
@@ -1265,8 +1406,11 @@ def _deduplicate_reward_entries(entries: Sequence[JsonDict]) -> Tuple[List[JsonD
         duplicate_count += 1
         if _dedup_entry_score(entry) > _dedup_entry_score(current):
             best_by_key[key] = dict(entry)
-    kept = sorted(best_by_key.values(), key=lambda payload: int(payload["proposal_index"]))
-    return kept, duplicate_count, len(best_by_key)
+    kept = sorted(
+        [*kept_without_dedup, *best_by_key.values()],
+        key=lambda payload: int(payload["proposal_index"]),
+    )
+    return kept, duplicate_count, len({tuple(entry["action_key"]) for entry in kept})
 
 
 def _assign_rank_rewards(entries: Sequence[JsonDict]) -> None:
@@ -1312,7 +1456,7 @@ def proposal_grpo_reward_for_result(
         if _is_system_candidate_failure(metric):
             return None, "skipped_system_failure"
         return 0.0, "valid_untrained"
-    return _clamp(float(metric.reward) / float(outcome_scale), -1.0, 1.0), "outcome"
+    return _clamp(float(metric.final_accuracy), -1.0, 1.0), "outcome"
 
 
 def proposal_grpo_advantages(
@@ -1473,8 +1617,19 @@ def build_proposal_grpo_traces(
         zero_variance=zero_variance_mode,
         fixed_baseline=args.proposal_grpo_fixed_baseline,
     )
-    traces: List[ProposalGRPOTrace] = []
+    adjusted_advantages: List[float] = []
+    invalid_positive_advantage_clamped_count = 0
     for entry, advantage in zip(included_entries, advantages):
+        raw_advantage = float(advantage)
+        adjusted_advantage = raw_advantage
+        if not bool(entry["result"].get("valid")) and adjusted_advantage > 0.0:
+            adjusted_advantage = 0.0
+            invalid_positive_advantage_clamped_count += 1
+        entry["raw_advantage"] = raw_advantage
+        entry["advantage_clamped"] = adjusted_advantage != raw_advantage
+        adjusted_advantages.append(adjusted_advantage)
+    traces: List[ProposalGRPOTrace] = []
+    for entry, advantage in zip(included_entries, adjusted_advantages):
         proposal_index = int(entry["proposal_index"])
         result = entry["result"]
         metric = entry["metric"]
@@ -1488,6 +1643,11 @@ def build_proposal_grpo_traces(
         else:
             completion = raw if isinstance(raw, str) else json.dumps(sanitize_json_value(raw), sort_keys=True)
             completion_source = "raw"
+            if completion == "":
+                first_generated_token_text = result.get("first_generated_token_text")
+                if isinstance(first_generated_token_text, str) and first_generated_token_text:
+                    completion = first_generated_token_text
+                    completion_source = "first_generated_token_for_empty_raw"
         traces.append(
             ProposalGRPOTrace(
                 proposal_index=proposal_index,
@@ -1515,6 +1675,8 @@ def build_proposal_grpo_traces(
                     "current_action_multiplicity": entry.get("current_action_multiplicity", 0),
                     "novelty_count": entry.get("novelty_count", entry.get("action_history_count", 0)),
                     "rank_score": entry.get("rank_score"),
+                    "raw_advantage": entry.get("raw_advantage"),
+                    "advantage_clamped": bool(entry.get("advantage_clamped", False)),
                     "deduplicated_for_policy": bool(
                         getattr(args, "proposal_grpo_deduplicate_actions", True)
                     ),
@@ -1565,6 +1727,7 @@ def build_proposal_grpo_traces(
         "action_history_count": len(action_history_keys),
         "input_proposal_count": len(proposal_results),
         "trace_candidate_metric_count": len(candidate_metrics),
+        "invalid_positive_advantage_clamped_count": invalid_positive_advantage_clamped_count,
         **_action_entropy_summary(pre_dedup_action_keys, prefix="pre_dedup"),
         **_action_entropy_summary([tuple(entry["action_key"]) for entry in included_entries], prefix="trainable"),
     }
@@ -2045,6 +2208,58 @@ def _proposal_sample_batches(samples: Sequence[JsonDict], microbatch_size: int) 
     return [samples[index : index + microbatch_size] for index in range(0, len(samples), microbatch_size)]
 
 
+def _forward_accepts_kwarg(model: AutoModelForCausalLM, name: str) -> bool:
+    import inspect
+
+    cache_name = f"_proposal_forward_accepts_{name}"
+    cached = getattr(model, cache_name, None)
+    if cached is not None:
+        return bool(cached)
+    try:
+        signature = inspect.signature(model.forward)
+    except (TypeError, ValueError):
+        accepts = True
+    else:
+        accepts = name in signature.parameters or any(
+            parameter.kind == inspect.Parameter.VAR_KEYWORD
+            for parameter in signature.parameters.values()
+        )
+    setattr(model, cache_name, accepts)
+    return accepts
+
+
+def _proposal_model_forward(
+    model: AutoModelForCausalLM,
+    *,
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor,
+    logits_to_keep: Optional[int],
+) -> Any:
+    kwargs: JsonDict = {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+    }
+    optional_kwargs: JsonDict = {}
+    if logits_to_keep is not None and _forward_accepts_kwarg(model, "logits_to_keep"):
+        optional_kwargs["logits_to_keep"] = int(logits_to_keep)
+    if _forward_accepts_kwarg(model, "use_cache"):
+        optional_kwargs["use_cache"] = False
+    try:
+        return model(**kwargs, **optional_kwargs)
+    except TypeError as exc:
+        message = str(exc)
+        unsupported = [
+            key for key in optional_kwargs
+            if key in message and "unexpected keyword" in message
+        ]
+        if not unsupported:
+            raise
+        for key in unsupported:
+            optional_kwargs.pop(key, None)
+            setattr(model, f"_proposal_forward_accepts_{key}", False)
+        return model(**kwargs, **optional_kwargs)
+
+
 def _proposal_completion_logprobs(
     model: AutoModelForCausalLM,
     batch: Mapping[str, torch.Tensor],
@@ -2054,18 +2269,50 @@ def _proposal_completion_logprobs(
     import torch
     import torch.nn.functional as F
 
-    outputs = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"])
-    logits = outputs.logits[:, :-1, :]
-    labels = batch["input_ids"][:, 1:]
-    mask = batch["completion_mask"][:, : labels.shape[1]]
-    token_losses = F.cross_entropy(
-        logits.reshape(-1, logits.shape[-1]),
-        labels.reshape(-1),
+    input_ids = batch["input_ids"]
+    labels = input_ids[:, 1:]
+    full_mask = batch["completion_mask"][:, : labels.shape[1]]
+    if not bool(full_mask.any().detach().cpu()):
+        return torch.zeros(input_ids.shape[0], dtype=torch.float32, device=input_ids.device)
+
+    active_columns = full_mask.any(dim=0).nonzero(as_tuple=False).flatten()
+    first_loss_position = int(active_columns[0].detach().cpu())
+    logits_to_keep = int(input_ids.shape[1] - first_loss_position)
+    outputs = _proposal_model_forward(
+        model,
+        input_ids=input_ids,
+        attention_mask=batch["attention_mask"],
+        logits_to_keep=logits_to_keep,
+    )
+    raw_logits = outputs.logits
+    if raw_logits.shape[1] == input_ids.shape[1]:
+        logits = raw_logits[:, :-1, :]
+        labels_for_loss = labels
+        mask = full_mask
+    elif raw_logits.shape[1] == logits_to_keep:
+        logits = raw_logits[:, :-1, :]
+        labels_for_loss = labels[:, first_loss_position:]
+        mask = full_mask[:, first_loss_position:]
+    else:
+        raise ValueError(
+            "Unexpected logits length from proposal model forward: "
+            f"got {raw_logits.shape[1]}, expected {input_ids.shape[1]} or {logits_to_keep}."
+        )
+
+    active_rows, active_positions = mask.nonzero(as_tuple=True)
+    active_logits = logits[active_rows, active_positions, :]
+    active_labels = labels_for_loss[active_rows, active_positions]
+    active_logprobs = -F.cross_entropy(
+        active_logits,
+        active_labels,
         reduction="none",
-    ).view_as(labels)
-    token_logprobs = -token_losses
-    masked_logprobs = token_logprobs * mask.float()
-    summed_logprobs = masked_logprobs.sum(dim=1)
+    )
+    summed_logprobs = torch.zeros(
+        input_ids.shape[0],
+        dtype=active_logprobs.dtype,
+        device=input_ids.device,
+    )
+    summed_logprobs = summed_logprobs.index_add(0, active_rows, active_logprobs)
     if not normalize_by_length:
         return summed_logprobs
     token_counts = mask.sum(dim=1).clamp_min(1).float()
@@ -2184,45 +2431,130 @@ def _synthetic_guard_factor(task_name: str, guard: str, *, target: int, source_m
     return 1.0
 
 
+_SYNTHETIC_PROGRESS_STAGE_BINS: Tuple[Tuple[str, float, float], ...] = (
+    ("early", 0.00, 0.25),
+    ("mid", 0.25, 0.60),
+    ("late", 0.60, 0.95),
+)
+
+
+def _synthetic_progress_stage(progress_fraction: float) -> str:
+    progress = max(0.0, min(0.95, float(progress_fraction)))
+    for stage, low, high in _SYNTHETIC_PROGRESS_STAGE_BINS:
+        if low <= progress < high:
+            return stage
+    return _SYNTHETIC_PROGRESS_STAGE_BINS[-1][0]
+
+
+def _sample_synthetic_progress(
+    rng: random.Random,
+    *,
+    index: Optional[int] = None,
+    count: Optional[int] = None,
+) -> Tuple[str, float]:
+    if count is not None and int(count) > 1 and index is not None:
+        base = (int(index) + rng.random()) / float(max(1, int(count)))
+        progress = 0.95 * base + rng.uniform(-0.025, 0.025)
+    else:
+        progress = 0.95 * rng.betavariate(1.15, 1.15)
+    progress = max(0.0, min(0.95, progress))
+    return _synthetic_progress_stage(progress), progress
+
+
+def _synthetic_reliable_cutoff(
+    *,
+    base_source_sizes: Sequence[int],
+    frontier_max: int,
+    progress_fraction: float,
+) -> int:
+    base = sorted({int(size) for size in base_source_sizes})
+    if not base:
+        return int(frontier_max)
+    base_max = max(base)
+    span = max(1, int(frontier_max) - base_max)
+    learned = int(round(span * max(0.0, min(1.0, float(progress_fraction)))))
+    return min(int(frontier_max), base_max + max(0, learned))
+
+
 def _synthetic_source_sizes(
     *,
     base_source_sizes: Sequence[int],
     frontier_max: int,
+    progress_fraction: float,
     rng: random.Random,
 ) -> List[int]:
     base = sorted({int(size) for size in base_source_sizes})
     if not base:
         return []
     source_sizes = set(base)
-    future_pool = [size for size in range(min(base), frontier_max + 1) if size not in source_sizes]
-    if future_pool:
-        max_extra = min(3, len(future_pool))
-        extra_count = rng.randint(0, max_extra)
-        source_sizes.update(rng.sample(future_pool, extra_count))
+    progress = max(0.0, min(1.0, float(progress_fraction)))
+    reliable_cutoff = _synthetic_reliable_cutoff(
+        base_source_sizes=base,
+        frontier_max=frontier_max,
+        progress_fraction=progress,
+    )
+    learned_pool = [size for size in range(max(base) + 1, reliable_cutoff + 1)]
+    if learned_pool:
+        keep_probability = min(0.90, 0.10 + 0.75 * progress)
+        selected = [size for size in learned_pool if rng.random() < keep_probability]
+        cap = min(len(learned_pool), max(1, 2 + int(round(10.0 * progress))))
+        if len(selected) > cap:
+            selected = rng.sample(selected, cap)
+        if selected:
+            source_sizes.update(selected)
+        anchor_probability = min(0.95, 0.15 + 0.80 * progress)
+        if rng.random() < anchor_probability:
+            anchor_index = int(round((len(learned_pool) - 1) * progress))
+            anchor_index = max(0, min(len(learned_pool) - 1, anchor_index))
+            source_sizes.add(learned_pool[anchor_index])
+    future_pool = [size for size in range(reliable_cutoff + 1, frontier_max + 1)]
+    future_probability = min(0.25, 0.04 + 0.18 * progress)
+    if future_pool and rng.random() < future_probability:
+        source_sizes.update(rng.sample(future_pool, rng.randint(1, min(2, len(future_pool)))))
     return sorted(source_sizes)
 
 
 def _synthetic_accuracy_profile(
     *,
+    base_source_sizes: Sequence[int],
     source_sizes: Sequence[int],
     frontier_min: int,
     frontier_max: int,
+    progress_fraction: float,
     current_per_size_accuracy: Mapping[int, float],
     rng: random.Random,
 ) -> Dict[int, float]:
+    base_source_set = {int(size) for size in base_source_sizes}
     source_set = {int(size) for size in source_sizes}
+    reliable_cutoff = _synthetic_reliable_cutoff(
+        base_source_sizes=base_source_sizes,
+        frontier_max=frontier_max,
+        progress_fraction=progress_fraction,
+    )
+    transition_width = max(2, (int(frontier_max) - max(base_source_set or source_set or {frontier_min})) // 5)
     profile: Dict[int, float] = {}
     for size in range(max(1, min(source_set | {frontier_min})), frontier_max + 1):
-        if size in current_per_size_accuracy:
+        if size in base_source_set and size in current_per_size_accuracy:
             base = _clamp_accuracy(current_per_size_accuracy[size], default=0.75)
             value = base + rng.uniform(-0.10, 0.08)
+        elif size in base_source_set:
+            value = rng.uniform(0.78, 0.98)
+        elif size <= reliable_cutoff:
+            value = rng.uniform(0.70, 0.96)
         elif size in source_set:
-            value = rng.uniform(0.70, 0.98)
+            value = rng.uniform(0.64, 0.90)
         else:
-            distance = max(0, size - max(source_set))
-            high = max(0.12, 0.70 - 0.03 * distance)
-            low = max(0.02, high - 0.45)
+            distance = max(0, size - reliable_cutoff)
+            if distance <= transition_width:
+                high = max(0.34, 0.78 - 0.09 * distance)
+                low = max(0.12, high - 0.32)
+            else:
+                late_distance = distance - transition_width
+                high = max(0.08, 0.38 - 0.035 * late_distance)
+                low = max(0.01, high - 0.22)
             value = rng.uniform(low, high)
+        if size in source_set and size not in base_source_set:
+            value = max(value, rng.uniform(0.68, 0.92))
         profile[size] = round(_clamp_accuracy(value), 4)
     return profile
 
@@ -2326,17 +2658,30 @@ def generate_synthetic_proposal_sft_rows(
     max_attempts = max(10 * int(count), int(count) + 100)
     while len(rows) < int(count) and attempts < max_attempts:
         attempts += 1
+        progress_stage, progress_fraction = _sample_synthetic_progress(
+            rng,
+            index=len(rows),
+            count=int(count),
+        )
+        reliable_cutoff = _synthetic_reliable_cutoff(
+            base_source_sizes=base_source,
+            frontier_max=frontier_max,
+            progress_fraction=progress_fraction,
+        )
         synthetic_source = _synthetic_source_sizes(
             base_source_sizes=base_source,
             frontier_max=frontier_max,
+            progress_fraction=progress_fraction,
             rng=rng,
         )
         if len(synthetic_source) < 2:
             continue
         profile = _synthetic_accuracy_profile(
+            base_source_sizes=base_source,
             source_sizes=synthetic_source,
             frontier_min=frontier_min,
             frontier_max=frontier_max,
+            progress_fraction=progress_fraction,
             current_per_size_accuracy=current_per_size_accuracy,
             rng=rng,
         )
@@ -2361,15 +2706,28 @@ def generate_synthetic_proposal_sft_rows(
             default=0.5,
         )
         init_avg = _clamp_accuracy(init_avg_accuracy, default=current_avg)
+        selected_rounds_completed = max(
+            0,
+            min(25, int(round(25.0 * progress_fraction / 0.95 + rng.uniform(-1.5, 1.5)))),
+        )
+        attempt_index = max(
+            1,
+            min(100, selected_rounds_completed + 1 + int(round(rng.uniform(0.0, 8.0)))),
+        )
+        no_selection_scale = max(0.0, 1.0 - progress_fraction / 0.95)
+        consecutive_no_selection = max(0, min(4, int(round(rng.uniform(0.0, 4.0 * no_selection_scale)))))
         aggregate_metrics: JsonDict = {
             "current_avg_accuracy": round(current_avg, 6),
             "init_avg_accuracy": round(init_avg, 6),
             "per_size_accuracy": {str(size): score for size, score in sorted(profile.items())},
             "source_sizes": synthetic_source,
-            "attempt_index": rng.randint(1, 100),
-            "selected_rounds_completed": rng.randint(0, 25),
-            "consecutive_no_selection": rng.randint(0, 4),
+            "attempt_index": attempt_index,
+            "selected_rounds_completed": selected_rounds_completed,
+            "consecutive_no_selection": consecutive_no_selection,
             "reward_formula": "candidate_avg_accuracy - current_avg_accuracy",
+            "synthetic_progress_stage": progress_stage,
+            "synthetic_progress_fraction": round(progress_fraction, 6),
+            "synthetic_reliable_cutoff": reliable_cutoff,
             "source_admission_target_accuracy_threshold": getattr(
                 args,
                 "source_admission_target_accuracy_threshold",
@@ -2425,6 +2783,9 @@ def generate_synthetic_proposal_sft_rows(
                     "target": proposal.target,
                     "guard": proposal.guard,
                     "score": selected["score"],
+                    "synthetic_progress_stage": progress_stage,
+                    "synthetic_progress_fraction": round(progress_fraction, 6),
+                    "synthetic_reliable_cutoff": reliable_cutoff,
                     "top_k": int(getattr(args, "synthetic_proposal_sft_top_k", 4)),
                     "temperature": float(getattr(args, "synthetic_proposal_sft_temperature", 0.7)),
                 },
@@ -2627,14 +2988,20 @@ def apply_synthetic_proposal_sft(
             model.parameters(),
             lr=float(getattr(args, "synthetic_proposal_sft_learning_rate", 1e-6)),
         )
-        batch_size = int(getattr(args, "proposal_update_microbatch_size", 8))
+        microbatch_size = int(getattr(args, "proposal_update_microbatch_size", 8))
+        accumulation_steps = int(getattr(args, "proposal_update_accumulation_steps", 1))
+        effective_batch_size = max(1, microbatch_size * accumulation_steps)
+        metrics["microbatch_size"] = microbatch_size
+        metrics["gradient_accumulation_steps"] = accumulation_steps
+        metrics["effective_batch_size"] = effective_batch_size
         grad_clip = float(getattr(args, "proposal_grpo_grad_clip", 1.0))
         loss_history: List[JsonDict] = []
         step_index = 0
+        microbatch_count = 0
         for epoch_index in range(int(getattr(args, "synthetic_proposal_sft_num_epochs", 1))):
             epoch_samples = list(samples)
             rng.shuffle(epoch_samples)
-            for sample_batch in _proposal_sample_batches(epoch_samples, batch_size):
+            for sample_batch in _proposal_sample_batches(epoch_samples, effective_batch_size):
                 step_index += 1
                 model.train()
                 optimizer.zero_grad(set_to_none=True)
@@ -2643,9 +3010,10 @@ def apply_synthetic_proposal_sft(
                     tokenizer=tokenizer,
                     samples=sample_batch,
                     device=device,
-                    microbatch_size=batch_size,
+                    microbatch_size=microbatch_size,
                     loss_weight=1.0,
                 )
+                microbatch_count += len(_proposal_sample_batches(sample_batch, microbatch_size))
                 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
                 optimizer.step()
                 if step_index <= 20 or step_index % 25 == 0:
@@ -2677,6 +3045,7 @@ def apply_synthetic_proposal_sft(
                 "skip_reason": None,
                 "model_dir": str(model_dir),
                 "steps": step_index,
+                "microbatch_count": microbatch_count,
                 "loss_history": loss_history,
                 "post_sft_eval_accuracy": float(eval_accuracy),
                 "post_sft_per_size_accuracy": {
@@ -2707,6 +3076,7 @@ def apply_proposal_grpo_update(
     candidate_metrics: Sequence[Any],
     seed: int,
     proposal_trace_buffer: Sequence[Any] = (),
+    confirmed_candidate_metrics: Sequence[Any] = (),
 ) -> Tuple[str, JsonDict]:
     import torch
     from transformers import set_seed
@@ -2732,12 +3102,14 @@ def apply_proposal_grpo_update(
         "novelty_bonus_beta": float(getattr(args, "proposal_grpo_novelty_bonus_beta", 0.0)),
         "proposal_grpo_span": str(getattr(args, "proposal_grpo_span", "reasoning_action")),
         "candidate_metric_count": len(candidate_metrics),
+        "confirmed_candidate_metric_count": len(confirmed_candidate_metrics),
         "loss_mode": "merged_agent",
         "observation_loss_weight": float(getattr(args, "proposal_observation_loss_weight", 0.0)),
         "format_loss_weight": float(getattr(args, "proposal_format_loss_weight", 0.0)),
         "format_replay_max_examples": int(getattr(args, "proposal_format_replay_max_examples", 0)),
         "format_mask_config_values": bool(getattr(args, "proposal_format_mask_config_values", True)),
         "microbatch_size": int(getattr(args, "proposal_update_microbatch_size", 8)),
+        "gradient_accumulation_steps": int(getattr(args, "proposal_update_accumulation_steps", 1)),
         "proposal_trace_buffer_count": len(proposal_trace_buffer),
     }
     if args.proposal_grpo_steps <= 0:
@@ -2769,7 +3141,35 @@ def apply_proposal_grpo_update(
         action_history=proposal_trace_buffer,
     )
     write_trace_jsonl(output_dir / "proposal_grpo_traces.jsonl", [trace.to_json_dict() for trace in traces])
+    confirmed_indices = {int(metric.index) for metric in confirmed_candidate_metrics}
+    confirmed_results = []
+    seen_confirmed_indices: set[int] = set()
+    for result in proposal_results:
+        try:
+            result_index = int(result.get("candidate_proposal_index", result.get("proposal_index", -1)))
+        except (TypeError, ValueError):
+            continue
+        if result_index not in confirmed_indices or result_index in seen_confirmed_indices:
+            continue
+        if bool(result.get("candidate_dedup_skipped")):
+            continue
+        confirmed_results.append(result)
+        seen_confirmed_indices.add(result_index)
+    confirmed_traces: List[ProposalGRPOTrace] = []
+    if confirmed_results:
+        confirmed_traces, _ = build_proposal_grpo_traces(
+            args=args,
+            prompt=prompt,
+            proposal_results=confirmed_results,
+            candidate_metrics=confirmed_candidate_metrics,
+            action_history=(),
+        )
+        write_trace_jsonl(
+            output_dir / "proposal_confirmed_observation_traces.jsonl",
+            [trace.to_json_dict() for trace in confirmed_traces],
+        )
     metrics.update(trace_summary)
+    metrics["confirmed_observation_trace_count"] = len(confirmed_traces)
     if trace_summary["zero_variance_skip"]:
         metrics["skip_reason"] = "zero_variance"
         write_json(output_dir / "proposal_grpo_metrics.json", metrics)
@@ -2791,7 +3191,12 @@ def apply_proposal_grpo_update(
         metrics["policy_logprob_normalization"] = "mean"
         encoded_samples: List[JsonDict] = []
         encoded_traces: List[ProposalGRPOTrace] = []
-        for trace in traces:
+        observation_trace_rows = [
+            (trace, "screen") for trace in traces
+        ] + [
+            (trace, "confirmed_full") for trace in confirmed_traces
+        ]
+        for trace, fidelity in observation_trace_rows:
             sample = _encode_proposal_grpo_sample(
                 tokenizer=tokenizer,
                 prompt_text=trace.prompt_text,
@@ -2838,6 +3243,7 @@ def apply_proposal_grpo_update(
                     "trace_completion": trace.completion,
                     "completion": completion,
                     "policy_reward": trace.reward,
+                    "fidelity": fidelity,
                 }
             )
             observation_samples.append(sample)
@@ -2880,10 +3286,17 @@ def apply_proposal_grpo_update(
             int(sample["total_completion_tokens"]) for sample in format_samples
         ]
         microbatch_size = int(getattr(args, "proposal_update_microbatch_size", 8))
+        accumulation_steps = int(getattr(args, "proposal_update_accumulation_steps", 1))
         metrics["microbatch_size"] = microbatch_size
+        metrics["gradient_accumulation_steps"] = accumulation_steps
         metrics["policy_microbatch_count"] = len(_proposal_sample_batches(encoded_samples, microbatch_size))
         metrics["observation_microbatch_count"] = len(_proposal_sample_batches(observation_samples, microbatch_size))
         metrics["format_microbatch_count"] = len(_proposal_sample_batches(format_samples, microbatch_size))
+        metrics["gradient_accumulated_microbatch_count"] = (
+            metrics["policy_microbatch_count"]
+            + metrics["observation_microbatch_count"]
+            + metrics["format_microbatch_count"]
+        )
         advantages = torch.tensor(
             [trace.advantage for trace in encoded_traces],
             dtype=torch.float32,
@@ -3027,6 +3440,7 @@ def apply_or_dispatch_proposal_grpo_update(
     seed: int,
     deps: ProposalGrpoDispatchDeps,
     proposal_trace_buffer: Sequence[Any] = (),
+    confirmed_candidate_metrics: Sequence[CandidateMetrics] = (),
 ) -> tuple[str, JsonDict]:
     if args.controller_execution_mode != "slurm":
         return deps.apply_proposal_grpo_update(
@@ -3037,16 +3451,22 @@ def apply_or_dispatch_proposal_grpo_update(
             proposal_results=proposal_results,
             candidate_metrics=candidate_metrics,
             proposal_trace_buffer=proposal_trace_buffer,
+            confirmed_candidate_metrics=confirmed_candidate_metrics,
             seed=seed,
         )
     deps.ensure_dir(output_dir)
     prompt_path = output_dir / "proposal_prompt.json"
     proposal_results_path = output_dir / "proposal_results.json"
     candidate_metrics_path = output_dir / "candidate_metrics.json"
+    confirmed_candidate_metrics_path = output_dir / "confirmed_candidate_metrics.json"
     proposal_trace_buffer_path = output_dir / "proposal_trace_buffer.json"
     deps.write_json(prompt_path, {"system": prompt.system, "user": prompt.user})
     deps.write_json(proposal_results_path, proposal_results)
     deps.write_json(candidate_metrics_path, [metric.to_json_dict() for metric in candidate_metrics])
+    deps.write_json(
+        confirmed_candidate_metrics_path,
+        [metric.to_json_dict() for metric in confirmed_candidate_metrics],
+    )
     deps.write_json(
         proposal_trace_buffer_path,
         [
@@ -3064,6 +3484,7 @@ def apply_or_dispatch_proposal_grpo_update(
             "prompt_path": str(prompt_path),
             "proposal_results_path": str(proposal_results_path),
             "candidate_metrics_path": str(candidate_metrics_path),
+            "confirmed_candidate_metrics_path": str(confirmed_candidate_metrics_path),
             "proposal_trace_buffer_path": str(proposal_trace_buffer_path),
             "seed": seed,
         },

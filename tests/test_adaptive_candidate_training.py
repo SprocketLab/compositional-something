@@ -255,6 +255,35 @@ def test_config_validation_allows_same_batch_duplicate_completion():
     assert loop.proposal_grpo_reward(results[1]) == 1.0
 
 
+def test_config_validation_rejects_failed_action_cooldown_with_canonical_key():
+    args = argparse.Namespace(
+        task="addition",
+        initial_min_size=2,
+        initial_max_size=5,
+        allow_repeat_targets=False,
+    )
+    rows = [{"id": "swapped-repeat", "raw_output": {"left": 3, "right": 2, "guard": "none"}}]
+
+    results = loop.validate_config_rows(
+        rows=rows,
+        args=args,
+        source_sizes={2, 3},
+        frontier_min=4,
+        frontier_max=10,
+        failed_action_cooldown=[("proposal", 2, 3, "none", 5)],
+    )
+
+    assert not results[0]["valid"]
+    assert results[0]["validation_category"] == "failed_action_cooldown"
+    assert results[0]["parsed_proposal"] == {
+        "left": 3,
+        "right": 2,
+        "guard": "none",
+        "target": 5,
+        "notes": "",
+    }
+
+
 def test_action_observation_config_validation_normalizes_flat_json_completion():
     args = argparse.Namespace(
         task="addition",
@@ -999,6 +1028,7 @@ def test_parser_defaults_enable_numeric_outcome_and_config_grpo():
     assert args.proposal_format_mask_config_values is True
     assert args.proposal_grpo_deduplicate_actions is True
     assert args.proposal_update_microbatch_size == 8
+    assert args.proposal_update_accumulation_steps == 1
     assert args.proposal_grpo_learning_rate == 1e-6
     assert args.proposal_grpo_zero_variance == "skip"
     assert args.proposal_grpo_reward_mode == "outcome"
@@ -2026,6 +2056,77 @@ def test_build_proposal_grpo_traces_uses_normalized_valid_completions():
     assert traces[0].advantage > traces[1].advantage
 
 
+def test_build_proposal_grpo_traces_keeps_empty_eos_outputs_trainable():
+    args = argparse.Namespace(
+        proposal_grpo_zero_variance="fixed_baseline",
+        proposal_grpo_fixed_baseline=0.5,
+        proposal_grpo_reward_mode="validity",
+        proposal_grpo_outcome_scale=0.05,
+        proposal_grpo_deduplicate_actions=False,
+    )
+    prompt = PromptBundle(system="system", user="user")
+    results = [
+        {
+            "proposal_index": 0,
+            "id": "empty-eos",
+            "raw_output": "",
+            "raw_output_with_special_tokens": "<|im_end|>",
+            "first_generated_token_text": "<|im_end|>",
+            "first_generated_token_id": 248046,
+            "valid": False,
+            "validation_category": "parse_error",
+            "validation_message": "action_observation output must contain a JSON object",
+        }
+    ]
+
+    traces, summary = loop.build_proposal_grpo_traces(args=args, prompt=prompt, proposal_results=results)
+
+    assert len(traces) == 1
+    assert traces[0].completion == "<|im_end|>"
+    assert traces[0].reward == 0.0
+    assert traces[0].advantage < 0.0
+    assert traces[0].metadata["completion_source"] == "first_generated_token_for_empty_raw"
+    assert summary["input_proposal_count"] == 1
+
+
+def test_build_proposal_grpo_traces_clamps_positive_invalid_advantages():
+    args = argparse.Namespace(
+        proposal_grpo_zero_variance="skip",
+        proposal_grpo_fixed_baseline=0.5,
+        proposal_grpo_reward_mode="outcome",
+        proposal_grpo_outcome_scale=0.05,
+        proposal_grpo_deduplicate_actions=False,
+    )
+    prompt = PromptBundle(system="system", user="user")
+    results = [
+        {
+            "proposal_index": 0,
+            "id": "parse-error",
+            "raw_output": "not json",
+            "valid": False,
+            "validation_category": "parse_error",
+        },
+        {
+            "proposal_index": 1,
+            "id": "schema-error",
+            "raw_output": '{"reasoning":"ok","unexpected":1}',
+            "valid": False,
+            "validation_category": "schema_error",
+        },
+    ]
+
+    traces, summary = loop.build_proposal_grpo_traces(args=args, prompt=prompt, proposal_results=results)
+    by_category = {trace.validation_category: trace for trace in traces}
+
+    assert summary["advantage_mode"] == "normalized"
+    assert summary["invalid_positive_advantage_clamped_count"] == 1
+    assert by_category["parse_error"].advantage < 0.0
+    assert by_category["schema_error"].metadata["raw_advantage"] > 0.0
+    assert by_category["schema_error"].advantage == 0.0
+    assert by_category["schema_error"].metadata["advantage_clamped"] is True
+    assert all(trace.advantage <= 0.0 for trace in traces)
+
+
 def test_build_proposal_grpo_traces_uses_outcome_rewards_and_skips_system_failures():
     args = argparse.Namespace(
         proposal_grpo_zero_variance="fixed_baseline",
@@ -2139,7 +2240,7 @@ def test_build_proposal_grpo_traces_uses_outcome_rewards_and_skips_system_failur
     )
 
     assert [trace.proposal_index for trace in traces] == [0, 1, 3]
-    assert [trace.reward for trace in traces] == [0.5, -1.0, 0.0]
+    assert [trace.reward for trace in traces] == [0.6, -1.0, 0.0]
     assert traces[0].completion == proposal.to_completion()
     assert traces[0].metadata["reward_source"] == "outcome"
     assert traces[0].metadata["candidate_reward"] == 0.025
@@ -2218,11 +2319,74 @@ def test_build_proposal_grpo_traces_deduplicates_actions_before_advantages():
     )
 
     assert [trace.proposal_index for trace in traces] == [1, 2]
-    assert [trace.reward for trace in traces] == [0.6, -1.0]
+    assert [trace.reward for trace in traces] == [0.53, -1.0]
     assert summary["pre_dedup_trace_count"] == 3
     assert summary["deduplicated_action_count"] == 1
     assert summary["unique_action_count"] == 2
     assert summary["zero_variance_skip"] is False
+
+
+def test_build_proposal_grpo_traces_does_not_deduplicate_invalid_outputs():
+    args = argparse.Namespace(
+        proposal_grpo_zero_variance="skip",
+        proposal_grpo_fixed_baseline=0.5,
+        proposal_grpo_reward_mode="outcome",
+        proposal_grpo_outcome_scale=0.05,
+        proposal_grpo_deduplicate_actions=True,
+    )
+    prompt = PromptBundle(system="system", user="user")
+    proposal = ConfigProposal(left=2, right=3, guard="none", target=5)
+    results = [
+        {
+            "proposal_index": 0,
+            "id": "duplicate-valid-a",
+            "raw_output": proposal.to_completion(),
+            "valid": True,
+            "parsed_proposal": proposal.to_json_dict(),
+            "completion": proposal.to_completion(),
+        },
+        {
+            "proposal_index": 1,
+            "id": "duplicate-valid-b",
+            "raw_output": proposal.to_completion(),
+            "valid": True,
+            "parsed_proposal": proposal.to_json_dict(),
+            "completion": proposal.to_completion(),
+        },
+        {
+            "proposal_index": 2,
+            "id": "empty-eos-a",
+            "raw_output": "",
+            "first_generated_token_text": "<|im_end|>",
+            "valid": False,
+            "validation_category": "parse_error",
+        },
+        {
+            "proposal_index": 3,
+            "id": "empty-eos-b",
+            "raw_output": "",
+            "first_generated_token_text": "<|im_end|>",
+            "valid": False,
+            "validation_category": "parse_error",
+        },
+    ]
+    metrics = [
+        _metric_stub(index=0, proposal=proposal, reward=0.01),
+        _metric_stub(index=1, proposal=proposal, reward=0.02),
+    ]
+
+    traces, summary = loop.build_proposal_grpo_traces(
+        args=args,
+        prompt=prompt,
+        proposal_results=results,
+        candidate_metrics=metrics,
+    )
+
+    assert [trace.proposal_index for trace in traces] == [1, 2, 3]
+    assert [trace.completion for trace in traces[1:]] == ["<|im_end|>", "<|im_end|>"]
+    assert summary["deduplicated_action_count"] == 1
+    assert summary["pre_dedup_trace_count"] == 4
+    assert summary["trace_candidate_metric_count"] == 2
 
 
 def test_build_proposal_grpo_traces_adds_novelty_bonus_and_entropy_metrics():
@@ -2328,7 +2492,7 @@ def test_build_proposal_grpo_traces_maps_draw_results_to_candidate_metrics():
     )
 
     assert [trace.proposal_index for trace in traces] == [7]
-    assert traces[0].reward == 0.5
+    assert traces[0].reward == 0.525
     assert traces[0].metadata["candidate_reward"] == 0.025
     assert summary["trace_candidate_metric_count"] == 1
 
@@ -2415,7 +2579,7 @@ def test_build_proposal_grpo_traces_skips_candidate_deduped_actions():
     )
 
     assert [trace.proposal_index for trace in traces] == [0]
-    assert traces[0].reward == -0.6
+    assert traces[0].reward == 0.47
     assert summary["skipped_candidate_duplicate_count"] == 1
     assert summary["reward_source_counts"]["candidate_dedup_skipped"] == 1
     assert summary["deduplicated_action_count"] == 0
@@ -2718,6 +2882,54 @@ def test_proposal_policy_microbatches_match_full_batch_gradient():
         rel_tol=1e-6,
         abs_tol=1e-6,
     )
+
+
+def test_proposal_completion_loss_requests_tail_logits_and_disables_cache():
+    import torch
+
+    class _TailLogitModel(torch.nn.Module):
+        def __init__(self, vocab_size: int = 8):
+            super().__init__()
+            self.vocab_size = vocab_size
+            self.calls = []
+
+        def forward(self, input_ids, attention_mask=None, logits_to_keep=0, use_cache=True):
+            self.calls.append(
+                {
+                    "sequence_length": int(input_ids.shape[1]),
+                    "logits_to_keep": int(logits_to_keep),
+                    "use_cache": bool(use_cache),
+                }
+            )
+            batch_size, sequence_length = input_ids.shape
+            positions = torch.arange(sequence_length, dtype=torch.float32).view(1, sequence_length, 1)
+            vocab = torch.arange(self.vocab_size, dtype=torch.float32).view(1, 1, self.vocab_size)
+            logits = (positions * 0.17 + vocab * 0.03).expand(batch_size, sequence_length, self.vocab_size)
+            if logits_to_keep:
+                logits = logits[:, -int(logits_to_keep) :, :]
+            return SimpleNamespace(logits=logits)
+
+    model = _TailLogitModel()
+    batch = {
+        "input_ids": torch.tensor([[1, 2, 3, 4, 5]], dtype=torch.long),
+        "attention_mask": torch.ones((1, 5), dtype=torch.long),
+        "completion_mask": torch.tensor([[False, False, True, True]], dtype=torch.bool),
+    }
+
+    logprobs = adaptive_proposal._proposal_completion_logprobs(
+        model,
+        batch,
+        normalize_by_length=False,
+    )
+
+    assert logprobs.shape == (1,)
+    assert model.calls == [
+        {
+            "sequence_length": 5,
+            "logits_to_keep": 3,
+            "use_cache": False,
+        }
+    ]
 
 
 def test_select_candidate_tiebreaks_by_frontier_delta_before_target_delta():

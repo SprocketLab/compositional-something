@@ -24,6 +24,7 @@ CONDITION_CHOICES = ("config",)
 OUTCOME_TRACE_TARGET_MODES = ("none", "numeric", "textual", "numeric_textual")
 CANDIDATE_EXECUTION_MODES = ("local_parallel", "serial")
 CONTROLLER_EXECUTION_MODES = ("local", "slurm")
+CANDIDATE_TRAINING_MODES = ("single_stage", "two_stage")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -94,7 +95,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Stop after this many consecutive attempts without a selected candidate. "
-            "Defaults to max_attempt_rounds."
+            "Defaults to 10."
         ),
     )
     parser.add_argument("--num-candidates", type=int, default=8)
@@ -108,6 +109,33 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--candidate-train-per-size", type=int, default=None)
     parser.add_argument("--eval-per-size", type=int, default=100)
     parser.add_argument("--composed-eval-per-size", type=int, default=100)
+    parser.add_argument(
+        "--candidate-training-mode",
+        choices=CANDIDATE_TRAINING_MODES,
+        default="single_stage",
+        help=(
+            "Use the historical single-stage candidate update, or screen every action cheaply "
+            "and freshly retrain the provisional winner at full fidelity."
+        ),
+    )
+    parser.add_argument(
+        "--rollout-train-per-size",
+        type=int,
+        default=512,
+        help="Maximum composed pseudolabels used by each two-stage screening rollout.",
+    )
+    parser.add_argument(
+        "--rollout-eval-per-size",
+        type=int,
+        default=20,
+        help="Deterministic per-size subset used to score two-stage screening rollouts.",
+    )
+    parser.add_argument(
+        "--selected-max-steps",
+        type=int,
+        default=0,
+        help="Step cap for fresh selected-action training; 0 uses --num-epochs.",
+    )
     parser.add_argument("--allow-repeat-targets", action="store_true")
 
     parser.add_argument("--num-epochs", type=int, default=1)
@@ -143,6 +171,17 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Retain the final in-run model checkpoint after writing logs. By default adaptive "
             "runs keep logs/metrics only and prune the final checkpoint if it lives under output-dir."
+        ),
+    )
+    parser.add_argument(
+        "--no-keep-initial-model-checkpoints",
+        dest="keep_initial_model_checkpoints",
+        action="store_false",
+        default=True,
+        help=(
+            "Allow cleanup to prune round-00 seed/synthetic start checkpoints after they are "
+            "replaced. By default these initial checkpoints are retained so later runs can "
+            "reuse the exact seed or seed+synthetic start."
         ),
     )
     parser.add_argument(
@@ -429,8 +468,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=8,
         help=(
-            "Number of proposal/update traces per forward-backward microbatch. "
+            "Number of proposal/update traces per CUDA forward-backward microbatch. "
             "Keeps merged policy/observation/format updates from retaining all activation graphs at once."
+        ),
+    )
+    parser.add_argument(
+        "--proposal-update-accumulation-steps",
+        type=int,
+        default=1,
+        help=(
+            "Number of proposal-update microbatches accumulated before each optimizer step "
+            "for synthetic proposal SFT. Proposal GRPO already accumulates all proposal "
+            "microbatches into one policy update."
         ),
     )
     parser.add_argument(
@@ -518,7 +567,9 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
     if args.max_attempt_rounds < 0:
         raise ValueError("max_attempt_rounds must be non-negative.")
     if args.no_selection_patience is None:
-        args.no_selection_patience = args.max_attempt_rounds
+        args.no_selection_patience = 10
+    if args.max_attempt_rounds == 0 and args.no_selection_patience < 1:
+        args.no_selection_patience = 1
     if args.no_selection_patience < 1:
         raise ValueError("no_selection_patience must be positive.")
     if args.num_candidates < 1:
@@ -531,6 +582,12 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("proposal_unique_max_draws must be at least num_candidates when non-zero.")
     if args.max_steps < 0:
         raise ValueError("max_steps must be non-negative.")
+    if args.rollout_train_per_size < 1:
+        raise ValueError("rollout_train_per_size must be positive.")
+    if args.rollout_eval_per_size < 1:
+        raise ValueError("rollout_eval_per_size must be positive.")
+    if args.selected_max_steps < 0:
+        raise ValueError("selected_max_steps must be non-negative.")
     if args.seed_max_steps is not None and args.seed_max_steps < 0:
         raise ValueError("seed_max_steps must be non-negative.")
     if args.candidate_local_parallelism < 1:
@@ -547,6 +604,8 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("controller_worker_spec is required with run_controller_worker.")
     if args.initial_eval_per_size < 0 or args.eval_per_size < 0 or args.composed_eval_per_size < 0:
         raise ValueError("Evaluation counts must be non-negative.")
+    if args.candidate_training_mode == "two_stage" and args.rollout_eval_per_size > args.eval_per_size:
+        raise ValueError("rollout_eval_per_size cannot exceed eval_per_size in two_stage mode.")
     if args.candidate_train_per_size is not None and args.candidate_train_per_size < 0:
         raise ValueError("candidate_train_per_size must be non-negative.")
     if args.bf16 and args.fp16:
@@ -618,6 +677,8 @@ def normalize_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("proposal_format_replay_max_examples must be non-negative.")
     if args.proposal_update_microbatch_size <= 0:
         raise ValueError("proposal_update_microbatch_size must be positive.")
+    if args.proposal_update_accumulation_steps <= 0:
+        raise ValueError("proposal_update_accumulation_steps must be positive.")
     if args.task == "addition":
         args.initial_min_size = args.initial_min_size if args.initial_min_size is not None else 3
         args.initial_max_size = args.initial_max_size if args.initial_max_size is not None else 7

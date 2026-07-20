@@ -27,6 +27,7 @@ def _args(**overrides):
         synthetic_proposal_sft_learning_rate=1e-6,
         synthetic_proposal_sft_top_k=4,
         synthetic_proposal_sft_temperature=0.7,
+        keep_initial_model_checkpoints=False,
         seed=11,
     )
     values.update(overrides)
@@ -82,6 +83,35 @@ def test_synthetic_action_score_prefers_reliable_sources_and_weak_target() -> No
 
     assert reliable_weak["score"] > weak_source["score"]
     assert reliable_weak["score"] > saturated_target["score"]
+
+
+def test_synthetic_rows_cover_later_progress_regimes() -> None:
+    args = _args(
+        synthetic_proposal_sft_examples=64,
+        frontier_min_size=8,
+        frontier_max_size=31,
+    )
+
+    rows = adaptive_proposal.generate_synthetic_proposal_sft_rows(
+        args=args,
+        task_name="addition",
+        source_sizes={3, 4, 5, 6, 7},
+        current_per_size_accuracy={size: (0.90 if size <= 7 else 0.05) for size in range(3, 32)},
+        current_avg_accuracy=0.50,
+        init_avg_accuracy=0.50,
+        count=64,
+        seed=321,
+    )
+
+    stages = {row["metadata"]["synthetic_progress_stage"] for row in rows}
+    actions = [json.loads(row["completion"]) for row in rows]
+    targets = [int(action["left"]) + int(action["right"]) for action in actions]
+    left_or_right = [int(action["left"]) for action in actions] + [int(action["right"]) for action in actions]
+
+    assert {"early", "mid", "late"}.issubset(stages)
+    assert max(targets) >= 30
+    assert sum(target >= 20 for target in targets) >= 20
+    assert max(left_or_right) > 7
 
 
 def test_synthetic_seed_mix_builds_prompt_target_examples(tmp_path: Path) -> None:

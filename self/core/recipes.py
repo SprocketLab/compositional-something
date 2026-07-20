@@ -210,19 +210,27 @@ from transformers import LlamaConfig, LlamaForCausalLM
 from self.core.tokenizers import ArithmeticCharacterTokenizer, build_arithmetic_self_improve_tokenizer
 
 
-def sync_model_special_token_ids(model: Any, tokenizer: Any) -> None:
+def _sync_config_special_token_ids(config: Any, tokenizer: Any) -> None:
+    if config is None:
+        return
     if tokenizer.pad_token_id is not None:
-        model.config.pad_token_id = tokenizer.pad_token_id
+        config.pad_token_id = tokenizer.pad_token_id
     if tokenizer.bos_token_id is not None:
-        model.config.bos_token_id = tokenizer.bos_token_id
+        config.bos_token_id = tokenizer.bos_token_id
     if tokenizer.eos_token_id is not None:
-        model.config.eos_token_id = tokenizer.eos_token_id
+        config.eos_token_id = tokenizer.eos_token_id
+
+
+def sync_model_special_token_ids(model: Any, tokenizer: Any) -> None:
+    _sync_config_special_token_ids(model.config, tokenizer)
+    for nested_name in ("text_config", "decoder_config", "language_config"):
+        _sync_config_special_token_ids(getattr(model.config, nested_name, None), tokenizer)
 
     generation_config = getattr(model, "generation_config", None)
     if generation_config is not None:
-        generation_config.pad_token_id = model.config.pad_token_id
-        generation_config.bos_token_id = model.config.bos_token_id
-        generation_config.eos_token_id = model.config.eos_token_id
+        generation_config.pad_token_id = getattr(model.config, "pad_token_id", None)
+        generation_config.bos_token_id = getattr(model.config, "bos_token_id", None)
+        generation_config.eos_token_id = getattr(model.config, "eos_token_id", None)
 
 
 class NoPositionRotaryEmbedding(nn.Module):

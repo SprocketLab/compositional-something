@@ -19,6 +19,7 @@ PATH_ARG_NAMES = {
     "controller_worker_spec",
     "candidate_worker_spec",
     "candidate_worker_pack_spec",
+    "prepared_start_run_dir",
 }
 
 

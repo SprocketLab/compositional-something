@@ -38,6 +38,8 @@ def build_adaptive_candidate_submission_manifest(
     synthetic_proposal_sft_learning_rate: str,
     synthetic_proposal_sft_top_k: str,
     synthetic_proposal_sft_temperature: str,
+    proposal_update_microbatch_size: str,
+    proposal_update_accumulation_steps: str,
     adaptive_config_files: str,
     job_fields: Sequence[str],
 ) -> JsonDict:
@@ -106,6 +108,8 @@ def build_adaptive_candidate_submission_manifest(
         "synthetic_proposal_sft_learning_rate": synthetic_proposal_sft_learning_rate,
         "synthetic_proposal_sft_top_k": int(synthetic_proposal_sft_top_k),
         "synthetic_proposal_sft_temperature": float(synthetic_proposal_sft_temperature),
+        "proposal_update_microbatch_size": int(proposal_update_microbatch_size),
+        "proposal_update_accumulation_steps": int(proposal_update_accumulation_steps),
         "adaptive_config_files": adaptive_config_files,
         "jobs": jobs,
     }
@@ -139,6 +143,8 @@ def _build_parser() -> argparse.ArgumentParser:
     candidate.add_argument("--synthetic-proposal-sft-learning-rate", default="1e-6")
     candidate.add_argument("--synthetic-proposal-sft-top-k", default="4")
     candidate.add_argument("--synthetic-proposal-sft-temperature", default="0.7")
+    candidate.add_argument("--proposal-update-microbatch-size", default="8")
+    candidate.add_argument("--proposal-update-accumulation-steps", default="1")
     candidate.add_argument("--adaptive-config-files", default="")
     candidate.add_argument("--job-fields", nargs="*", default=[])
 
@@ -167,6 +173,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             synthetic_proposal_sft_learning_rate=args.synthetic_proposal_sft_learning_rate,
             synthetic_proposal_sft_top_k=args.synthetic_proposal_sft_top_k,
             synthetic_proposal_sft_temperature=args.synthetic_proposal_sft_temperature,
+            proposal_update_microbatch_size=args.proposal_update_microbatch_size,
+            proposal_update_accumulation_steps=args.proposal_update_accumulation_steps,
             adaptive_config_files=args.adaptive_config_files,
             job_fields=args.job_fields,
         )

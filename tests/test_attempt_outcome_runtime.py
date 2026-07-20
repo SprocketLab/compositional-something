@@ -69,7 +69,7 @@ def test_attempt_outcome_helpers_live_in_merged_module() -> None:
     assert attempts.handle_selected_attempt.__module__ == "self.adaptive.attempts"
 
 
-def test_no_selection_attempt_writes_summary_and_updates_proposal_model(tmp_path: Path) -> None:
+def test_no_selection_attempt_writes_summary_and_skips_proposal_model_update(tmp_path: Path) -> None:
     output_dir = tmp_path / "run"
     round_dir = output_dir / "attempt_0001"
     apply_calls: list[dict[str, Any]] = []
@@ -98,6 +98,7 @@ def test_no_selection_attempt_writes_summary_and_updates_proposal_model(tmp_path
         no_selection_patience=3,
         max_attempt_rounds=5,
         max_selected_rounds=2,
+        proposal_grpo_steps=1,
         seed=11,
     )
     metrics: Sequence[CandidateMetrics] = [_candidate_metric()]
@@ -135,25 +136,29 @@ def test_no_selection_attempt_writes_summary_and_updates_proposal_model(tmp_path
 
     assert result.selected_rounds == 0
     assert result.consecutive_no_selection == 1
-    assert result.proposal_grpo_update_count == 1
-    assert result.current_checkpoint == str(round_dir / "proposal_grpo" / "model")
+    assert result.proposal_grpo_update_count == 0
+    assert result.current_checkpoint == "checkpoint-current"
     assert result.should_break is False
-    assert apply_calls[0]["source_checkpoint"] == "checkpoint-current"
-    assert apply_calls[0]["seed"] == 1554
+    assert apply_calls == []
 
     with (round_dir / "attempt_summary.json").open("r", encoding="utf-8") as handle:
         attempt_summary = json.load(handle)
     assert attempt_summary["no_selection"] is True
-    assert attempt_summary["proposal_grpo"]["skipped"] is False
-    assert attempt_summary["proposal_grpo"]["deleted_replaced_model_dirs"] == [
-        f"deleted:checkpoint-current->{round_dir / 'proposal_grpo' / 'model'}"
+    assert attempt_summary["proposal_grpo"]["skipped"] is True
+    assert attempt_summary["proposal_grpo"]["skip_reason"] == "no_positive_local_delta"
+    assert attempt_summary["proposal_grpo"]["max_local_avg_accuracy_delta"] == -0.1
+    assert attempt_summary["failed_action_cooldown_update"]["added_actions"] == [
+        {"left": 1, "right": 2, "guard": "none", "target": 3}
     ]
     assert attempt_summary["candidate_metrics_path"] == str(round_dir / "candidate_metrics.json")
 
     with (output_dir / "adaptive_candidate_training_results.json").open("r", encoding="utf-8") as handle:
         run_summary = json.load(handle)
     assert run_summary[0]["no_selection"] is True
-    assert run_summary[0]["current_checkpoint"] == str(round_dir / "proposal_grpo" / "model")
+    assert run_summary[0]["current_checkpoint"] == "checkpoint-current"
+
+    with (output_dir / "failed_action_cooldown.json").open("r", encoding="utf-8") as handle:
+        assert json.load(handle) == [{"left": 1, "right": 2, "guard": "none", "target": 3}]
 
     with (round_dir / "candidate_metrics.json").open("r", encoding="utf-8") as handle:
         candidate_metrics = json.load(handle)

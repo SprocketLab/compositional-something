@@ -9,7 +9,7 @@ from __future__ import annotations
 
 # --- from checkpoints.py ---
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import List, Optional, Sequence
 
@@ -164,7 +164,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
 
 from self.core.composition import build_exact_pair_dataset, compose_pseudo_examples
-from self.core.models import CandidateWorkItem, proposal_from_payload
+from self.core.models import CandidateWorkItem, ExactPairDataset, proposal_from_payload
 from self.core.worker_io import write_json
 from self.core.data_io import ensure_dir, save_examples
 from self.core.evaluation import generate_prediction_map, resolve_max_new_tokens
@@ -197,6 +197,56 @@ def examples_by_key(task: Any, examples: Sequence[Any]) -> dict[Any, Any]:
     for example in examples:
         by_key.setdefault(task.key_for_example(example), example)
     return by_key
+
+
+def stratified_eval_subset(
+    *,
+    task: Any,
+    examples: Sequence[Any],
+    per_size: int,
+) -> List[Any]:
+    """Return a stable per-size prefix so screening is nested in full eval."""
+
+    counts: dict[int, int] = {}
+    subset: List[Any] = []
+    for example in examples:
+        size = int(task.size_of(example))
+        count = counts.get(size, 0)
+        if count >= per_size:
+            continue
+        subset.append(example)
+        counts[size] = count + 1
+    return subset
+
+
+def _limited_composed_dataset(
+    *,
+    task: Any,
+    composed: ExactPairDataset,
+    example_limit: int | None,
+) -> ExactPairDataset:
+    if example_limit is None or example_limit >= len(composed.examples):
+        return composed
+    examples = list(composed.examples[: max(0, example_limit)])
+    keys = {task.key_for_example(example) for example in examples}
+    component_map = {
+        key: children
+        for key, children in composed.component_map.items()
+        if key in keys
+    }
+    diagnostics = dict(composed.diagnostics)
+    diagnostics.update(
+        {
+            "full_retained": len(composed.examples),
+            "rollout_retained": len(examples),
+        }
+    )
+    return ExactPairDataset(
+        examples=examples,
+        component_map=component_map,
+        keys=keys,
+        diagnostics=diagnostics,
+    )
 
 
 def build_candidate_work_items(
@@ -314,13 +364,25 @@ def attach_pseudo_labels(
     current_model: Any,
     current_tokenizer: Any,
     config: TrainingConfig,
+    example_limit: int | None = None,
+    fidelity: str = "candidate",
 ) -> List[CandidateWorkItem]:
     if not work_items:
         return []
+    if example_limit is None and getattr(args, "candidate_training_mode", "single_stage") == "two_stage":
+        example_limit = int(args.rollout_train_per_size)
+    composed_views = {
+        item.index: _limited_composed_dataset(
+            task=task,
+            composed=item.composed,
+            example_limit=example_limit,
+        )
+        for item in work_items
+    }
     source_by_key = examples_by_key(task, source_examples)
     needed_keys: set[Any] = set()
     for item in work_items:
-        for children in item.composed.component_map.values():
+        for children in composed_views[item.index].component_map.values():
             needed_keys.update(children)
     missing_source = sorted((key for key in needed_keys if key not in source_by_key), key=repr)
     if missing_source:
@@ -342,20 +404,29 @@ def attach_pseudo_labels(
             "component_example_count": len(component_examples),
             "prediction_count": len(component_predictions),
             "missing_count": len(component_examples) - len(component_predictions),
+            "fidelity": fidelity,
+            "example_limit": example_limit,
         },
     )
 
     updated: List[CandidateWorkItem] = []
     for item in work_items:
+        composed_view = composed_views[item.index]
         pseudo_examples, pseudo_diagnostics = compose_pseudo_examples(
             task_name=args.task,
             task=task,
             proposal=item.proposal,
-            composed_examples=item.composed.examples,
-            component_map=item.composed.component_map,
+            composed_examples=composed_view.examples,
+            component_map=composed_view.component_map,
             component_predictions=component_predictions,
             args=args,
         )
+        pseudo_diagnostics = {
+            **dict(pseudo_diagnostics),
+            "fidelity": fidelity,
+            "full_composed_count": len(item.composed.examples),
+            "composed_count_used": len(composed_view.examples),
+        }
         candidate_dir = round_dir / "candidates" / f"candidate_{item.index:02d}"
         save_examples(candidate_dir / "pseudo_examples.jsonl", pseudo_examples, task.serialize_example)
         write_json(candidate_dir / "pseudo_diagnostics.json", pseudo_diagnostics)
@@ -683,15 +754,19 @@ def build_candidate_training_mix(
     seed: int,
     random_cls: Callable[[int], random.Random] = random.Random,
 ) -> CandidateTrainingMix:
-    task_train_examples = list(source_examples) + list(item.pseudo_examples)
-    outcome_replay_examples = sample_outcome_trace_replay(
+    # Candidate task updates must train only on self-labeled composed data.
+    # The source pool is used to build compositions, not replayed as supervised
+    # labels after seed training.
+    task_train_examples = list(item.pseudo_examples)
+    two_stage = getattr(args, "candidate_training_mode", "single_stage") == "two_stage"
+    outcome_replay_examples = [] if two_stage else sample_outcome_trace_replay(
         args=args,
         trace_buffer=outcome_trace_buffer,
         task_train_count=len(task_train_examples),
         rng=random_cls(seed + 6151),
     )
     candidate_trace_examples: List[ProposalTraceExample] = []
-    if item.completion and args.proposal_trace_replay_ratio > 0.0:
+    if not two_stage and item.completion and args.proposal_trace_replay_ratio > 0.0:
         candidate_trace_examples.append(
             build_candidate_proposal_trace_example(
                 task_name=args.task,
@@ -702,7 +777,7 @@ def build_candidate_training_mix(
             )
         )
     mixed_proposal_replay_examples: List[ProposalTraceExample] = []
-    mixed_proposal_replay_examples = sample_proposal_trace_replay(
+    mixed_proposal_replay_examples = [] if two_stage else sample_proposal_trace_replay(
         args=args,
         trace_buffer=proposal_trace_buffer,
         task_train_count=len(task_train_examples),
@@ -760,6 +835,8 @@ def write_candidate_training_mix_artifacts(
         {
             **mix.summary_counts,
             "source_examples": len(source_examples),
+            "source_examples_used_for_task_training": 0,
+            "task_supervision_source": "pseudo_examples_only",
             "pseudo_examples": len(item.pseudo_examples),
             "outcome_trace_buffer_size": len(outcome_trace_buffer),
             "outcome_trace_target_mode": args.outcome_trace_target_mode,
@@ -908,6 +985,177 @@ def train_and_score_candidate(
         del tokenizer
     clear_cuda_cache()
     return metrics
+
+
+@dataclass(frozen=True)
+class SelectedConfirmationResult:
+    """Full-fidelity result for a provisionally selected screen candidate."""
+
+    metrics: CandidateMetrics
+    work_item: CandidateWorkItem
+    accepted: bool
+    timings: Mapping[str, float]
+
+
+def confirm_two_stage_candidate(
+    *,
+    args: argparse.Namespace,
+    task: Any,
+    current_checkpoint: str,
+    source_examples: Sequence[Any],
+    provisional: CandidateMetrics,
+    work_item: CandidateWorkItem,
+    round_dir: Path,
+    eval_examples: Sequence[Any],
+    current_final_accuracy: float,
+    current_per_size_accuracy: Mapping[int, float],
+    init_final_accuracy: float,
+    config: TrainingConfig,
+    seed: int,
+) -> SelectedConfirmationResult:
+    """Retrain one provisional winner from scratch and confirm on full eval."""
+
+    confirmation_dir = round_dir / "selected_confirmation"
+    ensure_dir(confirmation_dir)
+    timings: Dict[str, float] = {}
+    phase_start = time.monotonic()
+    current_model, current_tokenizer = instantiate_model_and_tokenizer(
+        current_checkpoint,
+        bf16=args.bf16,
+        fp16=args.fp16,
+        init_from_scratch=False,
+        tokenizer_mode=args.tokenizer_mode,
+        recipe=args.recipe,
+    )
+    try:
+        confirmed_items = attach_pseudo_labels(
+            args=args,
+            task=task,
+            round_dir=confirmation_dir,
+            work_items=[work_item],
+            source_examples=source_examples,
+            current_model=current_model,
+            current_tokenizer=current_tokenizer,
+            config=config,
+            example_limit=int(args.candidate_train_per_size),
+            fidelity="confirmed_full",
+        )
+    finally:
+        del current_model
+        del current_tokenizer
+        clear_cuda_cache()
+    timings["pseudolabel_seconds"] = time.monotonic() - phase_start
+    confirmed_item = confirmed_items[0]
+
+    if not confirmed_item.pseudo_examples:
+        metrics = build_no_pseudo_candidate_metrics(
+            args=args,
+            item=confirmed_item,
+            current_final_accuracy=current_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
+            init_final_accuracy=init_final_accuracy,
+        )
+        write_json(
+            confirmation_dir / "selected_confirmation.json",
+            {
+                "accepted": False,
+                "reason": "no_pseudo_labels_retained",
+                "provisional_metrics": provisional.to_json_dict(),
+                "confirmed_metrics": metrics.to_json_dict(),
+                "timings": timings,
+            },
+        )
+        return SelectedConfirmationResult(
+            metrics=metrics,
+            work_item=confirmed_item,
+            accepted=False,
+            timings=timings,
+        )
+
+    selected_max_steps = int(getattr(args, "selected_max_steps", 0))
+    selected_config = replace(
+        config,
+        num_epochs=int(args.num_epochs),
+        max_steps=selected_max_steps if selected_max_steps > 0 else None,
+    )
+    write_json(
+        confirmation_dir / "training_plan.json",
+        {
+            "source_checkpoint": current_checkpoint,
+            "fresh_from_pre_attempt_checkpoint": True,
+            "pseudo_example_count": len(confirmed_item.pseudo_examples),
+            "num_epochs": selected_config.num_epochs,
+            "max_steps": selected_config.max_steps,
+            "learning_rate": selected_config.learning_rate,
+            "per_device_train_batch_size": selected_config.per_device_train_batch_size,
+            "gradient_accumulation_steps": selected_config.gradient_accumulation_steps,
+        },
+    )
+    phase_start = time.monotonic()
+    model, tokenizer, model_dir = train_checkpoint(
+        source_checkpoint=current_checkpoint,
+        train_examples=confirmed_item.pseudo_examples,
+        output_dir=confirmation_dir / "training",
+        task=task,
+        args=args,
+        config=selected_config,
+        seed=seed,
+        recipe_phase_name="self_improve",
+    )
+    timings["training_seconds"] = time.monotonic() - phase_start
+    phase_start = time.monotonic()
+    final_accuracy, per_size_accuracy = evaluate_model(
+        model=model,
+        tokenizer=tokenizer,
+        task=task,
+        examples=eval_examples,
+        batch_size=selected_config.per_device_eval_batch_size,
+        decode_max_new_tokens=selected_config.decode_max_new_tokens,
+    )
+    timings["evaluation_seconds"] = time.monotonic() - phase_start
+    metrics = build_trained_candidate_metrics(
+        args=args,
+        item=confirmed_item,
+        final_accuracy=final_accuracy,
+        per_size_accuracy=per_size_accuracy,
+        current_final_accuracy=current_final_accuracy,
+        current_per_size_accuracy=current_per_size_accuracy,
+        init_final_accuracy=init_final_accuracy,
+        model_dir=model_dir,
+        proposal_trace_replay_count=0,
+        candidate_proposal_trace_count=0,
+        outcome_trace_replay_count=0,
+    )
+    min_reward = float(getattr(args, "selection_min_reward", 0.0))
+    accepted = bool(metrics.valid and math.isfinite(metrics.reward) and metrics.reward > min_reward)
+    timings["total_seconds"] = sum(timings.values())
+    write_json(
+        confirmation_dir / "selected_confirmation.json",
+        {
+            "accepted": accepted,
+            "acceptance_rule": "confirmed_reward_strictly_greater_than_selection_min_reward",
+            "selection_min_reward": min_reward,
+            "provisional_metrics": provisional.to_json_dict(),
+            "confirmed_metrics": metrics.to_json_dict(),
+            "screen_full_reward_disagreement": bool(
+                provisional.reward > min_reward and metrics.reward <= min_reward
+            ),
+            "timings": timings,
+        },
+    )
+    if model is not None:
+        del model
+    if tokenizer is not None:
+        del tokenizer
+    clear_cuda_cache()
+    if not accepted:
+        shutil.rmtree(model_dir, ignore_errors=True)
+    return SelectedConfirmationResult(
+        metrics=metrics,
+        work_item=confirmed_item,
+        accepted=accepted,
+        timings=timings,
+    )
 
 
 # --- from candidate_selection.py ---

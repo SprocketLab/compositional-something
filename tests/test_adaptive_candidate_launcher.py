@@ -70,7 +70,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "Proposal GRPO steps/lr/kl: 1/1e-6/0.01" in stdout
     assert "Proposal GRPO grad clip/zero variance/baseline: 1.0/skip/0.5" in stdout
     assert "Proposal GRPO reward mode/outcome scale/dedup/novelty beta: outcome/0.05/1/0.05" in stdout
-    assert "Proposal update loss/observation/format/replay/microbatch: merged_agent/0.2/0.02/256/8" in stdout
+    assert "Proposal update loss/observation/format/replay/microbatch/accum: merged_agent/0.2/0.02/256/8/1" in stdout
     assert "Proposal GRPO span: reasoning_action" in stdout
     assert "--candidate-local-pack-size 2" in stdout
     assert "--candidate-local-cache-base-state" in stdout
@@ -95,6 +95,7 @@ def test_adaptive_candidate_launcher_wires_packed_cached_local_workers(tmp_path:
     assert "--synthetic-proposal-sft-temperature 0.7" in stdout
     assert "--num-rounds" not in stdout
     assert "--proposal-update-microbatch-size 8" in stdout
+    assert "--proposal-update-accumulation-steps 1" in stdout
     assert "--proposal-observation-loss-weight 0.2" in stdout
     assert "--proposal-grpo-span reasoning_action" in stdout
     assert "--proposal-grpo-kl-coef 0.01" in stdout
@@ -198,6 +199,7 @@ def test_adaptive_candidate_submitter_dry_run_writes_matrix_manifest(tmp_path: P
     assert "PROPOSAL_GRPO_NOVELTY_BONUS_BETA=0.05" in combined
     assert "SOURCE_ADMISSION_TARGET_ACCURACY_THRESHOLD=0.80" in combined
     assert "PROPOSAL_UPDATE_MICROBATCH_SIZE=8" in combined
+    assert "PROPOSAL_UPDATE_ACCUMULATION_STEPS=1" in combined
     assert "PROPOSAL_HISTORY" not in combined
     assert f"ADAPTIVE_CONFIG_FILES={BASE_CONFIG}" in combined
 
@@ -387,6 +389,7 @@ def test_adaptive_prepared_start_submitter_dry_run_writes_manifest(tmp_path: Pat
             "MAX_ATTEMPT_ROUNDS": "25",
             "NO_SELECTION_PATIENCE": "25",
             "SBATCH_TIME": "02:59:00",
+            "SBATCH_DEPENDENCY": "afterok:123:456",
             "ADAPTIVE_CONFIG_FILES": str(BASE_CONFIG),
         }
     )
@@ -404,6 +407,7 @@ def test_adaptive_prepared_start_submitter_dry_run_writes_manifest(tmp_path: Pat
     assert manifest["max_attempt_rounds"] == 25
     assert manifest["no_selection_patience"] == 25
     assert manifest["walltime"] == "02:59:00"
+    assert manifest["dependency"] == "afterok:123:456"
     assert set(manifest["jobs"]) == {
         "addition-postsynthetic-syn2048-25a",
         "run_length-postsynthetic-syn4096-25a",
@@ -415,6 +419,7 @@ def test_adaptive_prepared_start_submitter_dry_run_writes_manifest(tmp_path: Pat
 
     combined = result.stdout + result.stderr
     assert "--time 02:59:00" in combined
+    assert "--dependency afterok:123:456" in combined
     assert "PREPARED_START_RUN_DIR=" in combined
     assert "MAX_ATTEMPT_ROUNDS=25" in combined
     assert "NO_SELECTION_PATIENCE=25" in combined

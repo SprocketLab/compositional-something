@@ -44,6 +44,33 @@ class _FakeModel(torch.nn.Module):
         self.config.vocab_size = size
 
 
+def test_sync_model_special_token_ids_updates_nested_configs():
+    tokenizer = _FakeTokenizer()
+    model = _FakeModel(
+        0.0,
+        config=SimpleNamespace(
+            pad_token_id=None,
+            bos_token_id=None,
+            eos_token_id=99,
+            text_config=SimpleNamespace(pad_token_id=None, bos_token_id=None, eos_token_id=98),
+            decoder_config=SimpleNamespace(pad_token_id=None, bos_token_id=None, eos_token_id=97),
+            language_config=SimpleNamespace(pad_token_id=None, bos_token_id=None, eos_token_id=96),
+        ),
+    )
+
+    model_io.sync_model_special_token_ids(model, tokenizer)
+
+    assert model.config.pad_token_id == tokenizer.pad_token_id
+    assert model.config.bos_token_id == tokenizer.bos_token_id
+    assert model.config.eos_token_id == tokenizer.eos_token_id
+    assert model.config.text_config.eos_token_id == tokenizer.eos_token_id
+    assert model.config.decoder_config.eos_token_id == tokenizer.eos_token_id
+    assert model.config.language_config.eos_token_id == tokenizer.eos_token_id
+    assert model.config.text_config.pad_token_id == tokenizer.pad_token_id
+    assert model.generation_config.eos_token_id == tokenizer.eos_token_id
+    assert model.generation_config.pad_token_id == tokenizer.pad_token_id
+
+
 def test_model_bootstrap_cache_reuses_tokenizer_and_cached_base_state(monkeypatch):
     assert model_io.ModelBootstrapCache is model_bootstrap_cache.ModelBootstrapCache
     assert model_io.TokenizerBootstrap is model_bootstrap_cache.TokenizerBootstrap

@@ -83,7 +83,17 @@ JsonDict = Dict[str, Any]
 class CheckpointManager:
     output_dir: Path
     keep_candidate_models: bool = False
+    keep_initial_checkpoints: bool = True
     keep_proposal_grpo_checkpoints: bool = False
+
+    def _is_initial_checkpoint(self, model_dir: Path) -> bool:
+        if not self.keep_initial_checkpoints or model_dir.name != "model":
+            return False
+        try:
+            relative_parts = model_dir.resolve().relative_to(self.output_dir.resolve()).parts
+        except (ValueError, OSError):
+            return False
+        return len(relative_parts) >= 3 and relative_parts[0] == "round_00"
 
     def _is_protected_checkpoint(self, model_dir: Path, protected_checkpoints: Sequence[str] = ()) -> bool:
         try:
@@ -138,6 +148,8 @@ class CheckpointManager:
         if keep_final:
             return []
         model_dir = Path(checkpoint)
+        if self._is_initial_checkpoint(model_dir):
+            return []
         if model_dir.parent.name == "proposal_grpo" and self.keep_proposal_grpo_checkpoints:
             return []
         if "candidates" in model_dir.parts and self.keep_candidate_models:
@@ -162,6 +174,8 @@ class CheckpointManager:
         try:
             old_model_dir.resolve().relative_to(self.output_dir.resolve())
         except (ValueError, OSError):
+            return []
+        if self._is_initial_checkpoint(old_model_dir):
             return []
         if old_model_dir.parent.name == "proposal_grpo" and self.keep_proposal_grpo_checkpoints:
             return []
@@ -275,6 +289,7 @@ def _initialize_prepared_start_run(
     checkpoint_manager = CheckpointManager(
         output_dir=output_dir,
         keep_candidate_models=args.keep_all_candidate_models,
+        keep_initial_checkpoints=args.keep_initial_model_checkpoints,
         keep_proposal_grpo_checkpoints=args.keep_all_proposal_grpo_checkpoints,
     )
     return RunInitializationResult(
@@ -304,6 +319,7 @@ def initialize_adaptive_run(
     checkpoint_manager = CheckpointManager(
         output_dir=output_dir,
         keep_candidate_models=args.keep_all_candidate_models,
+        keep_initial_checkpoints=args.keep_initial_model_checkpoints,
         keep_proposal_grpo_checkpoints=args.keep_all_proposal_grpo_checkpoints,
     )
 
@@ -434,6 +450,8 @@ def finalize_adaptive_run(
             ),
             f"Proposal GRPO action dedup: `{args.proposal_grpo_deduplicate_actions}`.",
             f"Proposal GRPO novelty beta: `{args.proposal_grpo_novelty_bonus_beta}`.",
+            "No-selection proposal update policy: `skip_grpo_and_cooldown_failed_actions`.",
+            "Failed-action cooldown key: canonical `(min(left,right), max(left,right), guard, target)` until next selected candidate.",
             f"Source admission target-accuracy threshold: `{args.source_admission_target_accuracy_threshold}`.",
             (
                 "Proposal update loss: `merged_agent`; "
@@ -445,6 +463,7 @@ def finalize_adaptive_run(
             ),
             f"Synthetic proposal seed mix: `{args.synthetic_proposal_sft_seed_mix}`.",
             f"Prepared start run dir: `{args.prepared_start_run_dir}`.",
+            f"Keep initial model checkpoints: `{args.keep_initial_model_checkpoints}`.",
             f"Keep final model checkpoint: `{args.keep_final_model_checkpoint}`.",
             f"Keep all proposal-GRPO checkpoints: `{args.keep_all_proposal_grpo_checkpoints}`.",
         ],
@@ -485,6 +504,8 @@ def finalize_adaptive_run(
         "proposal_grpo_fixed_baseline": args.proposal_grpo_fixed_baseline,
         "proposal_grpo_deduplicate_actions": args.proposal_grpo_deduplicate_actions,
         "proposal_grpo_novelty_bonus_beta": args.proposal_grpo_novelty_bonus_beta,
+        "no_selection_proposal_update_policy": "skip_grpo_and_cooldown_failed_actions",
+        "failed_action_cooldown_key": "canonical_unordered_left_right_guard_target_until_next_selection",
         "proposal_update": "merged_agent",
         "proposal_observation_loss_weight": args.proposal_observation_loss_weight,
         "proposal_format_loss_weight": args.proposal_format_loss_weight,
@@ -498,6 +519,7 @@ def finalize_adaptive_run(
         "synthetic_proposal_sft_top_k": args.synthetic_proposal_sft_top_k,
         "synthetic_proposal_sft_temperature": args.synthetic_proposal_sft_temperature,
         "source_admission_target_accuracy_threshold": args.source_admission_target_accuracy_threshold,
+        "keep_initial_model_checkpoints": args.keep_initial_model_checkpoints,
         "keep_final_model_checkpoint": args.keep_final_model_checkpoint,
         "deleted_final_model_dirs": deleted_final_model_dirs,
         "keep_all_proposal_grpo_checkpoints": args.keep_all_proposal_grpo_checkpoints,
@@ -753,6 +775,8 @@ class RoundModelDispatchResult:
     prompt: PromptBundle
     proposal_results: Sequence[Mapping[str, Any]]
     work_items: Sequence[CandidateWorkItem]
+    candidate_baseline_accuracy: float | None = None
+    candidate_baseline_per_size_accuracy: Mapping[int, float] | None = None
 
 
 def run_round_model_dispatch(
@@ -771,7 +795,10 @@ def run_round_model_dispatch(
     selected_rounds: int,
     consecutive_no_selection: int,
     init_final_accuracy: float,
+    current_final_accuracy: float | None = None,
+    current_per_size_accuracy: Mapping[int, float] | None = None,
     extra_aggregate_metrics: Mapping[str, Any] | None = None,
+    failed_action_cooldown: Sequence[Any] | None = None,
     deps: RoundModelDispatchDeps,
 ) -> RoundModelDispatchResult:
     if args.controller_execution_mode == "slurm":
@@ -789,7 +816,10 @@ def run_round_model_dispatch(
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
             init_final_accuracy=init_final_accuracy,
+            current_final_accuracy=current_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
             extra_aggregate_metrics=extra_aggregate_metrics,
+            failed_action_cooldown=failed_action_cooldown,
             deps=deps,
         )
 
@@ -809,7 +839,10 @@ def run_round_model_dispatch(
         consecutive_no_selection=consecutive_no_selection,
         init_final_accuracy=init_final_accuracy,
         extra_aggregate_metrics=extra_aggregate_metrics,
+        failed_action_cooldown=failed_action_cooldown,
         seed=args.seed + attempt_index * 7919,
+        cached_current_final_accuracy=current_final_accuracy,
+        cached_current_per_size_accuracy=current_per_size_accuracy,
     )
     return RoundModelDispatchResult(
         current_final_accuracy=round_result.current_final_accuracy,
@@ -817,6 +850,10 @@ def run_round_model_dispatch(
         prompt=round_result.prompt,
         proposal_results=round_result.proposal_results,
         work_items=round_result.work_items,
+        candidate_baseline_accuracy=getattr(round_result, "candidate_baseline_accuracy", None),
+        candidate_baseline_per_size_accuracy=getattr(
+            round_result, "candidate_baseline_per_size_accuracy", None
+        ),
     )
 
 
@@ -835,7 +872,10 @@ def _run_round_model_slurm(
     selected_rounds: int,
     consecutive_no_selection: int,
     init_final_accuracy: float,
+    current_final_accuracy: float | None = None,
+    current_per_size_accuracy: Mapping[int, float] | None = None,
     extra_aggregate_metrics: Mapping[str, Any] | None = None,
+    failed_action_cooldown: Sequence[Any] | None = None,
     deps: RoundModelDispatchDeps,
 ) -> RoundModelDispatchResult:
     controller_input_dir = round_dir / "controller_worker" / "inputs"
@@ -862,7 +902,12 @@ def _run_round_model_slurm(
             "selected_rounds": selected_rounds,
             "consecutive_no_selection": consecutive_no_selection,
             "init_final_accuracy": init_final_accuracy,
+            "cached_current_final_accuracy": current_final_accuracy,
+            "cached_current_per_size_accuracy": {
+                str(size): score for size, score in (current_per_size_accuracy or {}).items()
+            },
             "extra_aggregate_metrics": dict(extra_aggregate_metrics or {}),
+            "failed_action_cooldown": [list(action) for action in (failed_action_cooldown or ())],
             "seed": args.seed + attempt_index * 7919,
         },
     )
@@ -888,6 +933,16 @@ def _run_round_model_slurm(
         prompt=prompt,
         proposal_results=proposal_results,
         work_items=work_items,
+        candidate_baseline_accuracy=(
+            deps.float_or_nan(round_output.get("candidate_baseline_accuracy"))
+            if round_output.get("candidate_baseline_accuracy") is not None
+            else None
+        ),
+        candidate_baseline_per_size_accuracy={
+            int(size): float(score)
+            for size, score in dict(round_output.get("candidate_baseline_per_size_accuracy", {})).items()
+            if score is not None
+        },
     )
 
 

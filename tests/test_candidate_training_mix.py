@@ -86,19 +86,19 @@ def test_candidate_training_mix_includes_mixed_replay_when_post_task_rehearsal_d
         seed=11,
     )
 
-    assert mix.task_train_examples == ["s0", "p0", "p1", "p2"]
+    assert mix.task_train_examples == ["p0", "p1", "p2"]
     assert len(mix.outcome_replay_examples) == 0
     assert len(mix.mixed_proposal_replay_examples) == 2
     assert len(mix.candidate_trace_examples) == 1
     assert mix.mixed_candidate_trace_examples == mix.candidate_trace_examples
-    assert len(mix.train_examples) == 7
+    assert len(mix.train_examples) == 6
     assert mix.summary_counts == {
-        "task_train_examples": 4,
+        "task_train_examples": 3,
         "outcome_trace_replay_examples": 0,
         "proposal_trace_replay_examples": 2,
         "candidate_proposal_trace_examples": 1,
         "mixed_candidate_proposal_trace_examples": 1,
-        "total_train_examples": 7,
+        "total_train_examples": 6,
     }
 
 
@@ -115,12 +115,31 @@ def test_candidate_training_mix_adds_outcome_and_selected_trace_examples():
         seed=13,
     )
 
-    assert mix.task_train_examples == ["s0", "p0"]
+    assert mix.task_train_examples == ["p0"]
     assert len(mix.outcome_replay_examples) == 1
     assert len(mix.mixed_proposal_replay_examples) == 1
     assert len(mix.mixed_candidate_trace_examples) == 1
     assert len(mix.candidate_trace_examples) == 1
-    assert len(mix.train_examples) == 5
+    assert len(mix.train_examples) == 4
+
+
+def test_two_stage_candidate_training_mix_is_pseudo_only():
+    item = _item(["p0", "p1"])
+    mix = build_candidate_training_mix(
+        args=_args(candidate_training_mode="two_stage", outcome_trace_target_mode="numeric"),
+        source_examples=["s0"],
+        item=item,
+        proposal_trace_buffer=[_proposal_trace("selected")],
+        outcome_trace_buffer=[_outcome_trace("observed")],
+        proposal_prompt=PromptBundle(system="system", user="user"),
+        round_index=1,
+        seed=17,
+    )
+
+    assert mix.train_examples == ["p0", "p1"]
+    assert mix.outcome_replay_examples == []
+    assert mix.mixed_proposal_replay_examples == []
+    assert mix.candidate_trace_examples == []
 
 
 def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
@@ -151,7 +170,6 @@ def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
     )
 
     assert (tmp_path / "train_examples.jsonl").read_text(encoding="utf-8").splitlines() == [
-        '{"value": "s0"}',
         '{"value": "p0"}',
     ]
     assert (tmp_path / "outcome_trace_replay_examples.jsonl").exists()
@@ -159,8 +177,10 @@ def test_candidate_training_mix_artifacts_match_existing_paths(tmp_path: Path):
     assert (tmp_path / "proposal_trace_replay_examples.jsonl").exists()
 
     summary = json.loads((tmp_path / "train_mix_summary.json").read_text(encoding="utf-8"))
-    assert summary["task_train_examples"] == 2
+    assert summary["task_train_examples"] == 1
     assert summary["source_examples"] == 1
+    assert summary["source_examples_used_for_task_training"] == 0
+    assert summary["task_supervision_source"] == "pseudo_examples_only"
     assert summary["pseudo_examples"] == 1
     assert summary["outcome_trace_buffer_size"] == 2
     assert summary["proposal_trace_buffer_size"] == 1

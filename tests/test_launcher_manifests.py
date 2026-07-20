@@ -29,6 +29,8 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
         synthetic_proposal_sft_learning_rate="1e-6",
         synthetic_proposal_sft_top_k="4",
         synthetic_proposal_sft_temperature="0.7",
+        proposal_update_microbatch_size="8",
+        proposal_update_accumulation_steps="1",
         adaptive_config_files="/tmp/base.env",
         job_fields=[
             "addition",
@@ -75,6 +77,8 @@ def test_adaptive_candidate_submission_manifest_preserves_schema() -> None:
     assert payload["synthetic_proposal_sft_learning_rate"] == "1e-6"
     assert payload["synthetic_proposal_sft_top_k"] == 4
     assert payload["synthetic_proposal_sft_temperature"] == 0.7
+    assert payload["proposal_update_microbatch_size"] == 8
+    assert payload["proposal_update_accumulation_steps"] == 1
     assert payload["adaptive_config_files"] == "/tmp/base.env"
     assert payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-syn0"] == {
         "task": "addition",
@@ -125,6 +129,8 @@ def test_adaptive_candidate_submission_manifest_rejects_partial_job_fields() -> 
             synthetic_proposal_sft_learning_rate="1e-6",
             synthetic_proposal_sft_top_k="4",
             synthetic_proposal_sft_temperature="0.7",
+            proposal_update_microbatch_size="8",
+            proposal_update_accumulation_steps="1",
             adaptive_config_files="",
             job_fields=["addition", "config"],
         )
@@ -171,6 +177,10 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
             "4",
             "--synthetic-proposal-sft-temperature",
             "0.7",
+            "--proposal-update-microbatch-size",
+            "8",
+            "--proposal-update-accumulation-steps",
+            "1",
             "--adaptive-config-files",
             "/tmp/base.env",
             "--job-fields",
@@ -193,6 +203,8 @@ def test_launcher_manifest_cli_writes_json(tmp_path) -> None:
     assert payload["adaptive_config_files"] == "/tmp/base.env"
     assert payload["model_name"] == "Qwen/Qwen3-4B"
     assert payload["proposal_model_name"] == "current"
+    assert payload["proposal_update_microbatch_size"] == 8
+    assert payload["proposal_update_accumulation_steps"] == 1
     assert (
         payload["jobs"]["addition-config-numeric-n8-reward-outcome-grpo-fixed_baseline-lr-1e-6-syn0"][
             "job_id"

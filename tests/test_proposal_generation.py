@@ -64,6 +64,89 @@ def test_load_or_generate_proposal_rows_uses_fixture_round_slice_and_candidate_l
     assert json.loads(fixture.read_text(encoding="utf-8").splitlines()[1])["id"] == "first"
 
 
+def test_model_generation_logs_special_token_only_completions():
+    import torch
+
+    class DummyTokenizer:
+        bos_token_id = None
+        pad_token_id = 0
+        eos_token_id = 2
+        all_special_ids = [0, 2]
+        padding_side = "right"
+
+        def encode(self, text, add_special_tokens=False):
+            return [10 + (ord(char) % 100) for char in text]
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            pieces = []
+            for token_id in token_ids:
+                token_id = int(token_id)
+                if token_id == self.eos_token_id:
+                    if not skip_special_tokens:
+                        pieces.append("<eos>")
+                    continue
+                if token_id == self.pad_token_id:
+                    if not skip_special_tokens:
+                        pieces.append("<pad>")
+                    continue
+                pieces.append(chr((token_id - 10) % 100))
+            return "".join(pieces)
+
+    class DummyModel:
+        training = True
+
+        def __init__(self):
+            self.param = torch.nn.Parameter(torch.zeros(()))
+            self.generate_kwargs = None
+
+        def parameters(self):
+            yield self.param
+
+        def eval(self):
+            self.training = False
+
+        def train(self):
+            self.training = True
+
+        def generate(self, **kwargs):
+            self.generate_kwargs = dict(kwargs)
+            input_ids = kwargs["input_ids"]
+            eos_column = torch.full(
+                (input_ids.shape[0], 1),
+                2,
+                dtype=input_ids.dtype,
+                device=input_ids.device,
+            )
+            return torch.cat([input_ids, eos_column], dim=1)
+
+    model = DummyModel()
+    tokenizer = DummyTokenizer()
+
+    rows = proposal_generation.generate_proposals_from_model(
+        model=model,
+        tokenizer=tokenizer,
+        prompt=PromptBundle(system="system", user="user"),
+        num_candidates=2,
+        max_new_tokens=8,
+        temperature=0.0,
+        top_p=1.0,
+        batch_size=2,
+    )
+
+    assert model.training is True
+    assert model.generate_kwargs["pad_token_id"] == 0
+    assert model.generate_kwargs["eos_token_id"] == 2
+    assert "bos_token_id" not in model.generate_kwargs
+    assert [row["raw_output"] for row in rows] == ["", ""]
+    assert [row["raw_output_with_special_tokens"] for row in rows] == ["<eos>", "<eos>"]
+    assert [row["generated_token_count"] for row in rows] == [1, 1]
+    assert [row["first_generated_token_id"] for row in rows] == [2, 2]
+    assert [row["first_generated_token_text"] for row in rows] == ["<eos>", "<eos>"]
+    assert rows[0]["generation_pad_token_id"] == 0
+    assert rows[0]["generation_eos_token_id"] == 2
+    assert rows[0]["generation_bos_token_id"] is None
+
+
 def test_load_or_generate_proposal_rows_can_force_unique_config_actions(tmp_path: Path, monkeypatch):
     generated = [
         {"reasoning": "compose reliable sizes", "left": 5, "right": 3, "guard": "none"},

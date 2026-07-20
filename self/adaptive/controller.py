@@ -24,6 +24,8 @@ class SeedPhaseResult:
 class RoundModelPhaseResult:
     current_final_accuracy: float
     current_per_size_accuracy: Dict[int, float]
+    candidate_baseline_accuracy: float
+    candidate_baseline_per_size_accuracy: Dict[int, float]
     prompt: Any
     proposal_results: List[dict[str, Any]]
     work_items: List[Any]
@@ -289,12 +291,22 @@ def run_round_model_controller_worker_from_spec(
         consecutive_no_selection=int(payload["consecutive_no_selection"]),
         init_final_accuracy=float(payload["init_final_accuracy"]),
         extra_aggregate_metrics=dict(payload.get("extra_aggregate_metrics") or {}),
+        failed_action_cooldown=list(payload.get("failed_action_cooldown") or []),
         seed=seed,
+        cached_current_final_accuracy=payload.get("cached_current_final_accuracy"),
+        cached_current_per_size_accuracy={
+            int(size): float(score)
+            for size, score in dict(payload.get("cached_current_per_size_accuracy") or {}).items()
+        } or None,
     )
     return {
         "current_final_accuracy": result.current_final_accuracy,
         "current_per_size_accuracy": {
             str(size): score for size, score in result.current_per_size_accuracy.items()
+        },
+        "candidate_baseline_accuracy": result.candidate_baseline_accuracy,
+        "candidate_baseline_per_size_accuracy": {
+            str(size): score for size, score in result.candidate_baseline_per_size_accuracy.items()
         },
         "prompt_path": str(round_dir / "proposal_prompt.json"),
         "proposal_results_path": str(round_dir / "proposal_results.json"),
@@ -338,6 +350,14 @@ def run_proposal_grpo_controller_worker_from_spec(
         candidate_metrics=[
             deps.candidate_metrics_from_json(item)
             for item in (deps.load_json(Path(payload["candidate_metrics_path"])) or [])
+        ],
+        confirmed_candidate_metrics=[
+            deps.candidate_metrics_from_json(item)
+            for item in (
+                deps.load_json(Path(payload["confirmed_candidate_metrics_path"]))
+                if payload.get("confirmed_candidate_metrics_path")
+                else []
+            )
         ],
         proposal_trace_buffer=(
             deps.load_json(Path(payload["proposal_trace_buffer_path"]))
@@ -510,7 +530,10 @@ def run_round_model_phase(
     consecutive_no_selection: int,
     init_final_accuracy: float,
     extra_aggregate_metrics: Mapping[str, Any] | None = None,
+    failed_action_cooldown: Sequence[Any] | None = None,
     seed: int,
+    cached_current_final_accuracy: float | None = None,
+    cached_current_per_size_accuracy: Mapping[int, float] | None = None,
 ) -> RoundModelPhaseResult:
     set_seed(seed)
     rng = random.Random(seed)
@@ -525,7 +548,7 @@ def run_round_model_phase(
         recipe=args.recipe,
     )
     try:
-        current_final_accuracy, current_per_size_accuracy = evaluate_model(
+        candidate_baseline_accuracy, candidate_baseline_per_size_accuracy = evaluate_model(
             model=current_model,
             tokenizer=current_tokenizer,
             task=task,
@@ -533,6 +556,15 @@ def run_round_model_phase(
             batch_size=config.per_device_eval_batch_size,
             decode_max_new_tokens=config.decode_max_new_tokens,
         )
+        two_stage = getattr(args, "candidate_training_mode", "single_stage") == "two_stage"
+        if two_stage and cached_current_final_accuracy is not None and cached_current_per_size_accuracy is not None:
+            current_final_accuracy = float(cached_current_final_accuracy)
+            current_per_size_accuracy = {
+                int(size): float(score) for size, score in cached_current_per_size_accuracy.items()
+            }
+        else:
+            current_final_accuracy = candidate_baseline_accuracy
+            current_per_size_accuracy = candidate_baseline_per_size_accuracy
         aggregate_extras: JsonDict = dict(extra_aggregate_metrics or {})
         aggregate_extras["proposal_output_schema"] = args.proposal_output_schema
         attempt_prompt = build_attempt_prompt(
@@ -562,6 +594,7 @@ def run_round_model_phase(
             source_sizes=source_sizes,
             frontier_min=frontier_min,
             frontier_max=frontier_max,
+            failed_action_cooldown=failed_action_cooldown,
             unique_log_path=round_dir / "proposal_unique_sampling.json",
             draw_results_log_path=round_dir / "proposal_draw_results.json",
         )
@@ -574,6 +607,7 @@ def run_round_model_phase(
             default_pair=default_program_pair,
             current_model=current_model,
             current_tokenizer=current_tokenizer,
+            failed_action_cooldown=failed_action_cooldown,
         )
         worker_io.write_json(round_dir / "raw_proposals.json", rows)
         worker_io.write_json(round_dir / "proposal_results.json", proposal_results)
@@ -607,6 +641,10 @@ def run_round_model_phase(
             current_final_accuracy=current_final_accuracy,
             current_per_size_accuracy={
                 int(size): float(score) for size, score in current_per_size_accuracy.items()
+            },
+            candidate_baseline_accuracy=float(candidate_baseline_accuracy),
+            candidate_baseline_per_size_accuracy={
+                int(size): float(score) for size, score in candidate_baseline_per_size_accuracy.items()
             },
             prompt=prompt,
             proposal_results=list(proposal_grpo_results),

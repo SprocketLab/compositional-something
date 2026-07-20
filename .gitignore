@@ -13,6 +13,7 @@ __pycache__/
 # OS and tool caches
 .DS_Store
 .pytest_cache/
+.pytest_tmp_*/
 .ruff_cache/
 .mypy_cache/
 

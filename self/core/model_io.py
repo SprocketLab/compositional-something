@@ -74,19 +74,27 @@ def initialize_copied_embeddings(model: AutoModelForCausalLM, initializer_map: D
             output_weights[new_id].copy_(output_weights[source_id])
 
 
-def sync_model_special_token_ids(model: AutoModelForCausalLM, tokenizer: AutoTokenizer) -> None:
+def _sync_config_special_token_ids(config: object, tokenizer: AutoTokenizer) -> None:
+    if config is None:
+        return
     if tokenizer.pad_token_id is not None:
-        model.config.pad_token_id = tokenizer.pad_token_id
+        setattr(config, "pad_token_id", tokenizer.pad_token_id)
     if tokenizer.bos_token_id is not None:
-        model.config.bos_token_id = tokenizer.bos_token_id
+        setattr(config, "bos_token_id", tokenizer.bos_token_id)
     if tokenizer.eos_token_id is not None:
-        model.config.eos_token_id = tokenizer.eos_token_id
+        setattr(config, "eos_token_id", tokenizer.eos_token_id)
+
+
+def sync_model_special_token_ids(model: AutoModelForCausalLM, tokenizer: AutoTokenizer) -> None:
+    _sync_config_special_token_ids(model.config, tokenizer)
+    for nested_name in ("text_config", "decoder_config", "language_config"):
+        _sync_config_special_token_ids(getattr(model.config, nested_name, None), tokenizer)
 
     generation_config = getattr(model, "generation_config", None)
     if generation_config is not None:
-        generation_config.pad_token_id = model.config.pad_token_id
-        generation_config.bos_token_id = model.config.bos_token_id
-        generation_config.eos_token_id = model.config.eos_token_id
+        generation_config.pad_token_id = getattr(model.config, "pad_token_id", None)
+        generation_config.bos_token_id = getattr(model.config, "bos_token_id", None)
+        generation_config.eos_token_id = getattr(model.config, "eos_token_id", None)
 
 
 def load_model_for_tokenizer(

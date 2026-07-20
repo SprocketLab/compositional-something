@@ -466,6 +466,7 @@ def apply_or_dispatch_proposal_grpo_update(
     candidate_metrics: Sequence[CandidateMetrics],
     seed: int,
     proposal_trace_buffer: Sequence[Any] = (),
+    confirmed_candidate_metrics: Sequence[CandidateMetrics] = (),
 ) -> tuple[str, JsonDict]:
     from self.adaptive.proposal import (
         apply_or_dispatch_proposal_grpo_update as apply_or_dispatch_proposal_grpo_update_impl,
@@ -479,6 +480,7 @@ def apply_or_dispatch_proposal_grpo_update(
         proposal_results=proposal_results,
         candidate_metrics=candidate_metrics,
         proposal_trace_buffer=proposal_trace_buffer,
+        confirmed_candidate_metrics=confirmed_candidate_metrics,
         seed=seed,
         deps=proposal_grpo_dispatch_deps(bindings),
     )

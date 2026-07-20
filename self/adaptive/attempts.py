@@ -9,7 +9,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
-from self.adaptive.proposal import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal
+from self.adaptive.proposal import DEFAULT_CONFIG_SEARCH_SPACES, ConfigProposal, canonical_config_action_key
 from self.adaptive.proposal import (
     PromptBundle,
     render_config_prompt,
@@ -184,6 +184,37 @@ def _proposal_prompt_extra_metrics(args: argparse.Namespace, proposal_trace_buff
     }
 
 
+def _failed_action_cooldown_rows(keys: Sequence[tuple[Any, ...]]) -> List[JsonDict]:
+    rows: List[JsonDict] = []
+    for key in sorted({tuple(key) for key in keys}, key=lambda item: (item[-1], item[1], item[2], str(item[3]))):
+        if len(key) < 5 or key[0] != "proposal":
+            continue
+        rows.append(
+            {
+                "left": int(key[1]),
+                "right": int(key[2]),
+                "guard": str(key[3]),
+                "target": int(key[4]),
+            }
+        )
+    return rows
+
+
+def _proposal_prompt_extra_metrics_with_cooldown(
+    args: argparse.Namespace,
+    proposal_trace_buffer: Sequence[Any],
+    failed_action_cooldown: Sequence[tuple[Any, ...]],
+) -> JsonDict:
+    extras = _proposal_prompt_extra_metrics(args, proposal_trace_buffer)
+    failed_rows = _failed_action_cooldown_rows(failed_action_cooldown)
+    if failed_rows:
+        extras["recent_failed_actions"] = failed_rows
+        extras["recent_failed_actions_policy"] = (
+            "These valid actions were already trained in the current cooldown and did not improve local average accuracy."
+        )
+    return extras
+
+
 def _compact_candidate_action(metric: Any, *, attempt_index: int, selected_index: Optional[int]) -> JsonDict:
     proposal = metric.proposal
     action: JsonDict = {
@@ -256,6 +287,181 @@ def _selected_progress_label(args: argparse.Namespace, selected_rounds: int) -> 
     if max_selected_rounds > 0:
         return f"{selected_rounds}/{max_selected_rounds}"
     return str(selected_rounds)
+
+
+def _finite_metric_reward(metric: Any) -> Optional[float]:
+    try:
+        reward = float(metric.reward)
+    except (TypeError, ValueError):
+        return None
+    return reward if math.isfinite(reward) else None
+
+
+def _metric_config_action_key(metric: Any) -> tuple[Any, ...] | None:
+    proposal = getattr(metric, "proposal", None)
+    if proposal is None:
+        return None
+    try:
+        return canonical_config_action_key(
+            left=proposal.left,
+            right=proposal.right,
+            guard=proposal.guard,
+            target=proposal.target,
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _failed_action_cooldown_update(
+    *,
+    metrics: Sequence[Any],
+    min_reward: float,
+    failed_action_cooldown: set[tuple[Any, ...]],
+) -> JsonDict:
+    added: list[tuple[Any, ...]] = []
+    failed_metric_rows: List[JsonDict] = []
+    for metric in metrics:
+        if not bool(getattr(metric, "valid", False)):
+            continue
+        reward = _finite_metric_reward(metric)
+        if reward is None or reward > min_reward:
+            continue
+        key = _metric_config_action_key(metric)
+        if key is None:
+            continue
+        was_present = key in failed_action_cooldown
+        failed_action_cooldown.add(key)
+        if not was_present:
+            added.append(key)
+        failed_metric_rows.append(
+            {
+                "candidate_index": int(getattr(metric, "index", -1)),
+                "reward": reward,
+                "action": _failed_action_cooldown_rows([key])[0],
+                "newly_added": not was_present,
+            }
+        )
+    return {
+        "added_count": len(added),
+        "added_actions": _failed_action_cooldown_rows(added),
+        "failed_metric_actions": failed_metric_rows,
+        "cooldown_size": len(failed_action_cooldown),
+        "cooldown_actions": _failed_action_cooldown_rows(list(failed_action_cooldown)),
+    }
+
+
+def _no_selection_proposal_skip_metrics(
+    *,
+    args: argparse.Namespace,
+    metrics: Sequence[Any],
+    will_continue: bool,
+) -> JsonDict:
+    finite_valid_rewards = [
+        reward
+        for metric in metrics
+        if bool(getattr(metric, "valid", False))
+        for reward in [_finite_metric_reward(metric)]
+        if reward is not None
+    ]
+    max_local_delta = max(finite_valid_rewards) if finite_valid_rewards else None
+    if not will_continue:
+        skip_reason = "will_not_continue"
+    elif finite_valid_rewards:
+        skip_reason = "no_positive_local_delta"
+    else:
+        skip_reason = "no_trained_valid_candidate"
+    return {
+        "enabled": bool(int(getattr(args, "proposal_grpo_steps", 0) or 0) > 0),
+        "skipped": True,
+        "policy_update_skipped": True,
+        "skip_reason": skip_reason,
+        "selection_min_reward": float(getattr(args, "selection_min_reward", 0.0)),
+        "trained_valid_candidate_count": len(finite_valid_rewards),
+        "max_local_avg_accuracy_delta": max_local_delta,
+        "message": "No selected candidate; proposal GRPO is skipped to avoid reinforcing least-bad failed actions.",
+    }
+
+
+def evaluate_checkpoint_accuracy(
+    *,
+    args: argparse.Namespace,
+    task: Any,
+    config: Any,
+    checkpoint: str,
+    eval_examples: Sequence[Any],
+) -> tuple[float, Mapping[int, float]]:
+    import torch
+
+    from self.adaptive.candidate import evaluate_model
+    from self.core.model_io import instantiate_model_and_tokenizer
+
+    model, tokenizer = instantiate_model_and_tokenizer(
+        checkpoint,
+        bf16=args.bf16,
+        fp16=args.fp16,
+        init_from_scratch=False,
+        tokenizer_mode=args.tokenizer_mode,
+        recipe=args.recipe,
+    )
+    try:
+        accuracy, per_size_accuracy = evaluate_model(
+            model=model,
+            tokenizer=tokenizer,
+            task=task,
+            examples=eval_examples,
+            batch_size=config.per_device_eval_batch_size,
+            decode_max_new_tokens=config.decode_max_new_tokens,
+        )
+        return float(accuracy), {int(size): float(score) for size, score in per_size_accuracy.items()}
+    finally:
+        del model
+        del tokenizer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+
+def _record_post_grpo_task_eval(
+    *,
+    args: argparse.Namespace,
+    task: Any,
+    config: Any,
+    eval_examples: Sequence[Any] | None,
+    round_dir: Path,
+    checkpoint: str,
+    pre_accuracy: float,
+    pre_per_size_accuracy: Mapping[int, float],
+    proposal_grpo_metrics: JsonDict | None,
+    deps: Any,
+) -> tuple[float, Mapping[int, float]]:
+    if proposal_grpo_metrics is None or bool(proposal_grpo_metrics.get("skipped", True)):
+        return pre_accuracy, pre_per_size_accuracy
+    if config is None or eval_examples is None:
+        proposal_grpo_metrics["post_grpo_task_eval_skipped_reason"] = "missing_eval_context"
+        deps.write_json(round_dir / "proposal_grpo" / "proposal_grpo_metrics.json", proposal_grpo_metrics)
+        return pre_accuracy, pre_per_size_accuracy
+
+    post_accuracy, post_per_size_accuracy = deps.evaluate_checkpoint(
+        args=args,
+        task=task,
+        config=config,
+        checkpoint=checkpoint,
+        eval_examples=eval_examples,
+    )
+    proposal_grpo_metrics.update(
+        {
+            "pre_grpo_task_accuracy": float(pre_accuracy),
+            "post_grpo_task_accuracy": float(post_accuracy),
+            "task_accuracy_delta_after_grpo": float(post_accuracy) - float(pre_accuracy),
+            "pre_grpo_per_size_accuracy": {
+                int(size): float(score) for size, score in pre_per_size_accuracy.items()
+            },
+            "post_grpo_per_size_accuracy": {
+                int(size): float(score) for size, score in post_per_size_accuracy.items()
+            },
+        }
+    )
+    deps.write_json(round_dir / "proposal_grpo" / "proposal_grpo_metrics.json", proposal_grpo_metrics)
+    return post_accuracy, post_per_size_accuracy
 
 
 # --- from attempts.py ---
@@ -394,6 +600,7 @@ class AttemptOutcomeDeps:
     write_json: Callable[[Path, Any], None]
     write_trace_jsonl: Callable[[Path, Sequence[Mapping[str, Any]]], None]
     save_examples: Callable[[Path, Sequence[Any], Callable[[Any], JsonDict]], None]
+    evaluate_checkpoint: Callable[..., tuple[float, Mapping[int, float]]] = evaluate_checkpoint_accuracy
 
 
 @dataclass(frozen=True)
@@ -446,6 +653,7 @@ class AttemptLoopResult:
     proposal_trace_buffer: list[Any]
     outcome_trace_buffer: list[Any]
     proposal_grpo_update_count: int
+    failed_action_cooldown: set[tuple[Any, ...]]
 
 
 __all__ = [
@@ -491,6 +699,7 @@ def handle_no_selection_attempt(
     trace_rows: Sequence[Mapping[str, Any]],
     outcome_traces: Sequence[Any],
     checkpoint_manager: Any,
+    failed_action_cooldown: set[tuple[Any, ...]] | None = None,
     deps: AttemptOutcomeDeps,
 ) -> AttemptOutcomeResult:
     print(
@@ -499,35 +708,23 @@ def handle_no_selection_attempt(
         flush=True,
     )
     consecutive_no_selection += 1
-    proposal_grpo_metrics: Optional[JsonDict] = None
     will_continue = (
         consecutive_no_selection < args.no_selection_patience
         and attempt_index < args.max_attempt_rounds
         and not _selected_cap_reached(args, selected_rounds)
     )
-    if will_continue:
-        previous_checkpoint = current_checkpoint
-        next_checkpoint, proposal_grpo_metrics = deps.apply_or_dispatch_proposal_grpo_update(
-            args=args,
-            source_checkpoint=current_checkpoint,
-            output_dir=round_dir / "proposal_grpo",
-            prompt=prompt,
-            proposal_results=proposal_results,
-            candidate_metrics=metrics,
-            proposal_trace_buffer=proposal_trace_buffer,
-            seed=args.seed + attempt_index * 1543,
-        )
-        if not proposal_grpo_metrics.get("skipped", True):
-            proposal_grpo_update_count += 1
-        deleted_checkpoints = checkpoint_manager.cleanup_replaced_checkpoint(
-            old_checkpoint=previous_checkpoint,
-            new_checkpoint=next_checkpoint,
-        )
-        deleted_replaced_model_dirs.extend(deleted_checkpoints)
-        if deleted_checkpoints:
-            proposal_grpo_metrics["deleted_replaced_model_dirs"] = deleted_checkpoints
-            deps.write_json(round_dir / "proposal_grpo" / "proposal_grpo_metrics.json", proposal_grpo_metrics)
-        current_checkpoint = next_checkpoint
+    failed_action_cooldown = failed_action_cooldown if failed_action_cooldown is not None else set()
+    failed_cooldown_update = _failed_action_cooldown_update(
+        metrics=metrics,
+        min_reward=float(args.selection_min_reward),
+        failed_action_cooldown=failed_action_cooldown,
+    )
+    deps.write_json(output_dir / "failed_action_cooldown.json", failed_cooldown_update["cooldown_actions"])
+    proposal_grpo_metrics: Optional[JsonDict] = _no_selection_proposal_skip_metrics(
+        args=args,
+        metrics=metrics,
+        will_continue=will_continue,
+    )
     attempt_actions = _compact_attempt_actions(
         attempt_index=attempt_index,
         metrics=metrics,
@@ -548,6 +745,7 @@ def handle_no_selection_attempt(
         "source_sizes": sorted(source_sizes),
         "current_checkpoint": current_checkpoint,
         "proposal_grpo": proposal_grpo_metrics,
+        "failed_action_cooldown_update": failed_cooldown_update,
         "deleted_replaced_model_dirs": deleted_replaced_model_dirs,
     }
     summary_records.append(failure_record)
@@ -616,10 +814,17 @@ def handle_selected_attempt(
     trace_rows: Sequence[Mapping[str, Any]],
     outcome_traces: Sequence[Any],
     checkpoint_manager: Any,
+    config: Any = None,
+    eval_examples: Sequence[Any] | None = None,
+    failed_action_cooldown: set[tuple[Any, ...]] | None = None,
     deps: AttemptOutcomeDeps,
 ) -> AttemptOutcomeResult:
     selected_item = next(item for item in work_items if item.index == selected.index)
     selected_rounds += 1
+    failed_action_cooldown = failed_action_cooldown if failed_action_cooldown is not None else set()
+    flushed_failed_actions = _failed_action_cooldown_rows(list(failed_action_cooldown))
+    failed_action_cooldown.clear()
+    deps.write_json(output_dir / "failed_action_cooldown.json", [])
     proposal_trace_history_for_grpo = list(proposal_trace_buffer)
     selected_trace = deps.build_selected_proposal_trace_example(
         task_name=args.task,
@@ -660,6 +865,11 @@ def handle_selected_attempt(
             prompt=prompt,
             proposal_results=proposal_results,
             candidate_metrics=metrics,
+            confirmed_candidate_metrics=(
+                [selected]
+                if getattr(args, "candidate_training_mode", "single_stage") == "two_stage"
+                else []
+            ),
             proposal_trace_buffer=proposal_trace_history_for_grpo,
             seed=args.seed + attempt_index * 1543,
         )
@@ -674,6 +884,18 @@ def handle_selected_attempt(
             proposal_grpo_metrics["deleted_replaced_model_dirs"] = deleted_checkpoints
             deps.write_json(round_dir / "proposal_grpo" / "proposal_grpo_metrics.json", proposal_grpo_metrics)
         current_checkpoint = next_checkpoint
+        current_final_accuracy, current_per_size_accuracy = _record_post_grpo_task_eval(
+            args=args,
+            task=task,
+            config=config,
+            eval_examples=eval_examples,
+            round_dir=round_dir,
+            checkpoint=current_checkpoint,
+            pre_accuracy=current_final_accuracy,
+            pre_per_size_accuracy=current_per_size_accuracy,
+            proposal_grpo_metrics=proposal_grpo_metrics,
+            deps=deps,
+        )
     if deleted_replaced_model_dirs:
         deps.write_json(round_dir / "deleted_replaced_model_dirs.json", deleted_replaced_model_dirs)
     deps.save_examples(
@@ -695,6 +917,7 @@ def handle_selected_attempt(
             "source_sizes_after": sorted(source_sizes),
             "source_example_count_after": len(source_examples),
             "source_admission": source_admission,
+            "failed_action_cooldown_flushed": flushed_failed_actions,
             "current_checkpoint": current_checkpoint,
             "trace_count": len(trace_rows),
             "proposal_trace_buffer_size": len(proposal_trace_buffer),
@@ -723,6 +946,7 @@ def handle_selected_attempt(
             "source_sizes": sorted(source_sizes),
             "source_example_count": len(source_examples),
             "source_admission": source_admission,
+            "failed_action_cooldown_flushed": flushed_failed_actions,
             "current_checkpoint": current_checkpoint,
             "proposal_grpo": proposal_grpo_metrics,
             "deleted_replaced_model_dirs": deleted_replaced_model_dirs,
@@ -781,6 +1005,9 @@ def handle_attempt_outcome(
     selected: Optional[CandidateMetrics],
     trace_rows: Sequence[Mapping[str, Any]],
     checkpoint_manager: Any,
+    config: Any = None,
+    eval_examples: Sequence[Any] | None = None,
+    failed_action_cooldown: set[tuple[Any, ...]] | None = None,
     deps: AttemptOutcomeDeps,
 ) -> AttemptOutcomeResult:
     selected_payload = selected.to_json_dict() if selected is not None else None
@@ -838,6 +1065,7 @@ def handle_attempt_outcome(
             trace_rows=trace_rows,
             outcome_traces=outcome_traces,
             checkpoint_manager=checkpoint_manager,
+            failed_action_cooldown=failed_action_cooldown,
             deps=deps,
         )
 
@@ -867,6 +1095,9 @@ def handle_attempt_outcome(
         trace_rows=trace_rows,
         outcome_traces=outcome_traces,
         checkpoint_manager=checkpoint_manager,
+        config=config,
+        eval_examples=eval_examples,
+        failed_action_cooldown=failed_action_cooldown,
         deps=deps,
     )
 
@@ -874,6 +1105,7 @@ def handle_attempt_outcome(
 # --- from attempts.py ---
 import argparse
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
@@ -906,14 +1138,34 @@ def run_candidate_attempt(
     attempt_index: int,
     selected_rounds: int,
     consecutive_no_selection: int,
+    failed_action_cooldown: set[tuple[Any, ...]] | None = None,
     deps: CandidateAttemptDeps,
 ) -> AttemptOutcomeResult:
+    from self.adaptive.candidate import (
+        confirm_two_stage_candidate,
+        stratified_eval_subset,
+    )
+
     attempt_start = time.monotonic()
     phase_timings: dict[str, float | int | None] = {
         "attempt": int(attempt_index),
         "selected_rounds_before": int(selected_rounds),
     }
     deleted_replaced_model_dirs: list[str] = []
+    two_stage = getattr(args, "candidate_training_mode", "single_stage") == "two_stage"
+    candidate_eval_examples = list(eval_examples)
+    if two_stage:
+        candidate_eval_examples = stratified_eval_subset(
+            task=task,
+            examples=eval_examples,
+            per_size=int(args.rollout_eval_per_size),
+        )
+        deps.attempt_outcome_deps.save_examples(
+            round_dir / "rollout_evaluation.jsonl",
+            candidate_eval_examples,
+            task.serialize_example,
+        )
+        phase_timings["rollout_eval_example_count"] = len(candidate_eval_examples)
     phase_start = time.monotonic()
     round_result = deps.run_round_model_dispatch(
         args=args,
@@ -922,7 +1174,7 @@ def run_candidate_attempt(
         current_checkpoint=current_checkpoint,
         round_dir=round_dir,
         source_examples=source_examples,
-        eval_examples=eval_examples,
+        eval_examples=candidate_eval_examples,
         exclude_keys=exclude_keys,
         source_sizes=source_sizes,
         selected_round_for_prompt=selected_round_for_prompt,
@@ -930,12 +1182,29 @@ def run_candidate_attempt(
         selected_rounds=selected_rounds,
         consecutive_no_selection=consecutive_no_selection,
         init_final_accuracy=init_final_accuracy,
-        extra_aggregate_metrics=_proposal_prompt_extra_metrics(args, proposal_trace_buffer),
+        current_final_accuracy=current_final_accuracy,
+        current_per_size_accuracy=current_per_size_accuracy,
+        extra_aggregate_metrics=_proposal_prompt_extra_metrics_with_cooldown(
+            args,
+            proposal_trace_buffer,
+            failed_action_cooldown or set(),
+        ),
+        failed_action_cooldown=failed_action_cooldown or set(),
         deps=deps.round_model_dispatch_deps,
     )
     phase_timings["round_model_dispatch_seconds"] = time.monotonic() - phase_start
     current_final_accuracy = round_result.current_final_accuracy
     current_per_size_accuracy = round_result.current_per_size_accuracy
+    candidate_baseline_accuracy = (
+        round_result.candidate_baseline_accuracy
+        if round_result.candidate_baseline_accuracy is not None
+        else current_final_accuracy
+    )
+    candidate_baseline_per_size_accuracy = (
+        round_result.candidate_baseline_per_size_accuracy
+        if round_result.candidate_baseline_per_size_accuracy is not None
+        else current_per_size_accuracy
+    )
     prompt = round_result.prompt
     proposal_results = round_result.proposal_results
     work_items = round_result.work_items
@@ -954,9 +1223,9 @@ def run_candidate_attempt(
         round_index=selected_round_for_prompt,
         work_items=work_items,
         round_dir=round_dir,
-        eval_examples=eval_examples,
-        current_final_accuracy=current_final_accuracy,
-        current_per_size_accuracy=current_per_size_accuracy,
+        eval_examples=candidate_eval_examples,
+        current_final_accuracy=candidate_baseline_accuracy,
+        current_per_size_accuracy=candidate_baseline_per_size_accuracy,
         init_final_accuracy=init_final_accuracy,
         config=config,
         attempt_index=attempt_index,
@@ -965,6 +1234,9 @@ def run_candidate_attempt(
     phase_timings["candidate_metric_count"] = len(metrics)
     phase_start = time.monotonic()
     selected = deps.select_candidate(metrics, args.selection_min_reward)
+    if two_stage and selected is not None and selected.reward <= float(args.selection_min_reward):
+        selected = None
+    provisional = selected
     trace_rows = deps.write_round_trace(
         args=args,
         task_name=args.task,
@@ -974,13 +1246,93 @@ def run_candidate_attempt(
         metrics=metrics,
         path=round_dir / "trace_examples.jsonl",
     )
-    deleted_unselected_model_dirs = checkpoint_manager.cleanup_unselected_candidates(metrics=metrics, selected=selected) or []
+    deleted_unselected_model_dirs = checkpoint_manager.cleanup_unselected_candidates(
+        metrics=metrics,
+        selected=None if two_stage else selected,
+    ) or []
     phase_timings["deleted_unselected_model_dir_count"] = len(deleted_unselected_model_dirs)
     if deleted_unselected_model_dirs:
         write_json = getattr(deps.attempt_outcome_deps, "write_json", None)
         if callable(write_json):
             write_json(round_dir / "deleted_unselected_model_dirs.json", deleted_unselected_model_dirs)
     phase_timings["selection_trace_cleanup_seconds"] = time.monotonic() - phase_start
+    phase_timings["provisional_candidate_index"] = (
+        int(provisional.index) if provisional is not None else None
+    )
+    if two_stage and provisional is not None:
+        phase_start = time.monotonic()
+        provisional_item = next(item for item in work_items if item.index == provisional.index)
+        confirmation = confirm_two_stage_candidate(
+            args=args,
+            task=task,
+            current_checkpoint=current_checkpoint,
+            source_examples=source_examples,
+            provisional=provisional,
+            work_item=provisional_item,
+            round_dir=round_dir,
+            eval_examples=eval_examples,
+            current_final_accuracy=current_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
+            init_final_accuracy=init_final_accuracy,
+            config=config,
+            seed=args.seed + attempt_index * 104729,
+        )
+        phase_timings["selected_confirmation_seconds"] = time.monotonic() - phase_start
+        phase_timings["selected_confirmation_accepted"] = int(confirmation.accepted)
+        phase_timings["selected_confirmation_reward"] = float(confirmation.metrics.reward)
+        matching_results = []
+        for result in proposal_results:
+            try:
+                result_index = int(result.get("candidate_proposal_index", result.get("proposal_index", -1)))
+            except (TypeError, ValueError):
+                continue
+            if result_index == provisional.index and not bool(result.get("candidate_dedup_skipped")):
+                matching_results = [result]
+                break
+        confirmed_traces = deps.attempt_outcome_deps.build_round_outcome_trace_examples(
+            args=args,
+            task_name=args.task,
+            condition=args.condition,
+            round_index=selected_round_for_prompt,
+            proposal_results=matching_results,
+            metrics=[confirmation.metrics],
+            selected=confirmation.metrics if confirmation.accepted else None,
+            source_sizes=sorted(source_sizes),
+            frontier_min=args.frontier_min_size,
+            frontier_max=args.frontier_max_size,
+            current_final_accuracy=current_final_accuracy,
+            init_final_accuracy=init_final_accuracy,
+            current_per_size_accuracy=current_per_size_accuracy,
+        )
+        confirmed_traces = [
+            replace(
+                trace,
+                metadata={
+                    **dict(trace.metadata),
+                    "fidelity": "confirmed_full",
+                    "provisional_screen_reward": float(provisional.reward),
+                    "confirmation_accepted": bool(confirmation.accepted),
+                },
+            )
+            for trace in confirmed_traces
+        ]
+        if confirmed_traces:
+            outcome_trace_buffer.extend(confirmed_traces)
+            deps.attempt_outcome_deps.write_trace_jsonl(
+                round_dir / "confirmed_outcome_trace.jsonl",
+                [trace.to_json_dict() for trace in confirmed_traces],
+            )
+        if confirmation.accepted:
+            selected = confirmation.metrics
+            work_items = [
+                confirmation.work_item if item.index == selected.index else item
+                for item in work_items
+            ]
+        else:
+            selected = None
+            action_key = _metric_config_action_key(confirmation.metrics)
+            if action_key is not None and failed_action_cooldown is not None:
+                failed_action_cooldown.add(action_key)
     phase_timings["selected_candidate_index"] = int(selected.index) if selected is not None else None
     phase_start = time.monotonic()
     outcome_result = deps.handle_attempt_outcome(
@@ -1011,6 +1363,9 @@ def run_candidate_attempt(
         selected=selected,
         trace_rows=trace_rows,
         checkpoint_manager=checkpoint_manager,
+        config=config,
+        eval_examples=eval_examples,
+        failed_action_cooldown=failed_action_cooldown,
         deps=deps.attempt_outcome_deps,
     )
     phase_timings["attempt_outcome_seconds"] = time.monotonic() - phase_start
@@ -1063,6 +1418,7 @@ def run_adaptive_attempt_loop(
     proposal_trace_buffer: list[Any] = []
     outcome_trace_buffer: list[Any] = []
     proposal_grpo_update_count = 0
+    failed_action_cooldown: set[tuple[Any, ...]] = set()
     candidate_attempt_deps = CandidateAttemptDeps(
         run_round_model_dispatch=deps.run_round_model_dispatch,
         train_candidate_metrics=deps.train_candidate_metrics,
@@ -1096,7 +1452,11 @@ def run_adaptive_attempt_loop(
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
             proposal_trace_buffer=proposal_trace_buffer,
-            extra_aggregate_metrics={},
+            extra_aggregate_metrics=_proposal_prompt_extra_metrics_with_cooldown(
+                args,
+                proposal_trace_buffer,
+                failed_action_cooldown,
+            ),
             deps=deps.attempt_prompt_deps,
         )
         prompt = attempt_prompt.prompt
@@ -1150,6 +1510,7 @@ def run_adaptive_attempt_loop(
             attempt_index=attempt_index,
             selected_rounds=selected_rounds,
             consecutive_no_selection=consecutive_no_selection,
+            failed_action_cooldown=failed_action_cooldown,
             deps=candidate_attempt_deps,
         )
         selected_rounds = outcome_result.selected_rounds
@@ -1171,4 +1532,5 @@ def run_adaptive_attempt_loop(
         proposal_trace_buffer=proposal_trace_buffer,
         outcome_trace_buffer=outcome_trace_buffer,
         proposal_grpo_update_count=proposal_grpo_update_count,
+        failed_action_cooldown=set(failed_action_cooldown),
     )
