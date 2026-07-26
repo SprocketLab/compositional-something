@@ -419,3 +419,26 @@ def test_controlled_evaluation_skips_incompatible_schema_collisions():
             )
         ids = [evaluation.source_id for evaluation in examples]
         assert ids == sorted(ids) and len(set(ids)) == 8
+
+
+def test_paired_repeat_ids_separate_renders_of_one_semantic_pair():
+    items = [
+        example(f"rep-{index}", f"function-{index}", f"Wait {index + 3} seconds", "time", index + 3, "integer")
+        for index in range(6)
+    ]
+    public, oracle, _audit = build_round1_repeat_candidates(
+        items,
+        split="hidden_composition",
+        seed=7,
+        max_variants_per_source=2,
+        template_partition="train",
+        # Two renders of one pair share their leaf sources but not their prompt.
+        renders_per_pair=2,
+    )
+    paired_public, _paired_oracle = build_next_repeat_candidates(
+        public, oracle, round_index=2, component_call_count=2, seed=7, count=12
+    )
+    ids = [row["candidate_id"] for row in paired_public]
+    assert len(set(ids)) == len(ids)
+    questions = [row["question"] for row in paired_public]
+    assert len(set(questions)) == len(questions)

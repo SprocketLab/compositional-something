@@ -13,8 +13,14 @@ from self.experiments.bfcl_cumulative_size_sweep import (
     _cell_grid,
     _family_quota,
     _materialize,
+    _checkpoint_adapters,
     _run_grid,
     _training_flags,
+)
+from self.coding.bfcl_composition import (
+    build_controlled_evaluation_candidates,
+    compose_component_predictions,
+    oracle_example,
 )
 from self.experiments.bfcl_compositional_pilot import _evaluation_sets
 
@@ -39,7 +45,10 @@ def atomic(source_id: str) -> AtomicExample:
         split="train",
         messages=({"role": "user", "content": source_id},),
         target=canonical_json([{"name": function["name"], "arguments": {"x": 1}}]),
-        evaluator={"functions": [function], "accepted_calls": []},
+        evaluator={
+            "functions": [function],
+            "accepted_calls": [{"name": function["name"], "arguments": {"x": [1]}}],
+        },
         source_component_ids=(source_id,),
         metadata={"question": source_id},
     )
@@ -151,10 +160,15 @@ def test_launcher_dry_run_uses_arrays_afterany_and_short_h200_jobs(tmp_path: Pat
     )
     output = completed.stdout + completed.stderr
     commands = [line for line in output.splitlines() if line.startswith("[INFO] Command: sbatch")]
-    assert len(commands) == 4
+    assert len(commands) == 5
     assert sum("--array=0-14%4" in line for line in commands) == 1
-    assert sum("--gres=gpu:h200:1" in line for line in commands) == 2
+    assert sum("--gres=gpu:h200:1" in line for line in commands) == 3
     assert sum("--dependency=afterany:" in line for line in commands) == 3
+    # Seed and frozen composition need only the seed adapter, so the baseline
+    # job runs unblocked alongside round 1.
+    baseline = [line for line in commands if "bfcl-size-baselines" in line]
+    assert len(baseline) == 1 and "--dependency" not in baseline[0]
+    assert "evaluate-baselines" in output
     assert "bfcl-size-r1-mat" in output
     assert "bfcl-size-stage-r2-gen" in output
     assert "continue-submit" in output
@@ -191,3 +205,42 @@ def test_training_budget_flags_reach_generated_commands():
     args = SimpleNamespace(max_steps=50, checkpoint_steps=(10, 20, 50))
     assert _training_flags(args) == ["--max-steps", "50", "--checkpoint-steps", "10,20,50"]
     assert _training_flags(SimpleNamespace(max_steps=None, checkpoint_steps=())) == []
+
+
+def test_checkpoint_adapters_are_ordered_and_include_the_final_step(tmp_path: Path):
+    for step in (10, 50, 20):
+        (tmp_path / f"adapter_step_{step:04d}").mkdir(parents=True)
+    (tmp_path / "adapter").mkdir()
+    (tmp_path / "metrics.json").write_text(json.dumps({"max_steps": 125}), encoding="utf-8")
+    found = _checkpoint_adapters(tmp_path)
+    assert [step for step, _path in found] == [10, 20, 50, 125]
+    assert found[-1][1].name == "adapter"
+    # A round that trained without intermediate checkpoints still resolves.
+    bare = tmp_path / "bare"
+    (bare / "adapter").mkdir(parents=True)
+    (bare / "metrics.json").write_text(json.dumps({"max_steps": 30}), encoding="utf-8")
+    assert [step for step, _path in _checkpoint_adapters(bare)] == [30]
+    assert _checkpoint_adapters(tmp_path / "empty") == []
+
+
+def test_frozen_composition_recomposes_evaluation_items(tmp_path: Path):
+    items = [atomic(f"s{index}") for index in range(4)]
+    cells = build_controlled_evaluation_candidates(
+        items, component_counts=(2,), examples_per_cell=4, seed=7
+    )
+    public, oracle = cells["controlled_seen_2"]
+    examples = [oracle_example(row, hidden) for row, hidden in zip(public, oracle)]
+    raw = {
+        str(spec["component_id"]): canonical_json(
+            [{"name": f"f_{spec['source_component_ids'][0]}", "arguments": {"x": 1}}]
+        )
+        for candidate in public
+        for spec in candidate["component_specs"]
+    }
+    predictions = [
+        compose_component_predictions(candidate, raw, level="g1")["composed_target"]
+        for candidate in public
+    ]
+    for candidate, prediction, example in zip(public, predictions, examples):
+        assert json.loads(prediction) == json.loads(example.target)
+        assert len(json.loads(prediction)) == candidate["component_count"]

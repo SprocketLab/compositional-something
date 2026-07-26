@@ -912,8 +912,9 @@ def build_round2_repeat_candidates(
             )
         template_ids = TRAIN_TEMPLATE_IDS if template_partition == "train" else HELDOUT_TEMPLATE_IDS
         template_id = template_ids[index % len(template_ids)]
-        ids = [str(value) for row in pair for value in row["source_component_ids"]]
-        candidate_id = _candidate_id(2, "paired_repeat", ids)
+        candidate_id = _candidate_id(
+            2, "paired_repeat", [str(row["candidate_id"]) for row in pair]
+        )
         public, oracle = _make_candidate(
             round_index=2,
             split=split,
@@ -1014,7 +1015,11 @@ def build_next_repeat_candidates(
                 }
             )
         leaf_ids = [str(value) for row in pair for value in row["source_component_ids"]]
-        candidate_id = _candidate_id(round_index, "paired_repeat", leaf_ids)
+        # Two renders of one semantic pair share their leaf sources, so the ID
+        # must come from the rendered components or it collides.
+        candidate_id = _candidate_id(
+            round_index, "paired_repeat", [str(row["candidate_id"]) for row in pair]
+        )
         public, oracle = _make_candidate(
             round_index=round_index,
             split=split,
@@ -1342,7 +1347,34 @@ def build_controlled_evaluation(
     seed: int,
     component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Dict[str, List[AtomicExample]]:
-    output: Dict[str, List[AtomicExample]] = {}
+    return {
+        name: [oracle_example(public, oracle) for public, oracle in zip(*rows)]
+        for name, rows in build_controlled_evaluation_candidates(
+            test_examples,
+            component_counts=component_counts,
+            examples_per_cell=examples_per_cell,
+            seed=seed,
+            component_context=component_context,
+        ).items()
+    }
+
+
+def build_controlled_evaluation_candidates(
+    test_examples: Sequence[AtomicExample],
+    *,
+    component_counts: Sequence[int] = (2, 4, 8),
+    examples_per_cell: int = 200,
+    seed: int,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
+) -> Dict[str, Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]]:
+    """Controlled cells as candidate records, keeping the component specs.
+
+    The frozen-composition baseline decomposes evaluation items the same way
+    the learned conditions decompose training items, so it needs the specs
+    rather than only the flattened evaluation examples.
+    """
+
+    output: Dict[str, Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]] = {}
     for partition, template_ids in (
         ("seen", TRAIN_TEMPLATE_IDS),
         ("heldout", HELDOUT_TEMPLATE_IDS),
@@ -1356,10 +1388,11 @@ def build_controlled_evaluation(
                 seed=seed,
                 key=f"eval-{partition}-{arity}",
             )
-            examples: List[AtomicExample] = []
+            public_rows: List[Dict[str, Any]] = []
+            oracle_rows: List[Dict[str, Any]] = []
             rejected_incompatible = 0
             for group in groups:
-                index = len(examples)
+                index = len(public_rows)
                 template_id = template_ids[index % len(template_ids)]
                 try:
                     public, oracle = _make_candidate(
@@ -1382,16 +1415,17 @@ def build_controlled_evaluation(
                         raise
                     rejected_incompatible += 1
                     continue
-                examples.append(oracle_example(public, oracle))
-                if len(examples) == examples_per_cell:
+                public_rows.append(public)
+                oracle_rows.append(oracle)
+                if len(public_rows) == examples_per_cell:
                     break
-            if len(examples) != examples_per_cell:
+            if len(public_rows) != examples_per_cell:
                 raise ValueError(
-                    f"Built only {len(examples)} of {examples_per_cell} compatible "
+                    f"Built only {len(public_rows)} of {examples_per_cell} compatible "
                     f"{arity}-call {partition} evaluation examples; "
                     f"rejected {rejected_incompatible}"
                 )
-            output[f"controlled_{partition}_{arity}"] = examples
+            output[f"controlled_{partition}_{arity}"] = (public_rows, oracle_rows)
     return output
 
 

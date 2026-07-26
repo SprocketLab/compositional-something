@@ -1322,6 +1322,51 @@ Note the direction of the old bias: G4 filtering removes some malformed direct
 labels, so the Section 31.4 precision comparison understated rather than
 overstated composition's advantage.
 
+### 35.5 Checkpoint scoring and the Seed/Frozen baselines
+
+Saving adapters mid-run is useless without something that scores them, and
+Section 33.3's Phase C needs Seed and Frozen arms that the cumulative sweep did
+not implement. Two subcommands close both gaps:
+
+- `evaluate-checkpoints --round N --cell-index K` scores every `adapter_step_*`
+  plus the final adapter. It defaults to `--sets validation`, so the curve and
+  any selection read only validation cells; `--sets all` must be requested
+  explicitly. Reporting the whole accuracy-versus-updates curve is preferable to
+  quoting one selected step, because it shows whether a conclusion survives the
+  budget rather than holding at one lucky step count.
+- `evaluate-baselines` runs seed-direct evaluation and frozen recursive
+  composition from the seed adapter, with no training. Frozen composition
+  decomposes each evaluation item using that item's own persisted component
+  specs and the same guard as the learned arms (`--frozen-guard`, default `g1`),
+  so it is a like-for-like control rather than a separately implemented path.
+  `prepare` now persists evaluation candidates under
+  `data/evaluation/candidates/` to make this possible. The job has no
+  dependencies and is submitted alongside Round 1; `collect` merges its rows at
+  `round = 0`.
+
+### 35.6 Known limitations of these repairs
+
+Recorded so they are not mistaken for settled design:
+
+1. Clause order is the concatenation of component clause orders, so each
+   component's clauses occupy a contiguous block of the parent request. Nothing
+   announces the block structure, but a stricter construction would interleave
+   clauses and permute the target to match — which requires assuming component
+   outputs arrive in component clause order.
+2. Each example has exactly one schema permutation, fixed across rounds. This
+   removes the shortcut but cannot teach order invariance by augmentation;
+   resampling the order at each refresh would be stronger.
+3. Under `candidate_union` the number of schemas a component must select from
+   equals the parent's call count, so selection difficulty and frontier size
+   move together. Distractor tiers (Phase A item 3) remain unimplemented and are
+   what would separate them.
+4. The validation pool is 40 atoms, so its 100-example multi-call cells share
+   sources heavily and the effective sample is well below 100. Checkpoint
+   ranking should be read with a source-clustered bootstrap, not point
+   estimates.
+5. The construction audit shows the data is well formed. It cannot show that the
+   corrected data trains better; only a run can.
+
 ---
 
 ## References

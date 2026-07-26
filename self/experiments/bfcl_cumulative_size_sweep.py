@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import torch
 
+from self.coding.evaluation import evaluate_predictions
 from self.coding.atomic_data import (
     AtomicExample,
     read_examples,
@@ -28,7 +29,7 @@ from self.coding.atomic_data import (
 )
 from self.coding.bfcl_composition import (
     COMPONENT_CONTEXT_MODES,
-    build_controlled_evaluation,
+    build_controlled_evaluation_candidates,
     build_hierarchical_cross_candidates,
     build_next_repeat_candidates,
     build_round1_repeat_candidates,
@@ -52,6 +53,8 @@ from self.experiments.bfcl_compositional_pilot import (
     DEFAULT_SEED_ADAPTER,
     _condition_decisions,
     _evaluate_all,
+    _evaluate_split,
+    _evaluation_sets,
     _filter_training_length,
     _generate_rows,
     _persist_decisions,
@@ -61,6 +64,8 @@ from self.experiments.bfcl_compositional_pilot import (
     _unique_component_specs,
 )
 from self.coding.bfcl_composition import (
+    compose_component_predictions,
+    oracle_example,
     public_candidate_to_example,
     public_spec_to_example,
 )
@@ -105,6 +110,10 @@ def _read_json(path: Path) -> Dict[str, Any]:
 
 def _read_json_any(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _raw_map_rows(rows: Sequence[Mapping[str, Any]], id_key: str) -> Dict[str, str]:
+    return {str(row[id_key]): str(row["prediction"]) for row in rows}
 
 
 def _cell_grid(
@@ -194,6 +203,10 @@ def _length_filter_and_take(
         )
     chosen_public = kept_public[:count]
     chosen_ids = {str(row["candidate_id"]) for row in chosen_public}
+    if len(chosen_ids) != count:
+        raise AssertionError(
+            f"Candidate IDs are not unique: {count} rows carry {len(chosen_ids)} IDs"
+        )
     chosen_oracle = [row for row in kept_oracle if str(row["candidate_id"]) in chosen_ids]
     if len(chosen_oracle) != count:
         raise AssertionError("Public/oracle candidate counts diverged")
@@ -231,8 +244,8 @@ def prepare(args: argparse.Namespace) -> None:
             "hidden_composition": len(hidden),
             "total": len(source_pool),
         },
-        "candidate_pool": CANDIDATE_POOL,
-        "repeat_pool": REPEAT_POOL,
+        "candidate_pool": args.candidate_pool,
+        "repeat_pool": args.repeat_pool,
         "max_length": MAX_LENGTH,
         "regimes": {},
     }
@@ -241,12 +254,12 @@ def prepare(args: argparse.Namespace) -> None:
         public, oracle = build_hierarchical_cross_candidates(
             source_pool,
             component_count=calls,
-            count=CANDIDATE_POOL + 1000,
+            count=args.candidate_pool + 1000,
             seed=args.data_seed,
             component_context=args.component_context,
         )
         public, oracle, length_audit = _length_filter_and_take(
-            tokenizer, public, oracle, count=CANDIDATE_POOL
+            tokenizer, public, oracle, count=args.candidate_pool
         )
         _write_candidates(args.run_root, calls, "cross", public, oracle)
         audit["regimes"][f"calls_{calls}_cross"] = {
@@ -267,7 +280,7 @@ def prepare(args: argparse.Namespace) -> None:
         component_context=args.component_context,
     )
     repeat2_public, repeat2_oracle, repeat2_lengths = _length_filter_and_take(
-        tokenizer, repeat2_public, repeat2_oracle, count=REPEAT_POOL
+        tokenizer, repeat2_public, repeat2_oracle, count=args.repeat_pool
     )
     _write_candidates(args.run_root, 2, "repeat", repeat2_public, repeat2_oracle)
     audit["regimes"]["calls_2_repeat"] = {
@@ -284,11 +297,11 @@ def prepare(args: argparse.Namespace) -> None:
             round_index=round_index,
             component_call_count=calls // 2,
             seed=args.data_seed,
-            count=REPEAT_POOL + 200,
+            count=args.repeat_pool + 200,
             component_context=args.component_context,
         )
         public, oracle, length_audit = _length_filter_and_take(
-            tokenizer, public, oracle, count=REPEAT_POOL
+            tokenizer, public, oracle, count=args.repeat_pool
         )
         _write_candidates(args.run_root, calls, "repeat", public, oracle)
         audit["regimes"][f"calls_{calls}_repeat"] = {
@@ -301,21 +314,33 @@ def prepare(args: argparse.Namespace) -> None:
         previous_public, previous_oracle = public, oracle
 
     sets_root = args.run_root / "data/evaluation/sets"
+    candidates_root = args.run_root / "data/evaluation/candidates"
     write_examples(sets_root / "atomic_test.jsonl", test)
-    controlled = build_controlled_evaluation(test, seed=args.data_seed)
-    for name, examples in controlled.items():
-        write_examples(sets_root / f"{name}.jsonl", examples)
+    for name, (public, oracle) in build_controlled_evaluation_candidates(
+        test, seed=args.data_seed, component_context=args.component_context
+    ).items():
+        write_examples(
+            sets_root / f"{name}.jsonl",
+            [oracle_example(row, hidden) for row, hidden in zip(public, oracle)],
+        )
+        # The frozen baseline decomposes evaluation items, so it needs specs.
+        write_jsonl(candidates_root / f"{name}.jsonl", public)
     # Hyperparameter selection reads these; the test cells above stay closed
     # until the recipe is frozen.
     validation_root = args.run_root / "data/evaluation/validation_sets"
     write_examples(validation_root / "atomic.jsonl", validation)
-    for name, examples in build_controlled_evaluation(
+    for name, (public, oracle) in build_controlled_evaluation_candidates(
         validation,
         component_counts=VALIDATION_CALL_COUNTS,
         examples_per_cell=VALIDATION_EXAMPLES_PER_CELL,
         seed=args.data_seed,
+        component_context=args.component_context,
     ).items():
-        write_examples(validation_root / f"{name}.jsonl", examples)
+        write_examples(
+            validation_root / f"{name}.jsonl",
+            [oracle_example(row, hidden) for row, hidden in zip(public, oracle)],
+        )
+        write_jsonl(candidates_root / f"validation_{name}.jsonl", public)
     for name in ("natural_parallel", "natural_parallel_multiple"):
         write_examples(
             sets_root / f"{name}.jsonl",
@@ -343,8 +368,8 @@ def prepare(args: argparse.Namespace) -> None:
         "component_context": args.component_context,
         "round_regimes": {str(key): list(value) for key, value in CALLS_BY_ROUND.items()},
         "source_pool": {"seed_train": 240, "hidden_composition": 60},
-        "candidate_pool": CANDIDATE_POOL,
-        "repeat_pool": REPEAT_POOL,
+        "candidate_pool": args.candidate_pool,
+        "repeat_pool": args.repeat_pool,
         "max_length": MAX_LENGTH,
         "learning_rate": LEARNING_RATE,
         "effective_batch_size": EFFECTIVE_BATCH_SIZE,
@@ -486,12 +511,13 @@ def generate_round1_shared(args: argparse.Namespace) -> None:
             id_key="candidate_id",
         )
         write_jsonl(output_dir / "cross/direct.jsonl", direct_rows)
+        repeat_public = _load_candidates(args.run_root, 2, "repeat")[0]
         for family, candidates in (
             ("cross", cross_public),
             (
                 "repeat",
-                _load_candidates(args.run_root, 2, "repeat")[0][
-                    : _quota_limit(round(largest_size * 0.20), REPEAT_POOL)
+                repeat_public[
+                    : _quota_limit(round(largest_size * 0.20), len(repeat_public))
                 ],
             ),
         ):
@@ -835,6 +861,173 @@ def train_evaluate(args: argparse.Namespace) -> None:
                 torch.cuda.empty_cache()
 
 
+def _checkpoint_adapters(round_dir: Path) -> List[Tuple[int, Path]]:
+    """Every saved adapter for a round, keyed by optimizer step."""
+
+    found: List[Tuple[int, Path]] = []
+    for path in sorted(round_dir.glob("adapter_step_*")):
+        if path.is_dir():
+            found.append((int(path.name.rsplit("_", 1)[1]), path))
+    final = round_dir / "adapter"
+    metrics_path = round_dir / "metrics.json"
+    if final.is_dir() and metrics_path.exists():
+        found.append((int(_read_json(metrics_path)["max_steps"]), final))
+    return sorted(found)
+
+
+def evaluate_checkpoints(args: argparse.Namespace) -> None:
+    """Score every saved checkpoint so a training length can be selected.
+
+    Defaults to the validation cells only: selecting a checkpoint on the test
+    cells and then reporting those same cells inflates the reported number.
+    """
+
+    cell = _cell(args)
+    round_dir = _cell_round_dir(args.run_root, cell, args.round)
+    checkpoints = _checkpoint_adapters(round_dir)
+    if not checkpoints:
+        raise FileNotFoundError(f"No adapters to evaluate under {round_dir}")
+    wanted = [
+        (name, examples)
+        for name, examples in _evaluation_sets(args.run_root)
+        if args.sets == "all" or name.startswith("validation_")
+    ]
+    if not wanted:
+        raise FileNotFoundError(
+            "No validation cells in this run; re-prepare to build them, or pass --sets all"
+        )
+    rows: List[Dict[str, Any]] = []
+    for step, adapter in checkpoints:
+        model = None
+        try:
+            model, tokenizer = load_adapter_for_evaluation(args.model_name, adapter)
+            for name, examples in wanted:
+                summary = _evaluate_split(
+                    model=model,
+                    tokenizer=tokenizer,
+                    examples=examples,
+                    batch_size=args.eval_batch_size,
+                    output_path=round_dir
+                    / f"checkpoint_evaluation/step_{step:04d}/predictions"
+                    / f"{name}.jsonl",
+                )
+                rows.append(
+                    {
+                        "cell_id": cell["cell_id"],
+                        "round": args.round,
+                        "step": step,
+                        "adapter": str(adapter),
+                        "dataset": name,
+                        "count": summary["count"],
+                        "exact_accuracy": summary["exact_accuracy"],
+                        "format_accuracy": summary["format_accuracy"],
+                    }
+                )
+        finally:
+            if model is not None:
+                del model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+    write_json(
+        round_dir / "checkpoint_evaluation/summary.json",
+        {
+            "cell": dict(cell),
+            "round": args.round,
+            "selection_sets": args.sets,
+            "steps": [step for step, _adapter in checkpoints],
+            "rows": rows,
+        },
+    )
+    print(json.dumps({"cell": cell["cell_id"], "rows": len(rows)}, sort_keys=True))
+
+
+def evaluate_baselines(args: argparse.Namespace) -> None:
+    """Seed-direct and frozen recursive composition, neither of which trains.
+
+    Frozen composition answers each evaluation item by composing the seed
+    model's predictions on that item's own components, so it uses the same
+    decomposition and guard as the learned composition arms.
+    """
+
+    output_dir = args.run_root / "baselines"
+    complete = output_dir / "BASELINES_COMPLETE"
+    if complete.exists() and args.resume:
+        print(f"[INFO] Baselines already evaluated: {output_dir}")
+        return
+    candidates_root = args.run_root / "data/evaluation/candidates"
+    model = None
+    try:
+        model, tokenizer = load_adapter_for_evaluation(args.model_name, args.seed_adapter)
+        seed_summaries = _evaluate_all(
+            model=model,
+            tokenizer=tokenizer,
+            run_root=args.run_root,
+            output_dir=output_dir / "seed/evaluation",
+            batch_size=args.eval_batch_size,
+        )
+        frozen_summaries: Dict[str, Any] = {}
+        for name, examples in _evaluation_sets(args.run_root):
+            candidate_path = candidates_root / f"{name}.jsonl"
+            if not candidate_path.exists():
+                frozen_summaries[name] = {
+                    "status": "not_decomposable",
+                    "count": len(examples),
+                }
+                continue
+            candidates = read_jsonl(candidate_path)
+            specs = _unique_component_specs(candidates)
+            largest = max(int(spec["expected_call_count"]) for spec in specs)
+            raw = _raw_map_rows(
+                _generate_rows(
+                    model=model,
+                    tokenizer=tokenizer,
+                    examples=[public_spec_to_example(spec) for spec in specs],
+                    identifiers=[str(spec["component_id"]) for spec in specs],
+                    batch_size=args.eval_batch_size,
+                    max_new_tokens=max(128, 64 * largest + 32),
+                    id_key="component_id",
+                ),
+                "component_id",
+            )
+            predictions: List[str] = []
+            decisions: List[Dict[str, Any]] = []
+            for candidate in candidates:
+                decision = compose_component_predictions(
+                    candidate, raw, level=args.frozen_guard
+                )
+                predictions.append(decision["composed_target"] or "[]")
+                decisions.append(decision)
+            summary, evaluation_rows = evaluate_predictions(examples, predictions)
+            frozen_summaries[name] = summary
+            write_jsonl(
+                output_dir / "frozen/evaluation/predictions" / f"{name}.jsonl",
+                evaluation_rows,
+            )
+            write_jsonl(
+                output_dir / "frozen/evaluation/decisions" / f"{name}.jsonl", decisions
+            )
+    finally:
+        if model is not None:
+            del model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    write_json(
+        output_dir / "summary.json",
+        {
+            "seed": {"adapter": str(args.seed_adapter), "evaluation": seed_summaries},
+            "frozen": {
+                "guard_level": args.frozen_guard,
+                "adapter": str(args.seed_adapter),
+                "evaluation": frozen_summaries,
+            },
+        },
+    )
+    complete.touch()
+    print(json.dumps({"seed": seed_summaries, "frozen": frozen_summaries}, sort_keys=True))
+
+
 def collect(args: argparse.Namespace) -> None:
     rows: List[Dict[str, Any]] = []
     failures: List[Dict[str, Any]] = []
@@ -867,6 +1060,28 @@ def collect(args: argparse.Namespace) -> None:
                     }
                 )
         completed_cells += int(cell_complete)
+    baselines_path = args.run_root / "baselines/summary.json"
+    if baselines_path.exists():
+        baselines = _read_json(baselines_path)
+        for condition, payload in baselines.items():
+            for dataset, entry in payload["evaluation"].items():
+                if "exact_accuracy" not in entry:
+                    continue  # e.g. natural cells the frozen arm cannot decompose
+                rows.append(
+                    {
+                        "cell_index": -1,
+                        "size": 0,
+                        "condition": condition,
+                        "round": 0,
+                        "dataset": dataset,
+                        "count": entry["count"],
+                        "exact_accuracy": entry["exact_accuracy"],
+                        "format_accuracy": entry["format_accuracy"],
+                        "behavior_valid_accuracy": entry["behavior_valid_accuracy"],
+                    }
+                )
+    else:
+        failures.append({"cell_id": "baselines", "round": 0, "missing": "summary.json"})
     summary = {
         "experiment": "bfcl_cumulative_size_sweep",
         "completed_cells": completed_cells,
@@ -1103,6 +1318,15 @@ def submit(args: argparse.Namespace) -> None:
         gpu=True,
         time_limit="01:00:00",
     )
+    baselines = _submit_job(
+        args=args,
+        command=_command(args, "evaluate-baselines"),
+        name="bfcl-size-baselines",
+        dependency=None,
+        gpu=True,
+        time_limit="01:00:00",
+    )
+    jobs["baselines"] = baselines
     round1_materialize = _submit_job(
         args=args,
         command=_command(args, "materialize-round1-shared"),
@@ -1173,6 +1397,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(prepare_parser)
     prepare_parser.add_argument("--data-seed", type=int, default=EXPERIMENT_SEED)
     prepare_parser.add_argument(
+        "--candidate-pool",
+        type=int,
+        default=CANDIDATE_POOL,
+        help="Cross-family candidates built per regime; must exceed the largest quota.",
+    )
+    prepare_parser.add_argument(
+        "--repeat-pool", type=int, default=REPEAT_POOL, help="Repeat-family candidates per regime."
+    )
+    prepare_parser.add_argument(
         "--sizes",
         type=lambda value: tuple(int(item) for item in value.split(",")),
         default=SIZES,
@@ -1207,6 +1440,29 @@ def build_parser() -> argparse.ArgumentParser:
         if command == "train-evaluate":
             child.add_argument("--micro-batch-size", type=int, default=2)
             _add_training_budget(child)
+    checkpoints_parser = sub.add_parser("evaluate-checkpoints")
+    _add_common(checkpoints_parser)
+    checkpoints_parser.add_argument("--round", type=int, choices=(1, 2, 3), required=True)
+    checkpoints_parser.add_argument("--cell-index", type=int)
+    checkpoints_parser.add_argument("--eval-batch-size", type=int, default=8)
+    checkpoints_parser.add_argument(
+        "--sets",
+        choices=("validation", "all"),
+        default="validation",
+        help=(
+            "Which cells to score.  Selecting a checkpoint on the test cells "
+            "and then reporting those cells inflates the reported number."
+        ),
+    )
+    baselines_parser = sub.add_parser("evaluate-baselines")
+    _add_common(baselines_parser)
+    baselines_parser.add_argument("--eval-batch-size", type=int, default=8)
+    baselines_parser.add_argument(
+        "--frozen-guard",
+        choices=("g1", "g4"),
+        default="g1",
+        help="Guard for frozen composition; g1 matches the primary condition.",
+    )
     collect_parser = sub.add_parser("collect")
     _add_common(collect_parser)
     submit_parser = sub.add_parser("submit")
@@ -1261,6 +1517,10 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         generate_materialize(args)
     elif args.command == "train-evaluate":
         train_evaluate(args)
+    elif args.command == "evaluate-checkpoints":
+        evaluate_checkpoints(args)
+    elif args.command == "evaluate-baselines":
+        evaluate_baselines(args)
     elif args.command == "collect":
         collect(args)
     elif args.command == "submit":
