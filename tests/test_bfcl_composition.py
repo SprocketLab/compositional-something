@@ -14,7 +14,9 @@ from self.coding.bfcl_composition import (
     build_round1_repeat_candidates,
     build_round2_cross_candidates,
     build_controlled_evaluation,
+    _messages,
     compose_component_predictions,
+    guard_direct_prediction,
     guard_prediction,
     oracle_example,
     render_joined_request,
@@ -340,3 +342,80 @@ def test_schema_presentation_order_is_independent_of_clause_order():
     assert [row["schema_order"] for row in reordered] == [
         row["schema_order"] for row in public
     ]
+
+
+def test_candidate_union_context_gives_components_the_parent_schema_choice():
+    items = _sources(8)
+    public, oracle = build_hierarchical_cross_candidates(
+        items,
+        component_count=4,
+        count=6,
+        seed=7,
+        component_context="candidate_union",
+    )
+    for candidate, hidden in zip(public, oracle):
+        union = {str(function["name"]) for function in candidate["functions"]}
+        component_ids = [str(spec["component_id"]) for spec in candidate["component_specs"]]
+        assert component_ids == [str(row["component_id"]) for row in hidden["component_oracles"]]
+        for spec in candidate["component_specs"]:
+            assert {str(f["name"]) for f in spec["functions"]} == union
+            # The clause-to-schema mapping is kept for audit but not rendered.
+            assert len(spec["relevant_function_names"]) == 2
+            rendered = spec["messages"][-1]["content"]
+            assert rendered == _messages(spec["question"], spec["functions"])[-1]["content"]
+            assert all(name in rendered for name in union)
+        # Component prompts now depend on the parent, so IDs must not collide.
+        assert all(spec["component_id"].startswith("ctx-") for spec in candidate["component_specs"])
+    assert len({
+        spec["component_id"] for candidate in public for spec in candidate["component_specs"]
+    }) == 2 * len(public)
+
+
+def test_component_schemas_context_remains_the_default():
+    items = _sources(8)
+    public, _oracle = build_hierarchical_cross_candidates(
+        items, component_count=4, count=4, seed=7
+    )
+    for candidate in public:
+        for spec in candidate["component_specs"]:
+            assert len(spec["functions"]) == 2
+            assert "relevant_function_names" not in spec
+
+
+def test_direct_guard_level_is_selectable():
+    left = example("left", "weather", "Weather in Paris", "city", "Paris", "string")
+    right = example("right", "stock", "Stock price for ACME", "ticker", "ACME", "string")
+    public, _oracle = build_round1_cross_candidates([left, right], seed=7)
+    dropped_a_call = '[{"name": "weather", "arguments": {"city": "Paris"}}]'
+    g4 = guard_direct_prediction(public[0], dropped_a_call, level="g4")
+    g1 = guard_direct_prediction(public[0], dropped_a_call, level="g1")
+    assert not g4["accepted"] and "wrong_call_count" in g4["reasons"]
+    assert g1["accepted"] and len(g1["composed_calls"]) == 1
+
+
+def test_controlled_evaluation_skips_incompatible_schema_collisions():
+    items = _sources(6)
+    # BFCL reuses some function names with different schemas; such a group has
+    # no well-defined schema union and must be skipped, not crash the build.
+    collision = example(
+        "source-collision",
+        "function-0",
+        "Question collision",
+        "other-argument",
+        "text",
+        "string",
+    )
+    cells = build_controlled_evaluation(
+        [*items, collision],
+        component_counts=(2,),
+        examples_per_cell=8,
+        seed=7,
+    )
+    for name, examples in cells.items():
+        assert len(examples) == 8, name
+        for evaluation in examples:
+            assert not (
+                {"source-collision", "source-0"} <= set(evaluation.source_component_ids)
+            )
+        ids = [evaluation.source_id for evaluation in examples]
+        assert ids == sorted(ids) and len(set(ids)) == 8

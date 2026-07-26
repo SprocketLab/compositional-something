@@ -77,6 +77,10 @@ ROUND1_REPLAY_FRACTION = 0.40
 ROUND2_MIX = {"new": 0.45, "previous": 0.25, "atomic": 0.30}
 MAIN_CONDITIONS = ("direct_g4", "compose_g1", "compose_g4")
 TRAINED_CONDITIONS = (*MAIN_CONDITIONS, "compose_g4_repeat20", "oracle")
+# Whole-request pseudo-labeling at a chosen guard level.  ``direct_g1`` is the
+# guard-matched counterpart of the primary ``compose_g1`` condition.
+DIRECT_CONDITIONS = ("direct_g1", "direct_g4")
+COMPOSE_CONDITIONS = ("compose_g1", "compose_g4", "compose_g4_repeat20")
 PRIMARY_CONDITION = "compose_g1"
 
 
@@ -468,11 +472,13 @@ def _condition_decisions(
     decisions: List[Dict[str, Any]] = []
     for candidate in candidates:
         candidate_id = str(candidate["candidate_id"])
-        if condition == "direct_g4":
+        if condition in DIRECT_CONDITIONS:
             if raw_direct is None or candidate_id not in raw_direct:
                 raise ValueError(f"Missing direct prediction for {candidate_id}")
-            decision = guard_direct_prediction(candidate, raw_direct[candidate_id])
-        elif condition in {"compose_g1", "compose_g4", "compose_g4_repeat20"}:
+            decision = guard_direct_prediction(
+                candidate, raw_direct[candidate_id], level=condition.rsplit("_", 1)[1]
+            )
+        elif condition in COMPOSE_CONDITIONS:
             if raw_components is None:
                 raise ValueError("Component predictions are required")
             level = "g1" if condition == "compose_g1" else "g4"
@@ -1019,8 +1025,21 @@ def _evaluate_split(
 
 
 def _evaluation_sets(run_root: Path) -> List[Tuple[str, List[AtomicExample]]]:
+    """Test-side cells, plus validation cells when the run built them.
+
+    Validation cells are named ``validation_*`` so hyperparameter selection can
+    read them without the test cells ever entering the selection decision.
+    """
+
     sets_root = run_root / "data/evaluation/sets"
-    return [(path.stem, read_examples(path)) for path in sorted(sets_root.glob("*.jsonl"))]
+    output = [(path.stem, read_examples(path)) for path in sorted(sets_root.glob("*.jsonl"))]
+    validation_root = run_root / "data/evaluation/validation_sets"
+    if validation_root.exists():
+        output.extend(
+            (f"validation_{path.stem}", read_examples(path))
+            for path in sorted(validation_root.glob("*.jsonl"))
+        )
+    return output
 
 
 def _evaluate_all(

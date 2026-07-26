@@ -148,11 +148,33 @@ def train_lora(
     micro_batch_size: int,
     effective_batch_size: int,
     seed: int,
+    checkpoint_steps: Sequence[int] = (),
 ) -> Dict[str, Any]:
-    from transformers import Trainer, TrainingArguments
+    from transformers import Trainer, TrainerCallback, TrainingArguments
 
     if effective_batch_size % micro_batch_size != 0:
         raise ValueError("effective_batch_size must be divisible by micro_batch_size")
+    wanted = sorted({int(step) for step in checkpoint_steps})
+    if any(step < 1 or step > int(max_steps) for step in wanted):
+        raise ValueError(f"checkpoint_steps must lie in [1, {int(max_steps)}]: {wanted}")
+    saved_checkpoints: Dict[str, str] = {}
+
+    class _AdapterCheckpointCallback(TrainerCallback):
+        """Save the adapter at chosen optimizer steps.
+
+        Selecting a training length needs one run with several checkpoints
+        rather than several prefix-matched runs.
+        """
+
+        def on_step_end(self, arguments, state, control, **kwargs):
+            step = int(state.global_step)
+            if step in wanted:
+                target = output_dir / f"adapter_step_{step:04d}"
+                target.mkdir(parents=True, exist_ok=True)
+                kwargs["model"].save_pretrained(target)
+                tokenizer.save_pretrained(target)
+                saved_checkpoints[str(step)] = str(target)
+            return control
     accumulation = effective_batch_size // micro_batch_size
     dataset = ChatTargetDataset(examples, tokenizer, max_length=max_length)
     logging_steps = max(1, max_steps // 10)
@@ -184,8 +206,13 @@ def train_lora(
         args=arguments,
         train_dataset=dataset,
         data_collator=CausalLMDataCollator(tokenizer),
+        callbacks=[_AdapterCheckpointCallback()] if wanted else None,
     )
     result = trainer.train()
+    if wanted and sorted(int(step) for step in saved_checkpoints) != wanted:
+        raise RuntimeError(
+            f"Requested checkpoints {wanted}, saved {sorted(saved_checkpoints)}"
+        )
     adapter_dir = output_dir / "adapter"
     adapter_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(adapter_dir)
@@ -195,6 +222,8 @@ def train_lora(
         "micro_batch_size": micro_batch_size,
         "gradient_accumulation_steps": accumulation,
         "effective_batch_size": effective_batch_size,
+        "max_steps": int(max_steps),
+        "checkpoint_adapters": dict(sorted(saved_checkpoints.items())),
         "log_history": list(trainer.state.log_history),
     }
 

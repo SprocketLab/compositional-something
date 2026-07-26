@@ -13,7 +13,10 @@ from self.experiments.bfcl_cumulative_size_sweep import (
     _cell_grid,
     _family_quota,
     _materialize,
+    _run_grid,
+    _training_flags,
 )
+from self.experiments.bfcl_compositional_pilot import _evaluation_sets
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -156,3 +159,35 @@ def test_launcher_dry_run_uses_arrays_afterany_and_short_h200_jobs(tmp_path: Pat
     assert "bfcl-size-stage-r2-gen" in output
     assert "continue-submit" in output
     assert "DependencyNeverSatisfied" not in output
+
+
+def test_requested_grid_is_persisted_and_read_back(tmp_path: Path):
+    grid = _cell_grid((1000,), ("oracle", "direct_g1", "compose_g1"))
+    assert [cell["cell_id"] for cell in grid] == [
+        "n1000-oracle",
+        "n1000-direct_g1",
+        "n1000-compose_g1",
+    ]
+    assert [cell["cell_index"] for cell in grid] == [0, 1, 2]
+    # Archived runs keep their own grid even after the defaults change.
+    (tmp_path / "grid.json").write_text(json.dumps(grid), encoding="utf-8")
+    assert _run_grid(tmp_path) == grid
+    assert _run_grid(tmp_path / "missing") == _cell_grid()
+
+
+def test_validation_cells_are_reported_separately_from_test_cells(tmp_path: Path):
+    sets_root = tmp_path / "data/evaluation/sets"
+    validation_root = tmp_path / "data/evaluation/validation_sets"
+    examples = [atomic("a"), atomic("b")]
+    write_examples(sets_root / "controlled_heldout_2.jsonl", examples)
+    write_examples(validation_root / "controlled_heldout_2.jsonl", examples)
+    names = [name for name, _rows in _evaluation_sets(tmp_path)]
+    assert names == ["controlled_heldout_2", "validation_controlled_heldout_2"]
+    # A run prepared before validation cells existed still evaluates.
+    assert [name for name, _rows in _evaluation_sets(tmp_path / "missing")] == []
+
+
+def test_training_budget_flags_reach_generated_commands():
+    args = SimpleNamespace(max_steps=50, checkpoint_steps=(10, 20, 50))
+    assert _training_flags(args) == ["--max-steps", "50", "--checkpoint-steps", "10,20,50"]
+    assert _training_flags(SimpleNamespace(max_steps=None, checkpoint_steps=())) == []

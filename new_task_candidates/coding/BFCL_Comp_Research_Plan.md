@@ -1247,6 +1247,83 @@ no composed validation pool exists for checkpoint selection, and there is no
 
 ---
 
+## 35. Construction and protocol repairs before the corrected run (2026-07-25)
+
+Three further defects identified alongside Section 34 are now fixed in code. All
+three are opt-in, so archived runs remain reproducible with their recorded
+settings.
+
+### 35.1 Subproblems now face the parent's schema-selection problem
+
+Component prompts previously carried only the schemas their own clauses needed,
+so decomposition removed the *selection* problem as well as the call count. The
+subproblem was easier than the corresponding slice of the parent task for a
+reason unrelated to composition, and the model generated pseudo-labels on a
+prompt shape it was never trained on.
+
+`--component-context candidate_union` shows every subproblem the same shuffled
+schema union the parent prompt shows. The clause-to-schema mapping is retained
+on each component spec as `relevant_function_names` for auditing and is never
+rendered into the prompt. Prompt formatting is otherwise byte-identical; only
+the function list changes, verified against all 240 atomic training prompts.
+
+Two consequences to record when reporting:
+
+- Component prompts now depend on their parent, so identical source pairs under
+  different parents are different prompts and are no longer de-duplicated. At
+  two calls this raises component generations for a 1k round from 300 to about
+  2,700; at four and eight calls there was almost no de-duplication to lose
+  (2,651 of 2,668 were already unique). The matched-generation-token fairness
+  control in Section 16 should quote the new counts.
+- G4's `function_not_available` check now runs against the union rather than the
+  component's own schemas, so a component that answers with a sibling clause's
+  function passes membership. That is the correct semantics — the guard must
+  check what the model was shown — but it makes G4 slightly weaker at the
+  component level, and the cross-component count and duplicate checks carry
+  correspondingly more of the load.
+
+### 35.2 The optimizer budget is no longer welded to dataset size
+
+`train-evaluate` takes `--max-steps` (default: one epoch, the previous
+behaviour) and `--checkpoint-steps`, which saves the adapter at chosen optimizer
+steps within a single run rather than requiring prefix-matched reruns. Metrics
+record both `max_steps` and `one_epoch_steps` so the two are never conflated
+again. The submit path forwards both flags to every generated `train-evaluate`
+command, and the launcher exposes them as `MAX_STEPS` and `CHECKPOINT_STEPS`.
+
+### 35.3 A composed validation pool now exists for hyperparameter selection
+
+The 40-atom `validation.jsonl` pool was previously opened only to assert the
+split sizes. Every composed evaluation cell came from the 60 test atoms, so
+there was nothing to select a learning rate or update count on except the test
+set — and Section 31.7 already selected `lr=2e-4, steps=50` by reading test
+cells, which inflates that row by an unknown amount.
+
+`prepare` now writes `data/evaluation/validation_sets/`: the 40 atomic rows plus
+controlled two- and four-call cells at 100 examples each, seen and held-out
+templates. `_evaluation_sets` picks them up automatically and reports them under
+a `validation_` prefix, so every round scores them alongside the test cells
+without the test cells entering any selection decision.
+
+This is hyperparameter selection, not a curriculum promotion gate: it happens
+once, before the curriculum starts, and no accuracy value decides whether a
+round runs. It restores at the composed stage the discipline Section 6.2 already
+applies at the atomic stage.
+
+### 35.4 A guard-matched direct baseline
+
+The headline pair was `compose_g1` against `direct_g4`, which confounds label
+source with guard strength. `direct_g1` is now a supported condition, and
+`prepare --conditions` selects the exact arm set for a run, with the grid
+persisted to `grid.json` and read back by every later stage. Section 33.3's
+sweep is therefore `--conditions oracle,direct_g1,compose_g1 --sizes 1000`.
+
+Note the direction of the old bias: G4 filtering removes some malformed direct
+labels, so the Section 31.4 precision comparison understated rather than
+overstated composition's advantage.
+
+---
+
 ## References
 
 - [Official BFCL repository and evaluator](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)

@@ -27,6 +27,7 @@ from self.coding.atomic_data import (
     write_json,
 )
 from self.coding.bfcl_composition import (
+    COMPONENT_CONTEXT_MODES,
     build_controlled_evaluation,
     build_hierarchical_cross_candidates,
     build_next_repeat_candidates,
@@ -43,7 +44,9 @@ from self.coding.training import (
     train_lora,
 )
 from self.experiments.bfcl_compositional_pilot import (
+    COMPOSE_CONDITIONS,
     DEFAULT_ATOMIC_DATA,
+    DIRECT_CONDITIONS,
     DEFAULT_MODEL,
     DEFAULT_PYTHON,
     DEFAULT_SEED_ADAPTER,
@@ -74,6 +77,14 @@ CONDITIONS = (
     "compose_g4_repeat20",
     "oracle",
 )
+SUPPORTED_CONDITIONS = (
+    "direct_g1",
+    "direct_g4",
+    "compose_g1",
+    "compose_g4",
+    "compose_g4_repeat20",
+    "oracle",
+)
 CALLS_BY_ROUND = {1: (2,), 2: (2, 4), 3: (2, 4, 8)}
 CANDIDATE_POOL = 5000
 REPEAT_POOL = 1000
@@ -82,14 +93,25 @@ LEARNING_RATE = 2e-4
 EFFECTIVE_BATCH_SIZE = 16
 PRIMARY_CONDITION = "compose_g1"
 ACCEPTANCE_RESERVE = 0.75
+# Selection cells built from the otherwise unused 40-atom validation pool.
+VALIDATION_CALL_COUNTS = (2, 4)
+VALIDATION_EXAMPLES_PER_CELL = 100
+DEFAULT_COMPONENT_CONTEXT = "component_schemas"
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _cell_grid() -> List[Dict[str, Any]]:
-    pairs = [(size, condition) for size in SIZES for condition in CONDITIONS]
+def _read_json_any(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _cell_grid(
+    sizes: Sequence[int] = SIZES,
+    conditions: Sequence[str] = CONDITIONS,
+) -> List[Dict[str, Any]]:
+    pairs = [(size, condition) for size in sizes for condition in conditions]
     return [
         {
             "cell_index": index,
@@ -101,12 +123,25 @@ def _cell_grid() -> List[Dict[str, Any]]:
     ]
 
 
+def _run_grid(run_root: Path) -> List[Dict[str, Any]]:
+    """Read the grid a run was prepared with, falling back to the default.
+
+    Reading it back keeps archived runs collectible after the default condition
+    or size list changes.
+    """
+
+    grid_path = run_root / "grid.json"
+    if grid_path.exists():
+        return list(_read_json_any(grid_path))
+    return _cell_grid()
+
+
 def _cell(args: argparse.Namespace) -> Dict[str, Any]:
     raw = os.environ.get("SLURM_ARRAY_TASK_ID")
     index = args.cell_index if args.cell_index is not None else (int(raw) if raw is not None else None)
     if index is None:
         raise ValueError("Provide --cell-index or SLURM_ARRAY_TASK_ID")
-    grid = _cell_grid()
+    grid = _run_grid(args.run_root)
     if index < 0 or index >= len(grid):
         raise ValueError(f"Cell index {index} is outside [0, {len(grid)})")
     return grid[index]
@@ -201,12 +236,14 @@ def prepare(args: argparse.Namespace) -> None:
         "max_length": MAX_LENGTH,
         "regimes": {},
     }
+    audit["component_context"] = args.component_context
     for calls in (2, 4, 8):
         public, oracle = build_hierarchical_cross_candidates(
             source_pool,
             component_count=calls,
             count=CANDIDATE_POOL + 1000,
             seed=args.data_seed,
+            component_context=args.component_context,
         )
         public, oracle, length_audit = _length_filter_and_take(
             tokenizer, public, oracle, count=CANDIDATE_POOL
@@ -227,6 +264,7 @@ def prepare(args: argparse.Namespace) -> None:
         max_variants_per_source=4,
         template_partition="train",
         renders_per_pair=2,
+        component_context=args.component_context,
     )
     repeat2_public, repeat2_oracle, repeat2_lengths = _length_filter_and_take(
         tokenizer, repeat2_public, repeat2_oracle, count=REPEAT_POOL
@@ -247,6 +285,7 @@ def prepare(args: argparse.Namespace) -> None:
             component_call_count=calls // 2,
             seed=args.data_seed,
             count=REPEAT_POOL + 200,
+            component_context=args.component_context,
         )
         public, oracle, length_audit = _length_filter_and_take(
             tokenizer, public, oracle, count=REPEAT_POOL
@@ -266,6 +305,17 @@ def prepare(args: argparse.Namespace) -> None:
     controlled = build_controlled_evaluation(test, seed=args.data_seed)
     for name, examples in controlled.items():
         write_examples(sets_root / f"{name}.jsonl", examples)
+    # Hyperparameter selection reads these; the test cells above stay closed
+    # until the recipe is frozen.
+    validation_root = args.run_root / "data/evaluation/validation_sets"
+    write_examples(validation_root / "atomic.jsonl", validation)
+    for name, examples in build_controlled_evaluation(
+        validation,
+        component_counts=VALIDATION_CALL_COUNTS,
+        examples_per_cell=VALIDATION_EXAMPLES_PER_CELL,
+        seed=args.data_seed,
+    ).items():
+        write_examples(validation_root / f"{name}.jsonl", examples)
     for name in ("natural_parallel", "natural_parallel_multiple"):
         write_examples(
             sets_root / f"{name}.jsonl",
@@ -274,8 +324,12 @@ def prepare(args: argparse.Namespace) -> None:
     audit["evaluation_counts"] = {
         path.stem: len(read_examples(path)) for path in sorted(sets_root.glob("*.jsonl"))
     }
+    audit["validation_counts"] = {
+        path.stem: len(read_examples(path))
+        for path in sorted(validation_root.glob("*.jsonl"))
+    }
     write_json(args.run_root / "data/audit.json", audit)
-    write_json(args.run_root / "grid.json", _cell_grid())
+    write_json(args.run_root / "grid.json", _cell_grid(args.sizes, args.conditions))
     write_json(args.run_root / "data_checksums.json", _checksums(args.run_root / "data", args.run_root))
     manifest = {
         "experiment": "bfcl_cumulative_size_sweep",
@@ -284,8 +338,9 @@ def prepare(args: argparse.Namespace) -> None:
         "model_name": args.model_name,
         "seed_adapter": str(args.seed_adapter),
         "atomic_data_dir": str(args.atomic_data_dir),
-        "sizes_per_regime": list(SIZES),
-        "conditions": list(CONDITIONS),
+        "sizes_per_regime": list(args.sizes),
+        "conditions": list(args.conditions),
+        "component_context": args.component_context,
         "round_regimes": {str(key): list(value) for key, value in CALLS_BY_ROUND.items()},
         "source_pool": {"seed_train": 240, "hidden_composition": 60},
         "candidate_pool": CANDIDATE_POOL,
@@ -296,7 +351,7 @@ def prepare(args: argparse.Namespace) -> None:
         "training_seed": TRAINING_SEED,
         "curriculum_policy": "fixed_manual_cumulative_refresh",
         "promotion_gate": None,
-        "grid": _cell_grid(),
+        "grid": _cell_grid(args.sizes, args.conditions),
         "jobs": {},
     }
     write_json(args.run_root / "manifest.json", manifest)
@@ -325,7 +380,7 @@ def _raw_predictions(
     eval_batch_size: int,
     calls: int,
 ) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
-    if condition == "direct_g4":
+    if condition in DIRECT_CONDITIONS:
         rows = _generate_rows(
             model=model,
             tokenizer=tokenizer,
@@ -415,9 +470,12 @@ def generate_round1_shared(args: argparse.Namespace) -> None:
         print(f"[INFO] Shared Round-1 predictions already complete: {output_dir}")
         return
     model, tokenizer = load_adapter_for_evaluation(args.model_name, args.seed_adapter)
+    # Prefetch only what this run's grid can consume, not what the default
+    # size list would have needed.
+    largest_size = max(int(cell["size"]) for cell in _run_grid(args.run_root))
     try:
         cross_public, _cross_oracle = _load_candidates(args.run_root, 2, "cross")
-        cross_public = cross_public[: _quota_limit(max(SIZES), len(cross_public))]
+        cross_public = cross_public[: _quota_limit(largest_size, len(cross_public))]
         direct_rows = _generate_rows(
             model=model,
             tokenizer=tokenizer,
@@ -433,7 +491,7 @@ def generate_round1_shared(args: argparse.Namespace) -> None:
             (
                 "repeat",
                 _load_candidates(args.run_root, 2, "repeat")[0][
-                    : _quota_limit(round(max(SIZES) * 0.20), REPEAT_POOL)
+                    : _quota_limit(round(largest_size * 0.20), REPEAT_POOL)
                 ],
             ),
         ):
@@ -479,7 +537,7 @@ def materialize_round1_shared(args: argparse.Namespace) -> None:
         family: _raw_map(shared / family / "components.jsonl", "component_id")
         for family in ("cross", "repeat")
     }
-    for cell in _cell_grid():
+    for cell in _run_grid(args.run_root):
         output_dir = _cell_round_dir(args.run_root, cell, 1)
         complete = output_dir / "GENERATE_MATERIALIZE_COMPLETE"
         if complete.exists() and args.resume:
@@ -503,10 +561,10 @@ def materialize_round1_shared(args: argparse.Namespace) -> None:
                 public,
                 raw_components=(
                     component_raw[family]
-                    if condition in {"compose_g1", "compose_g4", "compose_g4_repeat20"}
+                    if condition in COMPOSE_CONDITIONS
                     else None
                 ),
-                raw_direct=direct_raw if condition == "direct_g4" else None,
+                raw_direct=direct_raw if condition in DIRECT_CONDITIONS else None,
                 oracle_by_id=oracle_by_id if condition == "oracle" else None,
             )
             regime_dir = output_dir / f"regimes/calls_2/{family}"
@@ -535,7 +593,7 @@ def materialize_round1_shared(args: argparse.Namespace) -> None:
             summaries=summaries,
         )
         complete.touch()
-    print(json.dumps({"materialized_cells": len(_cell_grid()), "round": 1}, sort_keys=True))
+    print(json.dumps({"materialized_cells": len(_run_grid(args.run_root)), "round": 1}, sort_keys=True))
 
 
 def _materialize(
@@ -713,7 +771,7 @@ def train_evaluate(args: argparse.Namespace) -> None:
         if args.round == 1
         else _cell_round_dir(args.run_root, cell, args.round - 1) / "adapter"
     )
-    max_steps = math.ceil(len(examples) / EFFECTIVE_BATCH_SIZE)
+    max_steps = args.max_steps or math.ceil(len(examples) / EFFECTIVE_BATCH_SIZE)
     micro_batch = args.micro_batch_size
     attempts: List[Dict[str, Any]] = []
     while micro_batch >= 1:
@@ -734,6 +792,7 @@ def train_evaluate(args: argparse.Namespace) -> None:
                 micro_batch_size=micro_batch,
                 effective_batch_size=EFFECTIVE_BATCH_SIZE,
                 seed=TRAINING_SEED,
+                checkpoint_steps=args.checkpoint_steps,
             )
             evaluation = _evaluate_all(
                 model=model,
@@ -749,6 +808,7 @@ def train_evaluate(args: argparse.Namespace) -> None:
                 "adapter": str(output_dir / "adapter"),
                 "training_example_count": len(examples),
                 "max_steps": max_steps,
+                "one_epoch_steps": math.ceil(len(examples) / EFFECTIVE_BATCH_SIZE),
                 "learning_rate": LEARNING_RATE,
                 "max_length": MAX_LENGTH,
                 "training": training,
@@ -779,7 +839,8 @@ def collect(args: argparse.Namespace) -> None:
     rows: List[Dict[str, Any]] = []
     failures: List[Dict[str, Any]] = []
     completed_cells = 0
-    for cell in _cell_grid():
+    grid = _run_grid(args.run_root)
+    for cell in grid:
         cell_complete = True
         for round_index in (1, 2, 3):
             output_dir = _cell_round_dir(args.run_root, cell, round_index)
@@ -809,8 +870,8 @@ def collect(args: argparse.Namespace) -> None:
     summary = {
         "experiment": "bfcl_cumulative_size_sweep",
         "completed_cells": completed_cells,
-        "total_cells": len(_cell_grid()),
-        "partial": completed_cells != len(_cell_grid()),
+        "total_cells": len(grid),
+        "partial": completed_cells != len(grid),
         "failures": failures,
         "metric_rows": rows,
     }
@@ -866,7 +927,7 @@ def _submit_job(
     if gpu:
         sbatch.append("--gres=gpu:h200:1")
     if array:
-        sbatch.append(f"--array=0-{len(_cell_grid()) - 1}%4")
+        sbatch.append(f"--array=0-{len(_run_grid(args.run_root)) - 1}%4")
     if dependency:
         sbatch.append(f"--dependency=afterany:{dependency}")
     wrapped = [
@@ -891,6 +952,15 @@ def _common(args: argparse.Namespace) -> List[str]:
     ]
 
 
+def _training_flags(args: argparse.Namespace) -> List[str]:
+    flags: List[str] = []
+    if getattr(args, "max_steps", None):
+        flags += ["--max-steps", str(args.max_steps)]
+    if getattr(args, "checkpoint_steps", ()):
+        flags += ["--checkpoint-steps", ",".join(str(step) for step in args.checkpoint_steps)]
+    return flags
+
+
 def _command(args: argparse.Namespace, action: str, *extra: str) -> List[str]:
     return [
         str(args.python_bin),
@@ -898,6 +968,7 @@ def _command(args: argparse.Namespace, action: str, *extra: str) -> List[str]:
         action,
         *_common(args),
         *extra,
+        *(_training_flags(args) if action == "train-evaluate" else []),
     ]
 
 
@@ -1070,6 +1141,23 @@ def submit(args: argparse.Namespace) -> None:
     print(json.dumps(jobs, indent=2, sort_keys=True), flush=True)
 
 
+def _add_training_budget(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        help=(
+            "Optimizer updates per round.  Defaults to one epoch, which welds "
+            "the update budget to the dataset size and confounds the two."
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint-steps",
+        type=lambda value: tuple(int(item) for item in value.split(",") if item),
+        default=(),
+        help="Comma-separated steps at which to also save the adapter.",
+    )
+
+
 def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--atomic-data-dir", type=Path, default=DEFAULT_ATOMIC_DATA)
@@ -1084,6 +1172,27 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_parser = sub.add_parser("prepare")
     _add_common(prepare_parser)
     prepare_parser.add_argument("--data-seed", type=int, default=EXPERIMENT_SEED)
+    prepare_parser.add_argument(
+        "--sizes",
+        type=lambda value: tuple(int(item) for item in value.split(",")),
+        default=SIZES,
+        help="Comma-separated examples-per-regime sizes; one grid column each.",
+    )
+    prepare_parser.add_argument(
+        "--conditions",
+        type=lambda value: tuple(value.split(",")),
+        default=CONDITIONS,
+        help=f"Comma-separated arms from {','.join(SUPPORTED_CONDITIONS)}.",
+    )
+    prepare_parser.add_argument(
+        "--component-context",
+        choices=COMPONENT_CONTEXT_MODES,
+        default=DEFAULT_COMPONENT_CONTEXT,
+        help=(
+            "candidate_union shows each subproblem the parent's full shuffled "
+            "schema union, so decomposition keeps the schema-selection problem."
+        ),
+    )
     generate1 = sub.add_parser("generate-round1-shared")
     _add_common(generate1)
     generate1.add_argument("--eval-batch-size", type=int, default=8)
@@ -1097,6 +1206,7 @@ def build_parser() -> argparse.ArgumentParser:
         child.add_argument("--eval-batch-size", type=int, default=8)
         if command == "train-evaluate":
             child.add_argument("--micro-batch-size", type=int, default=2)
+            _add_training_budget(child)
     collect_parser = sub.add_parser("collect")
     _add_common(collect_parser)
     submit_parser = sub.add_parser("submit")
@@ -1104,12 +1214,14 @@ def build_parser() -> argparse.ArgumentParser:
     submit_parser.add_argument("--python-bin", type=Path, default=DEFAULT_PYTHON)
     submit_parser.add_argument("--log-dir", type=Path)
     submit_parser.add_argument("--dry-run", action="store_true")
+    _add_training_budget(submit_parser)
     continuation_parser = sub.add_parser("continue-submit")
     _add_common(continuation_parser)
     continuation_parser.add_argument("--python-bin", type=Path, default=DEFAULT_PYTHON)
     continuation_parser.add_argument("--log-dir", type=Path)
     continuation_parser.add_argument("--dry-run", action="store_true")
     continuation_parser.add_argument("--phase", choices=STAGED_PHASES, required=True)
+    _add_training_budget(continuation_parser)
     recovery_parser = sub.add_parser("schedule-continuation")
     _add_common(recovery_parser)
     recovery_parser.add_argument("--python-bin", type=Path, default=DEFAULT_PYTHON)
@@ -1120,11 +1232,16 @@ def build_parser() -> argparse.ArgumentParser:
     recovery_parser.add_argument("--round1-generation")
     recovery_parser.add_argument("--round1-materialize")
     recovery_parser.add_argument("--round1-training")
+    _add_training_budget(recovery_parser)
     return parser
 
 
 def _normalize(args: argparse.Namespace) -> None:
     args.run_root = args.run_root.resolve()
+    if getattr(args, "conditions", None):
+        unknown = [item for item in args.conditions if item not in SUPPORTED_CONDITIONS]
+        if unknown:
+            raise ValueError(f"Unsupported conditions: {unknown}")
     args.atomic_data_dir = args.atomic_data_dir.resolve()
     args.seed_adapter = args.seed_adapter.resolve()
     if hasattr(args, "log_dir"):

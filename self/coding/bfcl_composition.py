@@ -30,6 +30,16 @@ from self.coding.evaluation import evaluate_bfcl, parse_strict_json_array
 TRAIN_TEMPLATE_IDS = ("also", "in_addition", "then", "independent_semicolon")
 HELDOUT_TEMPLATE_IDS = ("numbered", "bullets", "ordinal")
 
+# How much of the parent prompt a subproblem predictor sees.
+#   component_schemas: only the schemas its own clauses need.  Decomposition
+#     then removes the schema-selection problem as well as the call count, so a
+#     component is easier than the corresponding slice of the parent task.
+#   candidate_union: the same shuffled schema union the parent prompt shows, so
+#     the component must still select the right function.  Clause-to-schema
+#     provenance is retained for auditing but never shown to the model.
+COMPONENT_CONTEXT_MODES = ("component_schemas", "candidate_union")
+DEFAULT_COMPONENT_CONTEXT = "component_schemas"
+
 TRAIN_STRING_VALUES: Dict[str, Tuple[str, ...]] = {
     "place": ("Rome", "Berlin", "Tokyo", "Toronto"),
     "country": ("Italy", "Germany", "Japan", "Canada"),
@@ -198,6 +208,53 @@ def _spec_clauses(spec: Mapping[str, Any]) -> List[str]:
     return [str(spec["question"])]
 
 
+def _apply_candidate_union_context(
+    ordered_specs: Sequence[Mapping[str, Any]],
+    ordered_oracles: Sequence[Mapping[str, Any]],
+    *,
+    functions: Sequence[Mapping[str, Any]],
+    candidate_id: str,
+    seed: int,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Show every subproblem the parent's full schema union.
+
+    The component prompt then depends on its parent, so component IDs are
+    re-keyed by parent: two parents sharing the same sources are genuinely
+    different prompts and must be generated separately.
+    """
+
+    specs: List[Dict[str, Any]] = []
+    oracles: List[Dict[str, Any]] = []
+    for spec, oracle in zip(ordered_specs, ordered_oracles):
+        base_id = str(spec["component_id"])
+        component_id = "ctx-" + hashlib.sha256(
+            "\x1f".join([candidate_id, base_id]).encode("utf-8")
+        ).hexdigest()[:16]
+        context_functions = sorted(
+            copy.deepcopy(list(functions)),
+            key=lambda function: stable_hash(
+                seed, "component-schema-order", component_id, str(function["name"])
+            ),
+        )
+        question = str(spec["question"])
+        specs.append(
+            {
+                **copy.deepcopy(dict(spec)),
+                "component_id": component_id,
+                "base_component_id": base_id,
+                # Audit-only provenance; never part of the rendered prompt.
+                "relevant_function_names": [
+                    str(function["name"]) for function in spec["functions"]
+                ],
+                "functions": context_functions,
+                "messages": _messages(question, context_functions),
+                "component_context": "candidate_union",
+            }
+        )
+        oracles.append({**copy.deepcopy(dict(oracle)), "component_id": component_id})
+    return specs, oracles
+
+
 def _make_candidate(
     *,
     round_index: int,
@@ -210,7 +267,10 @@ def _make_candidate(
     template_partition: str,
     seed: int,
     candidate_id: Optional[str] = None,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if component_context not in COMPONENT_CONTEXT_MODES:
+        raise ValueError(f"Unknown component context mode: {component_context!r}")
     order_key = candidate_id or family
     ordered_specs = [
         copy.deepcopy(dict(spec))
@@ -254,6 +314,14 @@ def _make_candidate(
     joined = render_joined_request(questions, template_id)
     resolved_id = candidate_id or _candidate_id(round_index, family, ids)
     functions = _ordered_schema_union(atomic_examples, seed=seed, key=resolved_id)
+    if component_context == "candidate_union":
+        ordered_specs, ordered_oracles = _apply_candidate_union_context(
+            ordered_specs,
+            ordered_oracles,
+            functions=functions,
+            candidate_id=resolved_id,
+            seed=seed,
+        )
     public = {
         "candidate_id": resolved_id,
         "round": int(round_index),
@@ -287,6 +355,7 @@ def build_round1_cross_candidates(
     hidden_examples: Sequence[AtomicExample],
     *,
     seed: int,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Construct every compatible pair from the hidden atomic pool."""
 
@@ -310,6 +379,7 @@ def build_round1_cross_candidates(
             template_id=template_id,
             template_partition="train",
             seed=seed,
+            component_context=component_context,
         )
         public_rows.append(public)
         oracle_rows.append(oracle)
@@ -396,6 +466,7 @@ def build_round2_cross_candidates(
     *,
     seed: int,
     count: int = 2000,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     groups = _smallest_combinations(
         hidden_examples,
@@ -433,6 +504,7 @@ def build_round2_cross_candidates(
             template_partition="train",
             seed=seed,
             candidate_id=candidate_id,
+            component_context=component_context,
         )
         public_rows.append(public)
         oracle_rows.append(oracle)
@@ -489,6 +561,7 @@ def build_hierarchical_cross_candidates(
     round_index: Optional[int] = None,
     split: str = "hidden_composition",
     template_partition: str = "train",
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Build 2/4/8-call candidates from disjoint atomic source groups.
 
@@ -563,6 +636,7 @@ def build_hierarchical_cross_candidates(
                 template_partition=template_partition,
                 seed=seed,
                 candidate_id=candidate_id,
+                component_context=component_context,
             )
         except ValueError as exc:
             if "Incompatible schemas share function name" not in str(exc):
@@ -735,6 +809,7 @@ def build_round1_repeat_candidates(
     max_variants_per_source: int,
     template_partition: str,
     renders_per_pair: int = 1,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     template_ids = TRAIN_TEMPLATE_IDS if template_partition == "train" else HELDOUT_TEMPLATE_IDS
     rows: List[Tuple[AtomicExample, AtomicExample]] = []
@@ -770,6 +845,7 @@ def build_round1_repeat_candidates(
                 template_partition=template_partition,
                 seed=seed,
                 candidate_id=candidate_id,
+                component_context=component_context,
             )
             public_rows.append(public)
             oracle_rows.append(oracle)
@@ -790,6 +866,7 @@ def build_round2_repeat_candidates(
     count: int = 500,
     split: str = "hidden_composition",
     template_partition: str = "train",
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     oracle_by_id = {str(row["candidate_id"]): row for row in round1_oracle}
     compatible_pairs = (
@@ -848,6 +925,7 @@ def build_round2_repeat_candidates(
             template_partition=template_partition,
             seed=seed,
             candidate_id=candidate_id,
+            component_context=component_context,
         )
         public_rows.append(public)
         oracle_rows.append(oracle)
@@ -864,6 +942,7 @@ def build_next_repeat_candidates(
     count: int,
     split: str = "hidden_composition",
     template_partition: str = "train",
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Pair disjoint rendered components to form the next repeat frontier."""
 
@@ -947,6 +1026,7 @@ def build_next_repeat_candidates(
             template_partition=template_partition,
             seed=seed,
             candidate_id=candidate_id,
+            component_context=component_context,
         )
         # ``_make_candidate`` already records leaf provenance in clause order;
         # the two orderings must agree or clause k would not answer call k.
@@ -1187,13 +1267,21 @@ def compose_component_predictions(
 def guard_direct_prediction(
     candidate: Mapping[str, Any],
     raw_prediction: str,
+    *,
+    level: str = "g4",
 ) -> Dict[str, Any]:
+    """Guard a whole-request prediction at the same level as a composition arm.
+
+    Comparing ``compose_g1`` against a G4-filtered direct arm confounds label
+    source with guard strength, so the level is a parameter.
+    """
+
     spec = {
         "expected_call_count": candidate["component_count"],
         "functions": candidate["functions"],
         "allow_exact_duplicates": False,
     }
-    decision = guard_prediction(raw_prediction, spec, level="g4")
+    decision = guard_prediction(raw_prediction, spec, level=level)
     return {
         "candidate_id": candidate["candidate_id"],
         **decision,
@@ -1252,6 +1340,7 @@ def build_controlled_evaluation(
     component_counts: Sequence[int] = (2, 4, 8),
     examples_per_cell: int = 200,
     seed: int,
+    component_context: str = DEFAULT_COMPONENT_CONTEXT,
 ) -> Dict[str, List[AtomicExample]]:
     output: Dict[str, List[AtomicExample]] = {}
     for partition, template_ids in (
@@ -1259,29 +1348,49 @@ def build_controlled_evaluation(
         ("heldout", HELDOUT_TEMPLATE_IDS),
     ):
         for arity in component_counts:
+            total = math.comb(len(test_examples), arity)
             groups = _smallest_combinations(
                 test_examples,
-                count=examples_per_cell,
+                count=min(total, examples_per_cell * 3),
                 arity=arity,
                 seed=seed,
                 key=f"eval-{partition}-{arity}",
             )
             examples: List[AtomicExample] = []
-            for index, group in enumerate(groups):
+            rejected_incompatible = 0
+            for group in groups:
+                index = len(examples)
                 template_id = template_ids[index % len(template_ids)]
-                public, oracle = _make_candidate(
-                    round_index=0,
-                    split="test",
-                    family="cross_function",
-                    atomic_examples=group,
-                    component_specs=[_atomic_spec(item) for item in group],
-                    component_oracles=[_oracle_for_atomic(item) for item in group],
-                    template_id=template_id,
-                    template_partition=partition,
-                    seed=seed,
-                    candidate_id=f"eval-{partition}-{arity}-{index:04d}",
-                )
+                try:
+                    public, oracle = _make_candidate(
+                        round_index=0,
+                        split="test",
+                        family="cross_function",
+                        atomic_examples=group,
+                        component_specs=[_atomic_spec(item) for item in group],
+                        component_oracles=[_oracle_for_atomic(item) for item in group],
+                        template_id=template_id,
+                        template_partition=partition,
+                        seed=seed,
+                        candidate_id=f"eval-{partition}-{arity}-{index:04d}",
+                        component_context=component_context,
+                    )
+                except ValueError as exc:
+                    # BFCL reuses some function names with different schemas;
+                    # such groups cannot form a well-defined union.
+                    if "Incompatible schemas share function name" not in str(exc):
+                        raise
+                    rejected_incompatible += 1
+                    continue
                 examples.append(oracle_example(public, oracle))
+                if len(examples) == examples_per_cell:
+                    break
+            if len(examples) != examples_per_cell:
+                raise ValueError(
+                    f"Built only {len(examples)} of {examples_per_cell} compatible "
+                    f"{arity}-call {partition} evaluation examples; "
+                    f"rejected {rejected_incompatible}"
+                )
             output[f"controlled_{partition}_{arity}"] = examples
     return output
 
