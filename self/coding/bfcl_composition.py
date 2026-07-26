@@ -121,6 +121,26 @@ def _schema_union(examples: Sequence[AtomicExample]) -> List[Dict[str, Any]]:
     return list(by_name.values())
 
 
+def _ordered_schema_union(
+    examples: Sequence[AtomicExample],
+    *,
+    seed: int,
+    key: str,
+) -> List[Dict[str, Any]]:
+    """Union component schemas and order them independently of clause order.
+
+    Listing schemas in clause order leaks a positional shortcut: a model can
+    emit the k-th schema for the k-th clause without reading either.  The
+    presentation order is therefore a deterministic function of the candidate
+    identity and the function name only.
+    """
+
+    return sorted(
+        _schema_union(examples),
+        key=lambda function: stable_hash(seed, "schema-order", key, str(function["name"])),
+    )
+
+
 def _messages(question: str, functions: Sequence[Mapping[str, Any]]) -> List[Dict[str, str]]:
     user = f"User request:\n{question}\n\nAvailable functions:\n" + canonical_json(list(functions))
     return [
@@ -134,6 +154,7 @@ def _atomic_spec(example: AtomicExample, *, component_id: Optional[str] = None) 
         "component_id": component_id or example.source_id,
         "source_component_ids": list(example.source_component_ids or (example.source_id,)),
         "question": str(example.metadata["question"]),
+        "clause_questions": [str(example.metadata["question"])],
         "functions": copy.deepcopy(example.evaluator["functions"]),
         "messages": [dict(message) for message in example.messages],
         "expected_call_count": int(example.component_count),
@@ -168,6 +189,15 @@ def _ordered_examples(
     return sorted(examples, key=lambda item: stable_hash(seed, key, item.source_id))
 
 
+def _spec_clauses(spec: Mapping[str, Any]) -> List[str]:
+    """Return a component's leaf clauses in the order its calls are emitted."""
+
+    clauses = spec.get("clause_questions")
+    if clauses:
+        return [str(clause) for clause in clauses]
+    return [str(spec["question"])]
+
+
 def _make_candidate(
     *,
     round_index: int,
@@ -181,47 +211,49 @@ def _make_candidate(
     seed: int,
     candidate_id: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    atomic_order = _ordered_examples(
-        atomic_examples,
-        seed=seed,
-        key=candidate_id or family,
-    )
-    questions = [str(example.metadata["question"]) for example in atomic_order]
-    functions = _schema_union(atomic_order)
-    joined = render_joined_request(questions, template_id)
-    ids = [example.source_id for example in atomic_order]
-    resolved_id = candidate_id or _candidate_id(round_index, family, ids)
-    spec_by_source = {
-        tuple(spec["source_component_ids"]): copy.deepcopy(dict(spec))
-        for spec in component_specs
-    }
-    oracle_by_source = {
-        tuple(
-            source_id
-            for source_id in next(
-                spec["source_component_ids"]
-                for spec in component_specs
-                if spec["component_id"] == oracle["component_id"]
-            )
-        ): copy.deepcopy(dict(oracle))
+    order_key = candidate_id or family
+    ordered_specs = [
+        copy.deepcopy(dict(spec))
+        for spec in sorted(
+            component_specs,
+            key=lambda spec: stable_hash(seed, order_key, str(spec["component_id"])),
+        )
+    ]
+    oracle_by_component = {
+        str(oracle["component_id"]): copy.deepcopy(dict(oracle))
         for oracle in component_oracles
     }
-    ordered_specs: List[Dict[str, Any]] = []
-    ordered_oracles: List[Dict[str, Any]] = []
-    if all(len(spec["source_component_ids"]) == 1 for spec in component_specs):
-        for example in atomic_order:
-            source_key = (example.source_id,)
-            ordered_specs.append(spec_by_source[source_key])
-            ordered_oracles.append(oracle_by_source[source_key])
-    else:
-        ordered_specs = [copy.deepcopy(dict(spec)) for spec in component_specs]
-        ordered_oracles = [copy.deepcopy(dict(oracle)) for oracle in component_oracles]
+    if len(oracle_by_component) != len(component_oracles):
+        raise ValueError("Component oracles must carry unique component IDs")
+    ordered_oracles = [
+        oracle_by_component[str(spec["component_id"])] for spec in ordered_specs
+    ]
+    # Input composition must use the same permutation as output composition:
+    # the parent clause list is the concatenation of the component clause
+    # lists, so clause k is always answered by call k.
+    questions = [
+        clause for spec in ordered_specs for clause in _spec_clauses(spec)
+    ]
+    ids = [
+        str(source_id)
+        for spec in ordered_specs
+        for source_id in spec["source_component_ids"]
+    ]
     canonical_calls = [
         call for oracle in ordered_oracles for call in oracle["canonical_calls"]
     ]
     accepted_calls = [
         call for oracle in ordered_oracles for call in oracle["accepted_calls"]
     ]
+    if not len(questions) == len(ids) == len(canonical_calls) == len(accepted_calls):
+        raise ValueError(
+            "Clause, source, and call counts must align for a composed candidate: "
+            f"{len(questions)} clauses, {len(ids)} sources, "
+            f"{len(canonical_calls)} canonical calls, {len(accepted_calls)} accepted calls"
+        )
+    joined = render_joined_request(questions, template_id)
+    resolved_id = candidate_id or _candidate_id(round_index, family, ids)
+    functions = _ordered_schema_union(atomic_examples, seed=seed, key=resolved_id)
     public = {
         "candidate_id": resolved_id,
         "round": int(round_index),
@@ -231,7 +263,9 @@ def _make_candidate(
         "source_component_ids": ids,
         "source_group_id": resolved_id,
         "question": joined,
+        "clause_questions": questions,
         "functions": functions,
+        "schema_order": [str(function["name"]) for function in functions],
         "messages": _messages(joined, functions),
         "template_id": template_id,
         "template_partition": template_partition,
@@ -329,15 +363,19 @@ def _pair_subproblem(
     template_id: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     ordered = _ordered_examples(pair, seed=seed, key=key)
-    functions = _schema_union(ordered)
-    question = render_joined_request([str(item.metadata["question"]) for item in ordered], template_id)
+    clauses = [str(item.metadata["question"]) for item in ordered]
+    question = render_joined_request(clauses, template_id)
     component_id = "sub-" + hashlib.sha256(
-        "\x1f".join(item.source_id for item in ordered).encode("utf-8")
+        "\x1f".join(
+            [template_id, *(item.source_id for item in ordered)]
+        ).encode("utf-8")
     ).hexdigest()[:16]
+    functions = _ordered_schema_union(ordered, seed=seed, key=component_id)
     spec = {
         "component_id": component_id,
         "source_component_ids": [item.source_id for item in ordered],
         "question": question,
+        "clause_questions": clauses,
         "functions": functions,
         "messages": _messages(question, functions),
         "expected_call_count": 2,
@@ -398,6 +436,148 @@ def build_round2_cross_candidates(
         )
         public_rows.append(public)
         oracle_rows.append(oracle)
+    return public_rows, oracle_rows
+
+
+def _hierarchical_subproblem(
+    examples: Sequence[AtomicExample],
+    *,
+    seed: int,
+    key: str,
+    template_id: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Render a public multi-call component and keep its oracle separately."""
+
+    ordered = _ordered_examples(examples, seed=seed, key=key)
+    clauses = [str(item.metadata["question"]) for item in ordered]
+    question = render_joined_request(clauses, template_id)
+    component_id = "sub-" + hashlib.sha256(
+        "\x1f".join(
+            [str(len(ordered)), template_id, *(item.source_id for item in ordered)]
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    functions = _ordered_schema_union(ordered, seed=seed, key=component_id)
+    return (
+        {
+            "component_id": component_id,
+            "source_component_ids": [item.source_id for item in ordered],
+            "question": question,
+            "clause_questions": clauses,
+            "functions": functions,
+            "messages": _messages(question, functions),
+            "expected_call_count": len(ordered),
+            "allow_exact_duplicates": False,
+        },
+        {
+            "component_id": component_id,
+            "canonical_calls": [
+                call for item in ordered for call in json.loads(item.target)
+            ],
+            "accepted_calls": [
+                call for item in ordered for call in item.evaluator["accepted_calls"]
+            ],
+        },
+    )
+
+
+def build_hierarchical_cross_candidates(
+    examples: Sequence[AtomicExample],
+    *,
+    component_count: int,
+    count: int,
+    seed: int,
+    round_index: Optional[int] = None,
+    split: str = "hidden_composition",
+    template_partition: str = "train",
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Build 2/4/8-call candidates from disjoint atomic source groups.
+
+    Each candidate is presented as two equal-size public subproblems.  This is
+    the binary curriculum interface used by compositional pseudo-labeling; the
+    hidden component calls are returned only in the parallel oracle records.
+    """
+
+    if component_count not in {2, 4, 8}:
+        raise ValueError("component_count must be one of 2, 4, or 8")
+    resolved_round = round_index or int(math.log2(component_count))
+    total_groups = math.comb(len(examples), component_count)
+    groups = _smallest_combinations(
+        examples,
+        count=min(total_groups, count * 3),
+        arity=component_count,
+        seed=seed,
+        key=f"hierarchical-{component_count}",
+    )
+    template_ids = (
+        TRAIN_TEMPLATE_IDS if template_partition == "train" else HELDOUT_TEMPLATE_IDS
+    )
+    public_rows: List[Dict[str, Any]] = []
+    oracle_rows: List[Dict[str, Any]] = []
+    half = component_count // 2
+    rejected_incompatible = 0
+    for group_index, group in enumerate(groups):
+        index = len(public_rows)
+        ordered = _ordered_examples(
+            group,
+            seed=seed,
+            key=f"hierarchical-order-{component_count}-{group_index}",
+        )
+        try:
+            _schema_union(ordered)
+        except ValueError as exc:
+            if "Incompatible schemas share function name" not in str(exc):
+                raise
+            rejected_incompatible += 1
+            continue
+        specs: List[Dict[str, Any]] = []
+        oracles: List[Dict[str, Any]] = []
+        for side, subgroup in enumerate((ordered[:half], ordered[half:])):
+            if half == 1:
+                specs.append(_atomic_spec(subgroup[0]))
+                oracles.append(_oracle_for_atomic(subgroup[0]))
+            else:
+                template_id = template_ids[(index + side) % len(template_ids)]
+                spec, oracle = _hierarchical_subproblem(
+                    subgroup,
+                    seed=seed,
+                    key=f"hierarchical-{component_count}-{index}-side-{side}",
+                    template_id=template_id,
+                )
+                specs.append(spec)
+                oracles.append(oracle)
+        template_id = template_ids[index % len(template_ids)]
+        candidate_id = _candidate_id(
+            resolved_round,
+            "cross_function",
+            [item.source_id for item in ordered],
+        )
+        try:
+            public, oracle = _make_candidate(
+                round_index=resolved_round,
+                split=split,
+                family="cross_function",
+                atomic_examples=ordered,
+                component_specs=specs,
+                component_oracles=oracles,
+                template_id=template_id,
+                template_partition=template_partition,
+                seed=seed,
+                candidate_id=candidate_id,
+            )
+        except ValueError as exc:
+            if "Incompatible schemas share function name" not in str(exc):
+                raise
+            rejected_incompatible += 1
+            continue
+        public_rows.append(public)
+        oracle_rows.append(oracle)
+        if len(public_rows) == count:
+            break
+    if len(public_rows) != count:
+        raise ValueError(
+            f"Could construct only {len(public_rows)} of {count} compatible "
+            f"{component_count}-call groups; rejected {rejected_incompatible}"
+        )
     return public_rows, oracle_rows
 
 
@@ -638,6 +818,7 @@ def build_round2_repeat_candidates(
                     "component_id": row["candidate_id"],
                     "source_component_ids": list(row["source_component_ids"]),
                     "question": row["question"],
+                    "clause_questions": _spec_clauses(row),
                     "functions": copy.deepcopy(row["functions"]),
                     "messages": copy.deepcopy(row["messages"]),
                     "expected_call_count": 2,
@@ -670,6 +851,118 @@ def build_round2_repeat_candidates(
         )
         public_rows.append(public)
         oracle_rows.append(oracle)
+    return public_rows, oracle_rows
+
+
+def build_next_repeat_candidates(
+    previous_public: Sequence[Mapping[str, Any]],
+    previous_oracle: Sequence[Mapping[str, Any]],
+    *,
+    round_index: int,
+    component_call_count: int,
+    seed: int,
+    count: int,
+    split: str = "hidden_composition",
+    template_partition: str = "train",
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Pair disjoint rendered components to form the next repeat frontier."""
+
+    if component_call_count < 1:
+        raise ValueError("component_call_count must be positive")
+    oracle_by_id = {str(row["candidate_id"]): row for row in previous_oracle}
+    compatible_pairs = (
+        pair
+        for pair in itertools.combinations(previous_public, 2)
+        if set(pair[0]["source_component_ids"]).isdisjoint(
+            pair[1]["source_component_ids"]
+        )
+    )
+    selected = heapq.nsmallest(
+        count * 3,
+        compatible_pairs,
+        key=lambda pair: stable_hash(
+            seed,
+            f"repeat-r{round_index}",
+            pair[0]["candidate_id"],
+            pair[1]["candidate_id"],
+        ),
+    )
+    if len(selected) < count:
+        raise ValueError(
+            f"Could identify only {len(selected)} candidate pairs for {count} repeats"
+        )
+    template_ids = (
+        TRAIN_TEMPLATE_IDS if template_partition == "train" else HELDOUT_TEMPLATE_IDS
+    )
+    public_rows: List[Dict[str, Any]] = []
+    oracle_rows: List[Dict[str, Any]] = []
+    rejected_incompatible = 0
+    for pair_index, pair in enumerate(selected):
+        index = len(public_rows)
+        atomic_specs = [spec for row in pair for spec in row["component_specs"]]
+        atomic_examples = [
+            public_spec_to_example(spec, split=split) for spec in atomic_specs
+        ]
+        try:
+            _schema_union(atomic_examples)
+        except ValueError as exc:
+            if "Incompatible schemas share function name" not in str(exc):
+                raise
+            rejected_incompatible += 1
+            continue
+        component_specs: List[Dict[str, Any]] = []
+        component_oracles: List[Dict[str, Any]] = []
+        for row in pair:
+            candidate_id = str(row["candidate_id"])
+            component_specs.append(
+                {
+                    "component_id": candidate_id,
+                    "source_component_ids": list(row["source_component_ids"]),
+                    "question": row["question"],
+                    "clause_questions": _spec_clauses(row),
+                    "functions": copy.deepcopy(row["functions"]),
+                    "messages": copy.deepcopy(row["messages"]),
+                    "expected_call_count": component_call_count,
+                    "allow_exact_duplicates": False,
+                }
+            )
+            oracle_row = oracle_by_id[candidate_id]
+            component_oracles.append(
+                {
+                    "component_id": candidate_id,
+                    "canonical_calls": copy.deepcopy(oracle_row["canonical_calls"]),
+                    "accepted_calls": copy.deepcopy(oracle_row["accepted_calls"]),
+                }
+            )
+        leaf_ids = [str(value) for row in pair for value in row["source_component_ids"]]
+        candidate_id = _candidate_id(round_index, "paired_repeat", leaf_ids)
+        public, oracle = _make_candidate(
+            round_index=round_index,
+            split=split,
+            family="paired_repeat",
+            atomic_examples=atomic_examples,
+            component_specs=component_specs,
+            component_oracles=component_oracles,
+            template_id=template_ids[index % len(template_ids)],
+            template_partition=template_partition,
+            seed=seed,
+            candidate_id=candidate_id,
+        )
+        # ``_make_candidate`` already records leaf provenance in clause order;
+        # the two orderings must agree or clause k would not answer call k.
+        if sorted(public["source_component_ids"]) != sorted(leaf_ids):
+            raise AssertionError(
+                f"Leaf provenance diverged for repeat candidate {candidate_id}"
+            )
+        public_rows.append(public)
+        oracle_rows.append(oracle)
+        if len(public_rows) == count:
+            break
+    if len(public_rows) != count:
+        raise ValueError(
+            f"Could construct only {len(public_rows)} of {count} compatible repeat "
+            f"candidates; rejected {rejected_incompatible}"
+        )
     return public_rows, oracle_rows
 
 

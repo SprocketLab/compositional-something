@@ -1,0 +1,208 @@
+{
+  "atomic_data_dir": "/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/coding_atomic_sweep_20260718_014707/data/bfcl",
+  "data_seed": 20260721,
+  "leaf_question_count": 1096,
+  "model_order_convention": {
+    "round_02_direct_g4": {
+      "call_count": 4,
+      "prediction_in_clause_order": 1.0,
+      "resolved_count": 200
+    },
+    "round_03_direct_g4": {
+      "call_count": 8,
+      "prediction_in_clause_order": 1.0,
+      "resolved_count": 195
+    },
+    "seed": {
+      "call_count": 2,
+      "prediction_in_clause_order": 1.0,
+      "resolved_count": 199
+    }
+  },
+  "persisted_candidates": {
+    "calls_2_cross": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    },
+    "calls_2_repeat": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    },
+    "calls_4_cross": {
+      "mean_displaced_call_fraction": 0.74625,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 0.045,
+      "unresolved_count": 0
+    },
+    "calls_4_repeat": {
+      "mean_displaced_call_fraction": 0.74875,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 0.035,
+      "unresolved_count": 0
+    },
+    "calls_8_cross": {
+      "mean_displaced_call_fraction": 0.868125,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 0.0,
+      "unresolved_count": 0
+    },
+    "calls_8_repeat": {
+      "mean_displaced_call_fraction": 0.725,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 0.055,
+      "unresolved_count": 0
+    }
+  },
+  "rebuilt_candidates": {
+    "calls_2_cross": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 0.565,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    },
+    "calls_2_repeat": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 1.0,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    },
+    "calls_4_cross": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 0.015,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    },
+    "calls_8_cross": {
+      "mean_displaced_call_fraction": 0.0,
+      "resolved_count": 200,
+      "sampled_count": 200,
+      "schema_in_clause_order": 0.0,
+      "target_in_clause_order": 1.0,
+      "unresolved_count": 0
+    }
+  },
+  "run_root": "/scratch/gpfs/BRENDEN/changho/compositional-something/artifacts/runs/bfcl_cumulative_size_sweep_20260721_132230",
+  "sample": 200,
+  "training_targets": {
+    "n1000-compose_g1": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.045
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    },
+    "n1000-compose_g4": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.045
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    },
+    "n1000-compose_g4_repeat20": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.04
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    },
+    "n1000-direct_g4": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      }
+    },
+    "n1000-oracle": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.045
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    },
+    "n2000-oracle": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.045
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    },
+    "n3000-oracle": {
+      "calls_2": {
+        "resolved_count": 200,
+        "target_in_clause_order": 1.0
+      },
+      "calls_4": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.045
+      },
+      "calls_8": {
+        "resolved_count": 200,
+        "target_in_clause_order": 0.0
+      }
+    }
+  }
+}

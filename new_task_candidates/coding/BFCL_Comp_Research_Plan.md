@@ -4,9 +4,35 @@
 
 **Primary dataset:** Berkeley Function Calling Leaderboard (BFCL), restricted to the non-agentic BFCL V1 single-turn Python categories.
 
-**Core curriculum:** one function call → two independent calls → four independent calls. An eight-call evaluation is optional and does not need a third training round.
+**Core curriculum:** one function call → two independent calls → four independent calls → eight independent calls. All four regimes are in distribution; eight calls are not treated as an extrapolation-only test.
 
 **Intended resource regime:** one small instruction-tuned language model, parameter-efficient fine-tuning, short outputs, greedy decoding, no browser or tool-agent rollouts.
+
+---
+
+## Current status — read this first (2026-07-25)
+
+We have implemented and run the BFCL compositional pipeline with Qwen3.5-4B, including atomic calibration, direct and component-composed pseudo-labeling, G1/G4 guards, canonical and model-aligned Oracle controls, a cumulative `1 → 2 → 4 → 8` curriculum, a `1k / 2k / 3k` per-regime size ablation, natural BFCL evaluation, and schema-order/identifier robustness audits. The composed examples and their full provenance are retained for inspection.
+
+The present result is **promising at two and four calls but does not yet demonstrate full compositional self-improvement through eight calls**:
+
+- the selected atomic seed is already strong: 91.7% atomic and 78.5%/61.5%/51.5% exact on the controlled held-out 2/4/8-call sets;
+- G1 composition creates cleaner pseudo-labels than direct prediction as the frontier grows: 90.5% versus 90.4% at two calls, 83.7% versus 81.8% at four, and 71.8% versus 66.9% at eight;
+- after the complete 1k-per-regime curriculum, G1 reaches 82.5%/65.0%/37.0% at 2/4/8 calls: small gains at two and four, but a large loss at eight;
+- G4 verifies syntax and schema structure, not semantic argument correctness. It does not improve hidden-label precision over G1 and should remain an ablation, not a promotion gate;
+- increasing the materialized data budget from 1k to 2k or 3k does not monotonically help. Because one epoch also increases optimizer updates, the size sweep confounds data scale with over-training;
+- the canonical Oracle can work when optimization is controlled. An independent 18-cell diagnostic reached 88.5%/66.0%/50.0% at 2/4/8 calls with `2e-4` for 50 steps, so the disastrous late-round cumulative Oracle result is primarily an optimization/continuation warning rather than proof that gold labels are unusable;
+- the original controlled benchmark leaks schema order: schemas were listed in the same order as request clauses. The seed falls from 61.5% to 55.3% at four calls and from 51.5% to 39.1% at eight when schemas are independently shuffled. The trained G1 model is nearly permutation-invariant and improves over the shuffled seed at two and four calls, which is real evidence that the curriculum teaches some composition rather than only the original positional shortcut;
+- both models still depend heavily on familiar identifiers. Jointly renaming function names and top-level argument keys drops held-out 2/4/8 accuracy from 78.5%/61.5%/51.5% to 70.0%/44.0%/22.5% for the seed and from 82.5%/65.0%/37.0% to 70.0%/40.5%/12.0% for G1.
+
+**Update (2026-07-25, later):** Section 34 documents a construction defect that
+invalidates the four- and eight-call rows above. Composed and Oracle targets were
+serialized in component order while the request was rendered in an independent
+clause order, so those targets asked for a permutation the model could not
+predict; `direct_g4` was unaffected. Read Section 34 before interpreting any
+four- or eight-call number below. The defect is now fixed and covered by tests.
+
+The immediate recommendation is to **salvage the experiment with a smaller, cleaner diagnostic rather than launch another larger sweep**. First repair schema presentation and isolate identifier dependence; then establish that a low-update Oracle control learns the corrected task; only then rerun G1 with 1k examples per regime. Sections 31–33 contain the consolidated experiment log, interpretation, and next-step plan.
 
 ---
 
@@ -41,7 +67,7 @@ The implemented conditions are:
 6. G4 composition with a 20% synthetic-repeat mixture;
 7. Oracle composition.
 
-Oracle composition is an upper-bound control. It trains on the same composed prompts and matched data budget as the learned conditions, but its deterministic target concatenates the hidden true component calls. It is not self-improvement, and oracle calls are unavailable to model generation, G1/G4, and pseudo-label acceptance.
+Canonical Oracle composition is a gold-label control, not automatically an upper bound. It trains on the same composed prompts and matched data budget as the learned conditions, but its deterministic target concatenates one selected hidden call for each component. BFCL evaluation accepts multiple argument aliases and ignores call order, whereas token-level SFT penalizes every serialization except the selected target. The aligned-Oracle diagnostic below separates label correctness from this target-mode mismatch. Neither Oracle arm is self-improvement, and hidden oracle calls remain unavailable to model generation, G1/G4, and pseudo-label acceptance.
 
 All generated data are persistent audit artifacts. Public candidates, hidden oracles, raw predictions, parsed calls, guard decisions, accepted and rejected rows, unique pseudo-labels, exact replay-expanded Trainer inputs, per-example evaluations, manifests, and checksums are kept under a timestamped `artifacts/runs/bfcl_compositional_pilot_*` directory.
 
@@ -51,7 +77,7 @@ The initial run completed Round 1 and was stopped by its predeclared gate. Post-
 
 To match the manual addition experiment, the primary method is now G1 composition: require only enough JSON syntax and call shape to concatenate component predictions, without rejecting schema-valid semantic mistakes. G4 remains a structural-filter ablation. Hidden-oracle pseudo-label precision is reported after generation and never controls example acceptance or round progression.
 
-The experiment runs the fixed manual 1→2→4 curriculum without a scientific promotion rule. Round 2 is submitted in the original Slurm DAG and starts after successful Round-1 jobs through `afterok` dependencies. Job failures and invalid or empty materializations remain operational stopping conditions.
+The first corrected pilot runs the fixed manual `1 → 2 → 4` curriculum without a scientific promotion rule. The later cumulative experiment extends the same policy through eight calls. Job failures and invalid or empty materializations remain operational stopping conditions.
 
 ---
 
@@ -135,8 +161,8 @@ Improvements will remain visible on held-out joining templates and on the origin
 - Single-turn generation only.
 - Independent calls only.
 - One consistent text serialization for calls.
-- Two self-improvement rounds: 1 → 2 → 4 calls.
-- Evaluation up to eight calls.
+- Three self-improvement rounds: `1 → 2`, `1/2 → 4`, and `1/2/4 → 8` calls.
+- Evaluation covers all trained regimes at one, two, four, and eight calls.
 
 ### Explicitly out of scope
 
@@ -224,7 +250,7 @@ The model target is always serialized as a JSON list, even for a single call:
 ]
 ```
 
-For each argument, choose the first non-empty official accepted value for `canonical_reference_calls`; omit an optional argument when its accepted list contains only the empty string. Use this deterministic call list for SFT, but retain every accepted value in `hidden_reference_options` and use the complete option set for evaluation. Use one model-facing serialization throughout training and evaluation, and convert it to the official BFCL representation only inside the evaluation adapter.
+For each argument, choose the first non-empty official accepted value for `canonical_reference_calls`; omit an optional argument when its accepted list contains only the empty string. Retain every accepted value in `hidden_reference_options` and use the complete option set for evaluation. The first-value serialization is the **canonical Oracle** SFT target, but it must not be interpreted as the unique gold response or a guaranteed upper bound. The **aligned Oracle** instead keeps an evaluation-exact seed output when available and falls back to the canonical value only for incorrect components. Convert model outputs to the official BFCL representation only inside the evaluation adapter.
 
 Every derived example records `component_count`, `source_component_ids`, `source_group_id`, `evaluation_track` (`controlled`, `natural`, or `rejected` outside the seed pool), and `composition_family` (`same_function` or `cross_function`).
 
@@ -355,7 +381,9 @@ The implemented training registry is `also`, `in_addition`, `then`, and `indepen
 - Strip terminal punctuation before joining.
 - Lowercase only when required by the model tokenizer; otherwise preserve source text.
 - Reject clauses with unresolved anaphora such as “it,” “that city,” or “the previous result,” unless a deterministic self-containment checker can resolve them.
-- Randomize clause order while keeping target-call order aligned.
+- Randomize clause order.
+- Randomize schema order independently of clause order and record both permutations.
+- Keep target-call serialization in clause order for a stable SFT target; the evaluator remains order-insensitive.
 
 ### 10.3 Output order
 
@@ -392,9 +420,17 @@ For each target four-call example:
 4. Flatten them into a four-call pseudo-label.
 5. Fine-tune on accepted four-call examples, previous-round examples, and seed replay.
 
-### Optional eight-call evaluation
+### Round 3 — eight calls
 
-Evaluate the final model directly on eight-call prompts. Also evaluate recursive composition of two predicted four-call subproblems. A third training round is optional rather than required.
+For each target eight-call example:
+
+1. Partition it into two four-call subproblems.
+2. Query the Round-2 model on each four-call subproblem.
+3. Guard both predicted lists.
+4. Flatten them into an eight-call pseudo-label.
+5. Fine-tune on equal per-regime quotas of one-, two-, four-, and eight-call examples.
+
+Evaluate the resulting model directly on all four call-count regimes. Also evaluate recursive composition of two predicted four-call subproblems as the Frozen/recursive diagnostic. Eight calls are in distribution for the main cumulative experiment.
 
 ---
 
@@ -557,9 +593,9 @@ The proposed method.
 
 Use the seed model to solve atomic components recursively at every frontier, but never fine-tune. This tests whether retraining is necessary.
 
-### B5 — Oracle-composed SFT upper bound
+### B5 — Canonical and aligned Oracle-composed SFT controls
 
-Train on generated multi-call prompts paired with composed hidden reference calls. This estimates the headroom remaining after pseudo-label noise is removed.
+Train on generated multi-call prompts paired with evaluation-exact composed calls. Report both the deterministic first-accepted-value target and a model-aligned target that preserves evaluation-valid seed aliases and order. Their difference measures objective/serialization mismatch after pseudo-label correctness has been fixed; neither should be called an upper bound without empirical support.
 
 ### B6 — Direct gold frontier upper bound, optional
 
@@ -665,9 +701,10 @@ The minimum publishable matrix is:
 | Unfiltered composition | Composed 2-call labels | Composed 4-call labels | 1/2/4/8 + BFCL |
 | Guarded composition | Guarded 2-call labels | Guarded 4-call labels | 1/2/4/8 + BFCL |
 | Frozen composition | No training | No training | Recursive 2/4/8 |
-| Oracle upper bound | Gold-composed 2-call | Gold-composed 4-call | 1/2/4/8 + BFCL |
+| Canonical Oracle control | First-accepted-value 2-call | First-accepted-value 4-call | 1/2/4/8 + BFCL |
+| Aligned Oracle control | Model-aligned exact 2-call | Model-aligned exact 4-call | 1/2/4/8 + BFCL |
 
-The implemented pilot names these arms `direct_g4`, `compose_g1`, `compose_g4`, `compose_g4_repeat20`, and `oracle`. `compose_g1` is the primary condition. The repeat arm is an auxiliary comparison against `compose_g4`, not a replacement for it. Direct and G4 use the same output-level structural checks. Oracle uses true hidden targets only for its explicitly labeled upper-bound SFT data.
+The implemented pilot names these arms `direct_g4`, `compose_g1`, `compose_g4`, `compose_g4_repeat20`, and `oracle`. `compose_g1` is the primary condition. The repeat arm is an auxiliary comparison against `compose_g4`, not a replacement for it. Direct and G4 use the same output-level structural checks. The original `oracle` arm uses the canonical first-accepted-value target. The follow-up `bfcl_oracle_alignment_sweep` compares that target with a model-aligned but still 100%-evaluation-exact Oracle target.
 
 For a very limited budget, run one random seed for all conditions, then repeat only Seed, Direct, and Guarded Composition with two additional random seeds.
 
@@ -867,7 +904,7 @@ summary.json
 summary.csv
 ```
 
-Keep raw predictions, parsed/component guard decisions, all accepted and rejected candidates, false-accept and false-reject audits, the unique selected pseudo-label set, and the exact replay-expanded Trainer input. Each row records candidate and parent IDs, source components, questions, schemas, joined prompt, template, family, condition, round, checkpoint, guard reasons, composed target, training selection, and replay instance. Round-2 data retain the complete 1→2→4 parent hierarchy.
+Keep raw predictions, parsed/component guard decisions, all accepted and rejected candidates, false-accept and false-reject audits, the unique selected pseudo-label set, and the exact replay-expanded Trainer input. Each row records candidate and parent IDs, source components, questions, schemas, joined prompt, template, family, condition, round, checkpoint, guard reasons, composed target, training selection, and replay instance. Later-round data retain the complete `1 → 2 → 4 → 8` parent hierarchy.
 
 The CLI audit view must sample accepted, rejected, false-accepted, and false-rejected rows and reconstruct a selected training example from its candidate ID. SHA-256 manifests make later notebook inspection and checkpoint-to-data provenance verifiable. Jobs write directly to the persistent run directory and use completion markers so timeout/resubmission does not erase partial artifacts.
 
@@ -886,6 +923,327 @@ The primary G1 composition result is successful when it:
 G4 succeeds as an auxiliary guard ablation only if its quantity–quality tradeoff improves downstream results over G1. Neither condition controls whether the scheduled curriculum runs.
 
 The strongest possible result is not merely a higher average score. It is a clean demonstration that **short, reliable function-call predictions can be composed into supervision that teaches a small model to perform larger parallel call sets directly**.
+
+---
+
+## 29. Post-pilot Oracle-alignment diagnostic (2026-07-20)
+
+The completed fixed-curriculum pilot did not support promoting G1. Round-2 G1 improved controlled held-out two-call exact accuracy from 77.5% to 83.0% and natural Parallel from 67.0% to 76.0%, but controlled held-out four- and eight-call accuracy fell to 61.0% and 20.5%. Direct self-training was stronger at 84.0%, 73.5%, and 41.5% on held-out two/four/eight calls. Round-2 G1 accepted-label precision was 66.9%; Direct precision was 58.8%. Near-perfect format validity shows that semantic call and argument errors, not output syntax, dominate.
+
+The canonical Oracle arm was unexpectedly weak despite exact labels: its Round-1 held-out two/four/eight scores were 78.5%, 61.5%, and 31.5%, and Round 2 reached 77.5%, 55.0%, and 21.5%. This is not training-loss underfit. At learning rate `2e-4`, Round-1 Oracle loss fell below `0.003` by approximately step 20. The data instead expose an objective mismatch: BFCL accepts multiple reference values and unordered calls, while canonical Oracle SFT selects the first non-empty accepted value and one list order. Among evaluation-exact G1 labels, 42.7% in Round 1 and 70.7% in Round 2 used a valid target different from the canonical Oracle serialization.
+
+The launched diagnostic therefore holds prompts, candidate IDs, ordering, seed adapter, effective batch size, and evaluation fixed while crossing:
+
+| Factor | Values |
+|---|---|
+| Oracle target | canonical, aligned |
+| Learning rate | `5e-5`, `1e-4`, `2e-4` |
+| Update checkpoint | 20, 50, 100 |
+| New two-call examples | 1,000 |
+| Atomic replay | 1,000 (1:1 replay) |
+
+The aligned target is constructed with hidden references only inside the explicit Oracle control. If the seed's direct composed prediction is evaluation-exact, retain its valid aliases and call order. Otherwise retain each evaluation-exact component prediction and replace only incorrect components with canonical hidden calls. Assert every resulting composite against the complete accepted-call option set before materialization. This produces a 100%-exact target set while minimizing unnecessary movement away from the seed model's output mode.
+
+Run the 18 cells independently from the same seed adapter; the 20/50/100-step cells are prefix-matched training runs rather than checkpoints inherited from a longer run. Materialize one persistent dataset per target style, retain every adapter, prediction, metric, alignment trace, manifest, and checksum, and use an `afterany` collector so a failed array task yields a partial auditable summary rather than a dependency dead end.
+
+Interpretation priorities are:
+
+1. aligned versus canonical at matched learning rate and step count;
+2. early-versus-late generalization to detect over-updating;
+3. controlled 2/4/8-call exact accuracy together with atomic retention;
+4. natural Parallel and Parallel Multiple transfer;
+5. only after selecting target style and optimization, a `500 / 1,000 / all-1,770` size sweep.
+
+Do not increase learning rate or generate more data merely because canonical Oracle is weak. If alignment and lower learning rate do not repair Oracle, next test stronger replay and training from the seed adapter at each frontier before changing the self-composition method.
+
+---
+
+## 30. Cumulative 1k/2k/3k regime-size ablation (2026-07-21)
+
+The next experiment replaces the pilot's frontier-heavy mixture with the cumulative manual curriculum used by the addition study. It has no accuracy-based promotion gate. Round 1 trains on equal quotas of one- and two-call examples; Round 2 refreshes the two-call labels and trains on equal one/two/four-call quotas; Round 3 refreshes both earlier composed regimes and trains on equal one/two/four/eight-call quotas. The three size cells use 1,000, 2,000, or 3,000 examples **per call-count regime**, giving total round sizes of `2N`, `3N`, and `4N`.
+
+Run all five implemented conditions (`direct_g4`, `compose_g1`, `compose_g4`, `compose_g4_repeat20`, and canonical `oracle`) from the seed-7 Qwen3.5-4B adapter. Continue each cell from its previous-round checkpoint, train for one materialized-data epoch at the user-selected `2e-4` learning rate and effective batch size 16, and evaluate held-out 1/2/4/8-call grids plus natural Parallel and Parallel Multiple after every round. The repeat arm uses an 80/20 cross-function/repeat-family mixture within every composed regime.
+
+To obtain more than the 1,770 pairs available from the 60-item hidden pool, composition draws public prompts and schemas from the 240 seed-training atoms plus the 60 hidden-composition atoms. Gold targets remain available only to atomic replay and the explicit Oracle control; learned composition and guards receive no hidden calls. Validation and test sources remain excluded. Candidate construction rejects groups that contain the same function name with incompatible schemas.
+
+The prepared run uses 5,000 compatible cross-function candidates and 1,000 repeat candidates at each of two, four, and eight calls. All 5,000 cross candidates fit the 2,048-token training limit: observed maxima are 625, 1,056, and 1,800 tokens at two, four, and eight calls. The corresponding repeat maxima are 472, 843, and 1,294. The run persists raw predictions, accepted and rejected decisions, pseudo-label audits, selected unique examples, replay-expanded Trainer inputs, metrics, manifests, and checksums under `artifacts/runs/bfcl_cumulative_size_sweep_20260721_132230`.
+
+The Slurm DAG uses 15-task arrays (three sizes by five conditions), throttled to four concurrent H200s. Round 1 shares seed generation and CPU materialization; later rounds have a checkpoint-specific generation/materialization array followed by a train/evaluate array. `afterany` dependencies and task-local prerequisite checks allow unaffected cells to continue after another cell fails, and the final CPU collector produces a partial summary instead of leaving jobs in `DependencyNeverSatisfied`.
+
+The live run was submitted on 2026-07-21. Slurm accepted shared Round-1 generation `11470015`, Round-1 materialization `11470016`, and Round-1 train/evaluate array `11470017`. The account's `QOSMaxJobsPerUserLimit` prevents multiple 15-task arrays from being pending simultaneously, so continuation job `11470086` automatically submits the Round-2 generation array after `11470017` finishes. Each subsequent array similarly schedules one short CPU continuation for the next phase and records the new IDs in the manifest. This staged submission is operational only; it does not introduce a metric-based curriculum gate.
+
+---
+
+## 31. Consolidated experiment log and results (2026-07-25)
+
+This section supersedes the speculative interpretation in the earlier planning sections wherever completed results are now available.
+
+### 31.1 What the experiment is testing
+
+The BFCL experiment is the coding/function-calling instantiation of the manual compositional self-improvement framework:
+
+1. train an atomic one-call seed from labeled BFCL Simple examples;
+2. construct harder requests by joining independent clauses and unioning their function schemas;
+3. ask the current model to solve easier components separately;
+4. concatenate the component predictions into a multi-call pseudo-label;
+5. fine-tune on a fixed cumulative curriculum containing all regimes reached so far;
+6. compare against direct pseudo-labeling, frozen composition, structural guarding, and gold Oracle controls.
+
+There is no reinforcement learning, model-proposed task generation, or accuracy-based promotion rule in the main curriculum. G1 acceptance requires a parseable JSON list with the expected call shape. G4 additionally checks observable structural properties such as schema membership, argument keys/types, and required fields. Neither guard can verify whether an argument value is semantically correct for the natural-language request. Hidden BFCL references are used only for offline auditing and the explicit Oracle controls.
+
+At inference time, BFCL supplies function definitions. “Held-out function” therefore means absent from SFT examples but still described in the evaluation prompt; it does not mean that the model must guess an undisclosed API.
+
+### 31.2 Runs completed
+
+| Experiment | What was varied | Completion | Main artifact |
+|---|---|---:|---|
+| Atomic calibration | 240/120/60/30 atoms, learning rate, steps, three final seeds | 21 LoRA runs | [`coding_atomic_sweep_20260718_014707`](../../artifacts/runs/coding_atomic_sweep_20260718_014707/summary.csv) |
+| Initial gated pilot | Direct, G1, G4, repeat mixture, Oracle, frozen composition | Round 1; stopped by the original gate | [`bfcl_compositional_pilot_20260719_112240`](../../artifacts/runs/bfcl_compositional_pilot_20260719_112240/summary.json) |
+| Fixed-curriculum pilot | Same main conditions after ordering and dependency fixes | Two rounds complete | [`bfcl_compositional_pilot_20260720_124355`](../../artifacts/runs/bfcl_compositional_pilot_20260720_124355/summary.csv) |
+| Oracle alignment diagnostic | canonical/aligned targets × three learning rates × 20/50/100 steps | 18/18 cells | [`bfcl_oracle_alignment_sweep_20260720_204508`](../../artifacts/runs/bfcl_oracle_alignment_sweep_20260720_204508/summary.csv) |
+| Cumulative size ablation | five conditions × 1k/2k/3k per regime × three rounds | 31/45 cell-rounds; partial because long cells timed out | [`bfcl_cumulative_size_sweep_20260721_132230`](../../artifacts/runs/bfcl_cumulative_size_sweep_20260721_132230/summary.csv) |
+| Schema generalization audit | seed/G1 × original/five schema permutations/joint identifier rename | 14/14 evaluation cells | [`bfcl_schema_generalization_audit_20260724_000634`](../../artifacts/runs/bfcl_schema_generalization_audit_20260724_000634/robustness_summary.csv) |
+
+The first pilot also exposed a condition-dependent materialization-order bug: G1 and G4 could contain the same examples and targets but receive them in different training orders. The ordering key was made condition-invariant before the later experiments. Slurm dependencies were also changed from fragile all-or-nothing chains to staged submission with `afterany` collectors and task-local prerequisite checks.
+
+### 31.3 Atomic seed
+
+The selected seed-7 Qwen3.5-4B recipe uses 240 atomic examples, LoRA rank 16/alpha 32, learning rate `2e-4`, effective batch size 16, and 30 updates. On the evaluation source sets used by the later robustness audit it obtains:
+
+| Dataset | Exact accuracy |
+|---|---:|
+| Atomic test | 91.7% |
+| Controlled held-out 2 calls | 78.5% |
+| Controlled held-out 4 calls | 61.5% |
+| Controlled held-out 8 calls | 51.5% |
+| Natural BFCL Parallel | 67.5% |
+| Natural BFCL Parallel Multiple | 67.0% |
+
+This is enough to generate mostly correct two-call labels but not uniformly reliable eight-call labels. As a rough independence calculation, a 90% per-component success rate implies `0.9² = 81%`, `0.9⁴ = 65.6%`, and `0.9⁸ = 43.0%` all-correct composites. To obtain 90% all-correct labels would require about 94.9%, 97.4%, and 98.7% component accuracy at two, four, and eight calls respectively.
+
+The seed is also unusually strong at multi-call transfer. That leaves limited headroom at two and four calls while still producing too much accumulated noise at eight calls—a difficult but informative regime for testing self-improvement.
+
+### 31.4 Does composition improve the labels?
+
+Yes, but the benefit is moderate at two calls and more meaningful at four/eight calls. On the new cross-function frontier in the complete 1k curriculum:
+
+| New frontier | Direct G4 precision | G1 composition precision | G4 composition precision |
+|---:|---:|---:|---:|
+| 2 calls | 90.4% | **90.5%** | 90.4% |
+| 4 calls | 81.8% | **83.7%** | 83.6% |
+| 8 calls | 66.9% | **71.8%** | 67.2% |
+
+“Precision” here is an offline audit: among pseudo-labels accepted without access to references, it is the fraction that matches one complete hidden accepted-call option set. It is not a promotion score and does not affect data inclusion.
+
+These results support the decomposition mechanism but reject the strong-guard hypothesis. G4 discards more data without reliably removing the hidden semantic mistakes that matter. In particular, it cannot determine whether a schema-valid city, date, quantity, or identifier is the value requested by the sentence. G1 should remain the primary condition; G4 is useful only as a structural ablation.
+
+### 31.5 Did training on those labels improve the model?
+
+Only partially. The only size for which all five conditions completed all three rounds is 1k examples per call-count regime. The final Round-3 exact accuracies are:
+
+| Model | Atomic | Held-out 2 | Held-out 4 | Held-out 8 | Natural Parallel | Natural Parallel Multiple |
+|---|---:|---:|---:|---:|---:|---:|
+| Atomic seed | 91.7% | 78.5% | 61.5% | **51.5%** | 67.5% | **67.0%** |
+| Direct G4 | 85.0% | 78.0% | 59.5% | 29.0% | 76.0% | 53.5% |
+| G1 composition | 90.0% | 82.5% | **65.0%** | 37.0% | 71.0% | 57.5% |
+| G4 composition | **93.3%** | 80.5% | 56.5% | 34.5% | 74.0% | 64.5% |
+| G4 + 20% repeat | **93.3%** | **84.5%** | 61.5% | 31.0% | **76.5%** | 66.0% |
+| Canonical Oracle | 83.3% | 75.5% | 44.0% | 19.0% | 66.5% | 61.5% |
+
+The repeat arm is not a clean label-free result because construction of its literal mutations is oracle-assisted. Its two-call and natural gains are useful diagnostics, not the primary claim.
+
+G1 is the best clean composition condition at four calls and is better than Direct at every controlled multi-call level, but it does not preserve the seed's eight-call ability. The current evidence therefore supports “composition supplies a better training signal than direct pseudo-labeling” more strongly than “iterative training expands the complete frontier.”
+
+### 31.6 Why more data did not fix it
+
+The 1k/2k/3k sweep does not show monotonic scaling. Some Round-1 2k cells are strong—for example, 2k Oracle reaches 82.5%/71.5%/50.5% at 2/4/8, and 2k Repeat reaches 83.5%/70.5% on the two natural categories—but 3k often regresses. Only the 1k conditions and 2k Oracle completed Round 3, so the sweep is not a balanced final comparison.
+
+More importantly, “data size” was coupled to optimizer updates. With one epoch, the cumulative 1k cell takes approximately `125 + 188 + 250 = 563` updates over three rounds; 2k takes about 1,125 and 3k about 1,688, all at `2e-4`. The atomic seed used only 30 updates. This makes catastrophic interference and over-specialization more plausible than simple data scarcity. Another 3k-or-larger sweep would repeat this confound.
+
+### 31.7 What the Oracle diagnostic established
+
+The early cumulative Oracle result looked paradoxically bad because exact labels should provide an upper control. We tested two target serializations:
+
+- **canonical:** one deterministic accepted value and order;
+- **aligned:** retain an evaluation-valid seed alias/order when possible, replacing only incorrect components with canonical hidden calls.
+
+Across 18 completed cells, alignment did not systematically outperform canonical targets. The strongest balanced canonical cell, `lr=2e-4, steps=50`, achieved:
+
+| Atomic | Held-out 2 | Held-out 4 | Held-out 8 | Natural Parallel | Natural Parallel Multiple |
+|---:|---:|---:|---:|---:|---:|
+| 91.7% | **88.5%** | 66.0% | 50.0% | 83.0% | 71.5% |
+
+The best four-call Oracle result was 71.5% at `5e-5, 100` steps, although its eight-call result was 44.5%. Thus canonical serialization is not intrinsically unlearnable, and target alias mismatch is not the main explanation. The long cumulative continuation, high total update count, and changing round mixture are the more likely causes of the late Oracle collapse.
+
+### 31.8 Schema-order and identifier audit
+
+The original controlled generator placed function schemas in the same order as their corresponding question clauses. Five deterministic schema permutations reveal that the seed used this positional regularity, while the final G1 model largely learned to ignore it:
+
+| Model | Dataset | Original | Mean of five schema shuffles | Joint identifier rename |
+|---|---|---:|---:|---:|
+| Seed | Atomic | 91.7% | 91.7% | 81.7% |
+| Seed | Held-out 2 | 78.5% | 78.5% | 70.0% |
+| Seed | Held-out 4 | 61.5% | 55.3% | 44.0% |
+| Seed | Held-out 8 | 51.5% | 39.1% | 22.5% |
+| G1 Round 3 | Atomic | 90.0% | 90.0% | 86.7% |
+| G1 Round 3 | Held-out 2 | 82.5% | **82.6%** | 70.0% |
+| G1 Round 3 | Held-out 4 | 65.0% | **64.3%** | 40.5% |
+| G1 Round 3 | Held-out 8 | 37.0% | 37.4% | 12.0% |
+
+On shuffled schemas, G1 beats the seed by 4.1 points at two calls and 9.0 points at four calls, but trails by 1.7 points at eight. Prediction agreement between the original and a random schema order also rises substantially: from 92.1%/72.2%/53.0% for the seed to 97.8%/92.7%/78.3% for G1 at 2/4/8 calls. This is the clearest positive result so far.
+
+The jointly renamed variant deterministically renames function names and top-level argument keys in schemas, questions, and references. It therefore tests identifier robustness without changing task semantics, but it does not yet separate function-name memorization from argument-key memorization. Both models retain nearly perfect call count, function selection, and key structure on the controlled sets; the main drop is in exact argument values. This suggests that familiar names help the model bind request values to the right calls, and that cumulative G1 training does not solve—and may amplify—that dependence.
+
+The first identifier-rename jobs used output caps sized for the shorter original identifiers and truncated some predictions. Those results were archived under `superseded/truncated_generation_cap` and are invalid. The table above uses the completed rerun with doubled rename-generation budgets.
+
+### 31.9 Seen versus held-out functions
+
+Unseen SFT functions are not the main bottleneck. Under shuffled schemas, G1 held-out accuracy is 82.6%/64.3%/37.4% at 2/4/8, compared with 79.0%/61.2%/33.4% on the corresponding “seen” source sets. The model can use schemas supplied at inference. The more important generalization gaps are:
+
+- binding clauses to schemas without an order shortcut;
+- binding unfamiliar function/argument identifiers to values;
+- preserving every value across long multi-call outputs;
+- avoiding optimization-induced loss of the seed's existing eight-call ability.
+
+---
+
+## 32. Current conclusions
+
+| Initial hypothesis | Status | Evidence |
+|---|---|---|
+| H1: composition creates cleaner frontier supervision | **Supported** | G1 precision exceeds Direct by 1.9 points at four calls and 4.9 points at eight. |
+| H2: iterative retraining expands the reliable frontier | **Not yet supported** | G1 improves shuffled 2/4-call exact accuracy but remains below the seed at eight calls. |
+| H3: stronger structural guarding improves supervision | **Rejected in current form** | G4 acceptance is lower but semantic precision is essentially unchanged or worse. |
+| H4: one-call ability is preserved | **Condition-dependent** | Final G1 retains 90.0%, but Direct and late Oracle regress; some G4 arms improve. |
+| H5: gains transfer to natural BFCL | **Mixed** | G1 improves Natural Parallel but regresses on Parallel Multiple; repeat data help but are oracle-assisted. |
+
+The experiment should not be abandoned yet. There is a plausible compositional signal: G1 labels are cleaner, G1 is much more schema-order invariant, and it improves over the shuffled seed at two and four calls. But the present setup is not ready for a headline claim because:
+
+1. the original controlled benchmark contains a positional shortcut;
+2. the final model relies strongly on familiar identifiers;
+3. data size and update count were confounded;
+4. cumulative continuation can erase seed capability even with Oracle labels;
+5. eight-call pseudo-label precision remains only about 72%, so exact-set noise compounds sharply.
+
+The best current statement is:
+
+> Component composition improves pseudo-label quality and teaches schema-order-robust two- and four-call behavior, but the current cumulative SFT recipe does not expand or preserve the eight-call frontier.
+
+---
+
+## 33. Recommended next experiment
+
+### 33.1 Phase A — repair and audit the task before training
+
+Create a versioned `controlled_v2` dataset with these invariants:
+
+1. Shuffle question-clause order and independently shuffle schema order using stored seeds. Serialize target calls in clause order for a stable SFT target; never derive schema order from clause or target order.
+2. Give each component predictor its component clause **plus the full shuffled union of candidate schemas**, not only the already-selected relevant schema. This tests actual schema selection during decomposition.
+3. Add explicit distractor tiers, initially 0, 4, and 16 irrelevant schemas, while keeping the current no-distractor set as a diagnostic.
+4. Persist clause-to-schema provenance for auditing, but never expose that mapping to model generation.
+5. Make shuffled-schema exact accuracy the primary controlled metric; keep matched-order accuracy only as a shortcut diagnostic.
+6. Split the identifier audit into function-name-only, argument-key-only, and joint renaming. This identifies which augmentation, if any, is needed.
+7. Derive generation budgets from a token-length preflight for every transformation. Assert that fewer than 0.5% of predictions end at the cap.
+
+No new training should begin until a small sample confirms that questions, schemas, references, and rename transforms remain semantically aligned.
+
+### 33.2 Phase B — establish learnability with a cheap Oracle control
+
+Do not repeat the full 1k/2k/3k cross-product. Use 1k examples per regime and decouple optimizer updates from materialized dataset size.
+
+Run two short canonical-Oracle training jobs from the same atomic seed on corrected Round-1 data:
+
+| Factor | Values |
+|---|---|
+| Learning rate | `5e-5`, `2e-4` |
+| Saved update checkpoints | 10, 20, 50 |
+| Effective batch size | 16 |
+| Regime mixture | equal atomic/two-call quotas |
+| Primary selection set | corrected shuffled-schema validation |
+
+Choose the optimizer checkpoint on a held-out controlled validation pool, not the final test set. This is hyperparameter selection, not a curriculum promotion gate. Then run the selected Oracle recipe through the fixed Round-2 and Round-3 mixtures, saving intermediate checkpoints and evaluating after each. If a clean Oracle cannot at least preserve the seed while improving corrected two/four-call accuracy, the training objective or dataset construction remains broken and self-training should pause.
+
+### 33.3 Phase C — rerun the fixed self-improvement curriculum
+
+Only after the Oracle control learns the corrected task:
+
+1. run Seed, Frozen composition, Direct, and G1 from identical initial adapters;
+2. use 1k examples per regime throughout;
+3. keep the fixed in-distribution mixtures: `1/2` in Round 1, `1/2/4` in Round 2, and `1/2/4/8` in Round 3;
+4. use the Oracle-selected learning rate and fixed update budget instead of one epoch;
+5. refresh composed labels at every round and retain all accepted/rejected examples;
+6. keep G4 and the 20% repeat arm out of the primary sweep; add them only after G1 is understood;
+7. evaluate original, shuffled-schema, distractor, function-renamed, argument-renamed, and natural BFCL sets after every round;
+8. replicate seeds 23 and 42 only if seed 7 shows a corrected-data benefit.
+
+There remains no accuracy-based promotion rule: once this corrected experiment is launched, all scheduled rounds run unless an operational prerequisite fails. Hidden pseudo-label precision remains an analysis metric.
+
+### 33.4 Decision tree after the corrected run
+
+- **Oracle fails:** stop BFCL scaling and fix construction/optimization. More pseudo-label data cannot solve a gold-control failure.
+- **Oracle succeeds but G1 fails:** the remaining bottleneck is component-label noise or context mismatch. Test agreement/consistency signals or better component context before changing data size.
+- **G1 beats Seed and Direct at two/four but not eight:** report a bounded composition result and treat eight calls as an in-distribution failure case, not a successful frontier expansion.
+- **G1 beats Seed and Direct through eight calls under shuffled schemas:** replicate across seeds and then add identifier/distractor augmentation as robustness ablations.
+
+The next GPU allocation should therefore be small: construction audits on CPU, two short Oracle jobs, and only then one 1k G1/Direct curriculum. Larger data sweeps are not justified by the current evidence.
+
+---
+
+## 34. Call-order construction defect and repair (2026-07-25)
+
+A construction audit found that input composition and output composition used
+**different permutations** above two calls, which invalidates the four- and
+eight-call results in Sections 31–32.
+
+`_make_candidate` rendered the joined request from a fresh shuffle of the leaf
+clauses, but concatenated the target calls per component. At two calls the two
+orders coincide because every component is atomic; at four and eight calls the
+target is an arbitrary permutation of the request. Measured on the persisted
+`bfcl_cumulative_size_sweep_20260721_132230` candidates (200 sampled per file):
+
+| Candidate file | Target in clause order | Mean displaced calls | Schema listed in clause order |
+|---|---:|---:|---:|
+| `calls_2_cross` | 100.0% | 0.0% | 100.0% |
+| `calls_4_cross` | 4.5% | 74.6% | 100.0% |
+| `calls_8_cross` | 0.0% | 86.8% | 100.0% |
+| `calls_4_repeat` | 3.5% | 74.9% | 100.0% |
+| `calls_8_repeat` | 5.5% | 72.5% | 100.0% |
+
+The model's own convention is unambiguous: direct predictions are in request
+order for 199/199 seed two-call, 200/200 four-call, and 195/195 eight-call
+parseable outputs. The permuted target is therefore unlearnable structure, not a
+stylistic difference.
+
+The confound is not shared across arms. Materialized Round-3 training targets are
+in clause order for 100% of `direct_g4` examples at every regime, but for only
+4.5% at four calls and 0.0% at eight calls in `compose_g1`, `compose_g4`,
+`compose_g4_repeat20`, and `oracle`. Composition and Oracle were penalized
+exactly where the study's claim lives, which also explains the otherwise
+paradoxical canonical-Oracle collapse in Section 31.7 — the Oracle-alignment
+sweep only ever trained on two-call data, the one regime where ordering is
+correct.
+
+The repair makes the parent clause list the concatenation of the component
+clause lists, so clause `k` answers call `k` by construction, and lists schemas
+in a deterministic shuffle keyed by candidate identity rather than clause order.
+Rebuilt candidates are 100% clause-aligned at 2/4/8 calls, and schema/clause
+agreement drops to chance (56.5% at two, 1.5% at four, 0.0% at eight, against
+`1/k!` chance rates of 50%, 4.2%, 0.002%). This also closes the Phase A items 1
+and 5 positional shortcut at construction time rather than only measuring it.
+
+Artifacts: [`reports/bfcl_call_order_audit/`](../../reports/bfcl_call_order_audit/call_order_audit.md),
+reproduced with `python -m self.experiments.bfcl_call_order_audit --sample 200`.
+Regression tests live in `tests/test_bfcl_composition.py` and
+`tests/test_bfcl_call_order_audit.py`.
+
+**Consequence for Section 33.** Phase A stays first, but the four- and
+eight-call numbers in Sections 31.5–31.8 should be treated as uninformative
+rather than as evidence against H2, and the Phase B Oracle control must now be
+run at four calls as well as two — a two-call-only control cannot detect this
+class of defect. Still open and unchanged: component prompts carry only their
+own schemas (Phase A item 2), optimizer updates remain welded to dataset size,
+no composed validation pool exists for checkpoint selection, and there is no
+`direct_g1` arm matching the primary condition's guard level.
 
 ---
 

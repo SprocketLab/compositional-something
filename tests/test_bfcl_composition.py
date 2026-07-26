@@ -8,13 +8,36 @@ from self.coding.bfcl_composition import (
     TRAIN_TEMPLATE_IDS,
     audit_decision,
     build_mutated_atomic_variants,
+    build_hierarchical_cross_candidates,
+    build_next_repeat_candidates,
     build_round1_cross_candidates,
     build_round1_repeat_candidates,
+    build_round2_cross_candidates,
+    build_controlled_evaluation,
     compose_component_predictions,
     guard_prediction,
     oracle_example,
     render_joined_request,
 )
+
+
+def _clause_positions(candidate, clauses) -> list:
+    """Locate the clauses in the rendered parent request, scanning forward.
+
+    Scanning forward means the returned offsets are strictly increasing exactly
+    when the clause list is in rendered-request order, even if two clauses share
+    the same surface text.
+    """
+
+    positions = []
+    cursor = 0
+    for clause in clauses:
+        stripped = clause.strip().rstrip(".!?; ")
+        index = candidate["question"].find(stripped, cursor)
+        assert index >= 0, f"clause {stripped!r} is out of order in the joined request"
+        positions.append(index)
+        cursor = index + len(stripped)
+    return positions
 
 
 def example(
@@ -143,6 +166,55 @@ def test_repeat_candidates_keep_semantic_pair_provenance_across_renders():
     assert public[0]["candidate_id"] != public[1]["candidate_id"]
 
 
+def test_round2_component_ids_identify_the_rendered_prompt():
+    items = [
+        example(
+            f"source-{index}",
+            f"function-{index}",
+            f"Question {index}",
+            f"argument-{index}",
+            index,
+            "integer",
+        )
+        for index in range(6)
+    ]
+    public, _oracle = build_round2_cross_candidates(items, seed=7, count=15)
+    prompt_by_component_id = {}
+    for candidate in public:
+        for spec in candidate["component_specs"]:
+            prompt = (spec["question"], spec["messages"])
+            component_id = spec["component_id"]
+            assert prompt_by_component_id.setdefault(component_id, prompt) == prompt
+
+
+def test_hierarchical_candidates_cover_two_four_and_eight_calls():
+    items = [
+        example(
+            f"source-{index}",
+            f"function-{index}",
+            f"Question {index}",
+            f"argument-{index}",
+            index,
+            "integer",
+        )
+        for index in range(12)
+    ]
+    for calls in (2, 4, 8):
+        public, oracle = build_hierarchical_cross_candidates(
+            items, component_count=calls, count=5, seed=7
+        )
+        assert len(public) == len(oracle) == 5
+        for candidate, hidden in zip(public, oracle):
+            assert candidate["component_count"] == calls
+            assert len(candidate["source_component_ids"]) == calls
+            assert len(set(candidate["source_component_ids"])) == calls
+            assert [spec["expected_call_count"] for spec in candidate["component_specs"]] == [
+                calls // 2,
+                calls // 2,
+            ]
+            assert len(hidden["canonical_calls"]) == calls
+
+
 def test_oracle_example_uses_true_calls_only_in_explicit_oracle_adapter():
     left = example("left", "weather", "Weather in Paris", "city", "Paris", "string")
     right = example("right", "stock", "Stock price for ACME", "ticker", "ACME", "string")
@@ -150,3 +222,121 @@ def test_oracle_example_uses_true_calls_only_in_explicit_oracle_adapter():
     adapted = oracle_example(public[0], oracle[0])
     assert json.loads(adapted.target) == oracle[0]["canonical_calls"]
     assert adapted.evaluator["accepted_calls"] == oracle[0]["accepted_calls"]
+
+
+def _sources(count: int, *, start: int = 0):
+    return [
+        example(
+            f"source-{index}",
+            f"function-{index}",
+            f"Question {index}",
+            f"argument-{index}",
+            index,
+            "integer",
+        )
+        for index in range(start, start + count)
+    ]
+
+
+def _assert_clause_aligned_target(candidate, hidden, call_by_source) -> None:
+    """Clause k of the joined request must be answered by call k of the target."""
+
+    clauses = candidate["clause_questions"]
+    sources = candidate["source_component_ids"]
+    calls = hidden["canonical_calls"]
+    assert len(clauses) == len(sources) == len(calls) == candidate["component_count"]
+    assert calls == [call_by_source[source] for source in sources]
+    positions = _clause_positions(candidate, clauses)
+    assert positions == sorted(positions), "clause list is not in rendered request order"
+
+
+def test_composed_targets_follow_prompt_clause_order_at_every_frontier():
+    items = _sources(12)
+    call_by_source = {item.source_id: json.loads(item.target)[0] for item in items}
+    for calls in (2, 4, 8):
+        public, oracle = build_hierarchical_cross_candidates(
+            items, component_count=calls, count=8, seed=7
+        )
+        for candidate, hidden in zip(public, oracle):
+            _assert_clause_aligned_target(candidate, hidden, call_by_source)
+            # Each component answers a contiguous block of the parent clauses.
+            offset = 0
+            for spec in candidate["component_specs"]:
+                width = len(spec["source_component_ids"])
+                assert (
+                    list(spec["source_component_ids"])
+                    == candidate["source_component_ids"][offset : offset + width]
+                )
+                offset += width
+
+
+def test_round2_and_controlled_evaluation_targets_follow_clause_order():
+    items = _sources(8)
+    call_by_source = {item.source_id: json.loads(item.target)[0] for item in items}
+    public, oracle = build_round2_cross_candidates(items, seed=7, count=10)
+    for candidate, hidden in zip(public, oracle):
+        _assert_clause_aligned_target(candidate, hidden, call_by_source)
+    for name, examples in build_controlled_evaluation(
+        items, component_counts=(2, 4), examples_per_cell=6, seed=7
+    ).items():
+        arity = int(name.rsplit("_", 1)[1])
+        for evaluation in examples:
+            calls = json.loads(evaluation.target)
+            assert len(calls) == arity
+            assert calls == [
+                call_by_source[source] for source in evaluation.source_component_ids
+            ]
+
+
+def test_repeat_frontier_targets_follow_clause_order():
+    items = [
+        example(f"repeat-{index}", f"function-{index}", f"Wait {index + 3} seconds", "time", index + 3, "integer")
+        for index in range(6)
+    ]
+    public, oracle, _audit = build_round1_repeat_candidates(
+        items,
+        split="hidden_composition",
+        seed=7,
+        max_variants_per_source=2,
+        template_partition="train",
+        renders_per_pair=1,
+    )
+    call_by_source = {
+        str(spec["component_id"]): component["canonical_calls"][0]
+        for candidate, hidden in zip(public, oracle)
+        for spec, component in zip(candidate["component_specs"], hidden["component_oracles"])
+    }
+    for candidate, hidden in zip(public, oracle):
+        _assert_clause_aligned_target(candidate, hidden, call_by_source)
+    paired_public, paired_oracle = build_next_repeat_candidates(
+        public,
+        oracle,
+        round_index=2,
+        component_call_count=2,
+        seed=7,
+        count=4,
+    )
+    for candidate, hidden in zip(paired_public, paired_oracle):
+        _assert_clause_aligned_target(candidate, hidden, call_by_source)
+
+
+def test_schema_presentation_order_is_independent_of_clause_order():
+    items = _sources(16)
+    name_by_source = {item.source_id: f"function-{item.source_id.rsplit('-', 1)[1]}" for item in items}
+    public, _oracle = build_hierarchical_cross_candidates(
+        items, component_count=4, count=120, seed=7
+    )
+    matched = 0
+    for candidate in public:
+        clause_order = [name_by_source[source] for source in candidate["source_component_ids"]]
+        assert sorted(candidate["schema_order"]) == sorted(clause_order)
+        matched += candidate["schema_order"] == clause_order
+    # Clause-aligned schema listings would let a model answer positionally.
+    # With four independent clauses, chance agreement is 1/24.
+    assert matched / len(public) < 0.20
+    reordered, _ = build_hierarchical_cross_candidates(
+        items, component_count=4, count=120, seed=7
+    )
+    assert [row["schema_order"] for row in reordered] == [
+        row["schema_order"] for row in public
+    ]
