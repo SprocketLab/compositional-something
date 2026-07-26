@@ -1196,28 +1196,28 @@ def _stage_spec(args: argparse.Namespace, phase: str) -> Dict[str, Any]:
             "command": _command(args, "generate-materialize", "--round", "2"),
             "name": "bfcl-size-r2-gen",
             "gpu": True,
-            "time": "01:00:00",
+            "time": "02:00:00",
             "array": True,
         },
         "r2-train": {
             "command": _command(args, "train-evaluate", "--round", "2"),
             "name": "bfcl-size-r2-train",
             "gpu": True,
-            "time": "01:00:00",
+            "time": "02:00:00",
             "array": True,
         },
         "r3-gen": {
             "command": _command(args, "generate-materialize", "--round", "3"),
             "name": "bfcl-size-r3-gen",
             "gpu": True,
-            "time": "01:30:00",
+            "time": "02:00:00",
             "array": True,
         },
         "r3-train": {
             "command": _command(args, "train-evaluate", "--round", "3"),
             "name": "bfcl-size-r3-train",
             "gpu": True,
-            "time": "01:30:00",
+            "time": "02:00:00",
             "array": True,
         },
         "collect": {
@@ -1316,7 +1316,7 @@ def submit(args: argparse.Namespace) -> None:
         name="bfcl-size-r1-gen",
         dependency=None,
         gpu=True,
-        time_limit="01:00:00",
+        time_limit="02:00:00",
     )
     baselines = _submit_job(
         args=args,
@@ -1324,7 +1324,7 @@ def submit(args: argparse.Namespace) -> None:
         name="bfcl-size-baselines",
         dependency=None,
         gpu=True,
-        time_limit="01:00:00",
+        time_limit="02:00:00",
     )
     jobs["baselines"] = baselines
     round1_materialize = _submit_job(
@@ -1341,7 +1341,7 @@ def submit(args: argparse.Namespace) -> None:
         name="bfcl-size-r1-train",
         dependency=round1_materialize,
         gpu=True,
-        time_limit="01:00:00",
+        time_limit="02:00:00",
         array=True,
     )
     jobs["round_01"] = {

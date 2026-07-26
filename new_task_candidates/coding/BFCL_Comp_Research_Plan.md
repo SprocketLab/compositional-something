@@ -1369,6 +1369,87 @@ Recorded so they are not mistaken for settled design:
 
 ---
 
+## 36. Pipeline smoke test on corrected data (2026-07-26)
+
+A full three-round DAG was run at 100 examples per regime with
+`oracle,direct_g1,compose_g1`, `--component-context candidate_union`, and a
+300-candidate pool, under `artifacts/runs/bfcl_smoke_20260725_232848`. It
+completed 3/3 cells with no failures. Its purpose was operational verification
+and cost measurement; at this scale the accuracy numbers carry roughly ±3.5
+points of noise per 200-example cell and settle nothing scientifically.
+
+### 36.1 Measured cost, and why the earlier sweep timed out
+
+| Stage | Elapsed at 100/regime | Extrapolated to 1k | Old limit |
+|---|---:|---:|---|
+| Round-1 shared generation | 3m41s | ~37m | 01:00 |
+| Round-2 generation | 4m06s–4m28s | ~45m | 01:00 |
+| Round-3 generation | 7m32s–8m10s | ~80m | 01:30 |
+| Train+evaluate (any round) | 29m–35m | ~41–55m | 01:00–01:30 |
+| Seed/frozen baselines | 58m09s | 58m (size-independent) | 01:00 |
+| Materialization | 27s | minutes | 00:15 |
+
+Training is a small addend on a fixed evaluation cost: a round costs roughly 28
+minutes of evaluation plus about 6.5 seconds per optimizer step. That accounts
+for the 14 unexplained cell-round timeouts in the 20260721 sweep: round 3 at 2k
+and 3k needs 500 and 750 steps, i.e. about 94 and 127 minutes against a 90-minute
+limit. Data size was never the problem; the update budget was.
+
+Every GPU stage is now capped at `02:00:00`. The baselines job finishing at
+58m09s against a 60-minute limit was the narrowest escape in the run.
+
+Adding the five validation cells costs about 27% more evaluation per round. If
+that becomes binding, the cheaper protocol is to score validation cells every
+round and the full test battery only at the final round.
+
+### 36.2 What the run established
+
+- The whole corrected pipeline runs: candidate construction, generation under
+  `candidate_union`, guarding, materialization, training with mid-run
+  checkpoints, 14-cell evaluation, seed/frozen baselines, and collection.
+- Mid-training checkpoints work: `adapter_step_0005` and `adapter_step_0010`
+  were saved and recorded under `training.checkpoint_adapters`.
+- Union-mode component prompts are smaller than feared: p50 981 and max 1,222
+  tokens at eight calls, because a component carries half the parent's clauses
+  even while carrying all of its schemas.
+- The seed on corrected cells scores 80.5/58.5/42.0 at held-out 2/4/8 calls,
+  close to the 78.5/55.3/39.1 that the Section 31.8 schema-shuffle audit
+  predicted once the positional shortcut is removed. Independent confirmation
+  that the corrected construction behaves as intended.
+- Frozen recursive composition lands within a few points of the seed at every
+  frontier (83.0/61.0/40.0 held-out). Retraining has to beat *that*, not the
+  seed alone.
+
+### 36.3 A confound in the H1 precision comparison
+
+From round 2 onward, Direct and Composition pseudo-labels are produced by
+*different checkpoints* — each arm's own previous-round model. The Section 31.4
+precision table therefore measures "composition versus direct labelling"
+entangled with "this arm's current model versus that arm's." Only round 1, where
+both arms share the seed adapter, is a clean test of the labelling mechanism.
+
+The corrected run should either report round-1 precision as the headline H1
+evidence, or add a control that generates both label types from the *same*
+checkpoint at every round.
+
+### 36.4 One unsolvable gold target
+
+`simple_307` (`game_result.get_winner`) declares `venue` as `type: "string"`
+while its accepted values are `["", true]`. The canonical target selects the
+first non-empty accepted value, `true`, which then fails the evaluator's schema
+type check — so this atom's gold label can never score exact, although omitting
+the optional argument would.
+
+It is the only such atom in 400, and it is in `train.jsonl`, not `test.jsonl`.
+It therefore explains nearly all of the canonical Oracle's apparent precision
+shortfall — 1/300 source atoms compounds to about 99.3/98.7/97.4% at 2/4/8
+calls against the 99.2/98.1/96.4% observed — and places no ceiling on any
+reported test accuracy. The fix is to omit an optional argument whose non-empty
+accepted value fails its declared schema, but applying it means rebuilding the
+atomic data and arguably re-selecting the seed adapter, so it is deferred.
+
+---
+
 ## References
 
 - [Official BFCL repository and evaluator](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)
