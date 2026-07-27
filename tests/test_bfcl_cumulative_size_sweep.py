@@ -14,6 +14,7 @@ from self.experiments.bfcl_cumulative_size_sweep import (
     _family_quota,
     _materialize,
     _checkpoint_adapters,
+    _learned_conditions,
     _run_grid,
     _training_flags,
 )
@@ -244,3 +245,14 @@ def test_frozen_composition_recomposes_evaluation_items(tmp_path: Path):
     for candidate, prediction, example in zip(public, predictions, examples):
         assert json.loads(prediction) == json.loads(example.target)
         assert len(json.loads(prediction)) == candidate["component_count"]
+
+
+def test_oracle_only_grid_skips_shared_seed_generation(tmp_path: Path):
+    (tmp_path / "grid.json").write_text(
+        json.dumps(_cell_grid((1000,), ("oracle",))), encoding="utf-8"
+    )
+    assert _learned_conditions(tmp_path) == []
+    (tmp_path / "grid.json").write_text(
+        json.dumps(_cell_grid((1000,), ("oracle", "compose_g1"))), encoding="utf-8"
+    )
+    assert _learned_conditions(tmp_path) == ["compose_g1"]

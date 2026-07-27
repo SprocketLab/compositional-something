@@ -488,11 +488,27 @@ def _records_for_regime(
     return records[:quota], summary
 
 
+def _learned_conditions(run_root: Path) -> List[str]:
+    """Grid conditions that need model generations; ``oracle`` reads gold calls."""
+
+    return [
+        str(cell["condition"])
+        for cell in _run_grid(run_root)
+        if str(cell["condition"]) != "oracle"
+    ]
+
+
 def generate_round1_shared(args: argparse.Namespace) -> None:
     output_dir = args.run_root / "shared/round_01"
     complete = output_dir / "GENERATE_COMPLETE"
     if complete.exists() and args.resume:
         print(f"[INFO] Shared Round-1 predictions already complete: {output_dir}")
+        return
+    if not _learned_conditions(args.run_root):
+        # An Oracle-only grid never reads these predictions.
+        output_dir.mkdir(parents=True, exist_ok=True)
+        complete.touch()
+        print(json.dumps({"skipped": "no learned conditions in grid"}, sort_keys=True))
         return
     model, tokenizer = load_adapter_for_evaluation(args.model_name, args.seed_adapter)
     # Prefetch only what this run's grid can consume, not what the default
@@ -558,11 +574,15 @@ def materialize_round1_shared(args: argparse.Namespace) -> None:
     shared = args.run_root / "shared/round_01"
     if not (shared / "GENERATE_COMPLETE").exists():
         raise FileNotFoundError("Shared Round-1 generation is incomplete")
-    direct_raw = _raw_map(shared / "cross/direct.jsonl", "candidate_id")
-    component_raw = {
-        family: _raw_map(shared / family / "components.jsonl", "component_id")
-        for family in ("cross", "repeat")
-    }
+    if _learned_conditions(args.run_root):
+        direct_raw = _raw_map(shared / "cross/direct.jsonl", "candidate_id")
+        component_raw = {
+            family: _raw_map(shared / family / "components.jsonl", "component_id")
+            for family in ("cross", "repeat")
+        }
+    else:
+        direct_raw = {}
+        component_raw = {family: {} for family in ("cross", "repeat")}
     for cell in _run_grid(args.run_root):
         output_dir = _cell_round_dir(args.run_root, cell, 1)
         complete = output_dir / "GENERATE_MATERIALIZE_COMPLETE"
