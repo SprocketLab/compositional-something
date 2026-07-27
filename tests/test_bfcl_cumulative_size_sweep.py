@@ -216,6 +216,12 @@ def test_checkpoint_adapters_are_ordered_and_include_the_final_step(tmp_path: Pa
     found = _checkpoint_adapters(tmp_path)
     assert [step for step, _path in found] == [10, 20, 50, 125]
     assert found[-1][1].name == "adapter"
+    # A checkpoint requested at max_steps is the final adapter; not both.
+    same = tmp_path / "same"
+    (same / "adapter_step_0050").mkdir(parents=True)
+    (same / "adapter").mkdir()
+    (same / "metrics.json").write_text(json.dumps({"max_steps": 50}), encoding="utf-8")
+    assert [step for step, _path in _checkpoint_adapters(same)] == [50]
     # A round that trained without intermediate checkpoints still resolves.
     bare = tmp_path / "bare"
     (bare / "adapter").mkdir(parents=True)

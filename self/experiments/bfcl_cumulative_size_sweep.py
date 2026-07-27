@@ -891,7 +891,11 @@ def _checkpoint_adapters(round_dir: Path) -> List[Tuple[int, Path]]:
     final = round_dir / "adapter"
     metrics_path = round_dir / "metrics.json"
     if final.is_dir() and metrics_path.exists():
-        found.append((int(_read_json(metrics_path)["max_steps"]), final))
+        final_step = int(_read_json(metrics_path)["max_steps"])
+        # A requested checkpoint at max_steps is the same model as the final
+        # adapter; evaluating both wastes a pass and duplicates the curve.
+        if final_step not in {step for step, _path in found}:
+            found.append((final_step, final))
     return sorted(found)
 
 
