@@ -1200,6 +1200,12 @@ def _training_flags(args: argparse.Namespace) -> List[str]:
     return flags
 
 
+# The DAG reaches later rounds through staged continuation jobs, so the budget
+# has to travel with them: submit -> continue-submit -> ... -> train-evaluate.
+# Dropping it anywhere in that chain silently reverts a round to one epoch.
+_BUDGET_ACTIONS = ("train-evaluate", "continue-submit", "schedule-continuation")
+
+
 def _command(args: argparse.Namespace, action: str, *extra: str) -> List[str]:
     return [
         str(args.python_bin),
@@ -1207,7 +1213,7 @@ def _command(args: argparse.Namespace, action: str, *extra: str) -> List[str]:
         action,
         *_common(args),
         *extra,
-        *(_training_flags(args) if action == "train-evaluate" else []),
+        *(_training_flags(args) if action in _BUDGET_ACTIONS else []),
     ]
 
 

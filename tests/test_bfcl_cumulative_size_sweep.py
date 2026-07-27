@@ -262,3 +262,35 @@ def test_oracle_only_grid_skips_shared_seed_generation(tmp_path: Path):
         json.dumps(_cell_grid((1000,), ("oracle", "compose_g1"))), encoding="utf-8"
     )
     assert _learned_conditions(tmp_path) == ["compose_g1"]
+
+
+def test_training_budget_survives_the_staged_continuation_chain(tmp_path: Path):
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    (run_root / "manifest.json").write_text(
+        json.dumps({"jobs": {}, "status": "prepared"}), encoding="utf-8"
+    )
+    environment = {
+        **os.environ,
+        "ROOT_DIR": str(ROOT),
+        "RUN_ROOT": str(run_root),
+        "PREPARE": "0",
+        "DRY_RUN": "1",
+        "MAX_STEPS": "50",
+        "CHECKPOINT_STEPS": "10,20,50",
+        "PYTHON_BIN": "/home/cs1095/.conda/envs/torch-env/bin/python",
+    }
+    completed = subprocess.run(
+        ["bash", str(LAUNCHER)], cwd=ROOT, env=environment,
+        check=True, capture_output=True, text=True,
+    )
+    output = completed.stdout + completed.stderr
+    commands = [line for line in output.splitlines() if line.startswith("[INFO] Command: sbatch")]
+    # Rounds 2 and 3 are built by a continuation job, so it must carry the
+    # budget too or those rounds silently fall back to one epoch.
+    for kind in ("train-evaluate", "continue-submit"):
+        carrying = [
+            line for line in commands
+            if kind in line and "--max-steps 50" in line and "--checkpoint-steps 10,20,50" in line
+        ]
+        assert carrying, f"{kind} command lost the training budget"
