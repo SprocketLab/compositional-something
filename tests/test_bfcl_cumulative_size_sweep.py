@@ -6,7 +6,13 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
-from self.coding.atomic_data import AtomicExample, canonical_json, read_examples, write_examples
+from self.coding.atomic_data import (
+    AtomicExample,
+    canonical_json,
+    read_examples,
+    write_examples,
+    write_json,
+)
 from self.experiments.bfcl_cumulative_size_sweep import (
     CONDITIONS,
     SIZES,
@@ -16,7 +22,10 @@ from self.experiments.bfcl_cumulative_size_sweep import (
     _checkpoint_adapters,
     _learned_conditions,
     _run_grid,
+    _starting_adapter,
     _training_flags,
+    SELECTION_FILE,
+    select_checkpoint,
 )
 from self.coding.bfcl_composition import (
     build_controlled_evaluation_candidates,
@@ -81,6 +90,16 @@ def accepted_record(calls: int, index: int, family: str = "cross_function") -> d
     }
 
 
+def test_learning_rate_axis_creates_one_cell_per_rate():
+    grid = _cell_grid((1000,), ("oracle",), (5e-5, 2e-4))
+    assert [cell["cell_id"] for cell in grid] == [
+        "n1000-oracle-lr5em05",
+        "n1000-oracle-lr2em04",
+    ]
+    assert [cell["learning_rate"] for cell in grid] == [5e-5, 2e-4]
+    assert [cell["cell_index"] for cell in grid] == [0, 1]
+
+
 def test_grid_crosses_three_sizes_and_five_conditions():
     grid = _cell_grid()
     assert len(grid) == 15
@@ -102,7 +121,13 @@ def test_round3_materialization_is_equal_and_cumulative(tmp_path: Path):
     data = tmp_path / "atomic"
     write_examples(data / "train.jsonl", [atomic("a"), atomic("b")])
     args = SimpleNamespace(run_root=tmp_path / "run", atomic_data_dir=data)
-    cell = {"cell_index": 0, "size": 3, "condition": "compose_g1", "cell_id": "n0003-compose_g1"}
+    cell = {
+        "cell_index": 0,
+        "size": 3,
+        "condition": "compose_g1",
+        "learning_rate": 2e-4,
+        "cell_id": "n0003-compose_g1-lr2em04",
+    }
     records = {
         (calls, "cross"): [accepted_record(calls, index) for index in range(3)]
         for calls in (2, 4, 8)
@@ -126,7 +151,7 @@ def test_round3_materialization_is_equal_and_cumulative(tmp_path: Path):
     }
     materialized = read_examples(
         tmp_path
-        / "run/cells/n0003-compose_g1/round_03/training_materialized/train.jsonl"
+        / "run/cells/n0003-compose_g1-lr2em04/round_03/training_materialized/train.jsonl"
     )
     assert len(materialized) == 12
     assert {example.metadata["training_origin"] for example in materialized} == {
@@ -179,9 +204,9 @@ def test_launcher_dry_run_uses_arrays_afterany_and_short_h200_jobs(tmp_path: Pat
 def test_requested_grid_is_persisted_and_read_back(tmp_path: Path):
     grid = _cell_grid((1000,), ("oracle", "direct_g1", "compose_g1"))
     assert [cell["cell_id"] for cell in grid] == [
-        "n1000-oracle",
-        "n1000-direct_g1",
-        "n1000-compose_g1",
+        "n1000-oracle-lr2em04",
+        "n1000-direct_g1-lr2em04",
+        "n1000-compose_g1-lr2em04",
     ]
     assert [cell["cell_index"] for cell in grid] == [0, 1, 2]
     # Archived runs keep their own grid even after the defaults change.
@@ -294,3 +319,61 @@ def test_training_budget_survives_the_staged_continuation_chain(tmp_path: Path):
             if kind in line and "--max-steps 50" in line and "--checkpoint-steps 10,20,50" in line
         ]
         assert carrying, f"{kind} command lost the training budget"
+
+
+def _round_with_checkpoints(root: Path, round_index: int, steps, max_steps: int):
+    d = root / "cells/c" / f"round_{round_index:02d}"
+    for step in steps:
+        (d / f"adapter_step_{step:04d}").mkdir(parents=True)
+    (d / "adapter").mkdir(parents=True, exist_ok=True)
+    (d / "metrics.json").write_text(json.dumps({"max_steps": max_steps}), encoding="utf-8")
+    return d
+
+
+def test_round_continues_from_the_selected_checkpoint_when_one_is_recorded(tmp_path: Path):
+    cell = {"cell_id": "c", "size": 1, "condition": "oracle", "learning_rate": 2e-4}
+    args = SimpleNamespace(run_root=tmp_path, seed_adapter=tmp_path / "seed")
+    d1 = _round_with_checkpoints(tmp_path, 1, (10, 20), max_steps=50)
+
+    assert _starting_adapter(args, cell, 1) == tmp_path / "seed"
+    # With no selection recorded, the final adapter is still the default.
+    assert _starting_adapter(args, cell, 2) == d1 / "adapter"
+
+    (d1 / SELECTION_FILE).write_text(
+        json.dumps({"step": 20, "adapter": str(d1 / "adapter_step_0020")}), encoding="utf-8"
+    )
+    assert _starting_adapter(args, cell, 2) == d1 / "adapter_step_0020"
+
+
+def test_selection_refuses_a_missing_adapter(tmp_path: Path):
+    cell = {"cell_id": "c", "size": 1, "condition": "oracle", "learning_rate": 2e-4}
+    args = SimpleNamespace(run_root=tmp_path, seed_adapter=tmp_path / "seed")
+    d1 = _round_with_checkpoints(tmp_path, 1, (10,), max_steps=50)
+    (d1 / SELECTION_FILE).write_text(
+        json.dumps({"step": 99, "adapter": str(d1 / "adapter_step_0099")}), encoding="utf-8"
+    )
+    try:
+        _starting_adapter(args, cell, 2)
+    except FileNotFoundError as error:
+        assert "adapter_step_0099" in str(error)
+    else:
+        raise AssertionError("a missing selected checkpoint must not fall back silently")
+
+
+def test_select_checkpoint_scores_validation_cells_only(tmp_path: Path):
+    cell = {"cell_index": 0, "size": 1, "condition": "oracle", "learning_rate": 2e-4, "cell_id": "c"}
+    (tmp_path / "grid.json").write_text(json.dumps([cell]), encoding="utf-8")
+    d1 = _round_with_checkpoints(tmp_path, 1, (10, 20), max_steps=50)
+    rows = []
+    for step, val, test in ((10, 0.50, 0.90), (20, 0.80, 0.10), (50, 0.60, 0.99)):
+        rows.append({"step": step, "dataset": "validation_controlled_heldout_2", "exact_accuracy": val})
+        rows.append({"step": step, "dataset": "controlled_heldout_2", "exact_accuracy": test})
+    write_json(d1 / "checkpoint_evaluation/summary.json", {"rows": rows})
+    select_checkpoint(SimpleNamespace(
+        run_root=tmp_path, round=1, cell_index=0, step=None, select_on=None,
+    ))
+    payload = json.loads((d1 / SELECTION_FILE).read_text())
+    # Step 20 wins on validation; step 50 would win on the test cells.
+    assert payload["step"] == 20
+    assert payload["adapter"] == str(d1 / "adapter_step_0020")
+    assert payload["validation_scores"] == {"10": 0.50, "20": 0.80, "50": 0.60}

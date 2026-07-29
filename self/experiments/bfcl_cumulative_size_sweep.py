@@ -116,19 +116,32 @@ def _raw_map_rows(rows: Sequence[Mapping[str, Any]], id_key: str) -> Dict[str, s
     return {str(row[id_key]): str(row["prediction"]) for row in rows}
 
 
+def _format_learning_rate(learning_rate: float) -> str:
+    """Render a learning rate as a filesystem-safe cell-ID fragment."""
+
+    return "lr" + f"{float(learning_rate):.0e}".replace("-", "m").replace("+", "p")
+
+
 def _cell_grid(
     sizes: Sequence[int] = SIZES,
     conditions: Sequence[str] = CONDITIONS,
+    learning_rates: Sequence[float] = (LEARNING_RATE,),
 ) -> List[Dict[str, Any]]:
-    pairs = [(size, condition) for size in sizes for condition in conditions]
+    triples = [
+        (size, condition, learning_rate)
+        for size in sizes
+        for condition in conditions
+        for learning_rate in learning_rates
+    ]
     return [
         {
             "cell_index": index,
             "size": size,
             "condition": condition,
-            "cell_id": f"n{size:04d}-{condition}",
+            "learning_rate": float(learning_rate),
+            "cell_id": f"n{size:04d}-{condition}-{_format_learning_rate(learning_rate)}",
         }
-        for index, (size, condition) in enumerate(pairs)
+        for index, (size, condition, learning_rate) in enumerate(triples)
     ]
 
 
@@ -158,6 +171,35 @@ def _cell(args: argparse.Namespace) -> Dict[str, Any]:
 
 def _cell_round_dir(run_root: Path, cell: Mapping[str, Any], round_index: int) -> Path:
     return run_root / "cells" / str(cell["cell_id"]) / f"round_{round_index:02d}"
+
+
+SELECTION_FILE = "selected_checkpoint.json"
+
+
+def _selected_adapter(round_dir: Path) -> Optional[Path]:
+    path = round_dir / SELECTION_FILE
+    if not path.exists():
+        return None
+    adapter = Path(str(_read_json(path)["adapter"]))
+    if not adapter.is_dir():
+        raise FileNotFoundError(f"Selected checkpoint is missing: {adapter}")
+    return adapter
+
+
+def _starting_adapter(
+    args: argparse.Namespace, cell: Mapping[str, Any], round_index: int
+) -> Path:
+    """Where a round continues from.
+
+    The optimal training length moves between rounds, so a round continues from
+    the previous round's *selected* checkpoint when one was recorded, and from
+    its final adapter otherwise.
+    """
+
+    if round_index == 1:
+        return args.seed_adapter
+    previous = _cell_round_dir(args.run_root, cell, round_index - 1)
+    return _selected_adapter(previous) or previous / "adapter"
 
 
 def _candidate_paths(run_root: Path, calls: int, family: str) -> Tuple[Path, Path]:
@@ -354,7 +396,10 @@ def prepare(args: argparse.Namespace) -> None:
         for path in sorted(validation_root.glob("*.jsonl"))
     }
     write_json(args.run_root / "data/audit.json", audit)
-    write_json(args.run_root / "grid.json", _cell_grid(args.sizes, args.conditions))
+    write_json(
+        args.run_root / "grid.json",
+        _cell_grid(args.sizes, args.conditions, args.learning_rates),
+    )
     write_json(args.run_root / "data_checksums.json", _checksums(args.run_root / "data", args.run_root))
     manifest = {
         "experiment": "bfcl_cumulative_size_sweep",
@@ -371,12 +416,12 @@ def prepare(args: argparse.Namespace) -> None:
         "candidate_pool": args.candidate_pool,
         "repeat_pool": args.repeat_pool,
         "max_length": MAX_LENGTH,
-        "learning_rate": LEARNING_RATE,
+        "learning_rates": [float(rate) for rate in args.learning_rates],
         "effective_batch_size": EFFECTIVE_BATCH_SIZE,
         "training_seed": TRAINING_SEED,
         "curriculum_policy": "fixed_manual_cumulative_refresh",
         "promotion_gate": None,
-        "grid": _cell_grid(args.sizes, args.conditions),
+        "grid": _cell_grid(args.sizes, args.conditions, args.learning_rates),
         "jobs": {},
     }
     write_json(args.run_root / "manifest.json", manifest)
@@ -749,11 +794,7 @@ def generate_materialize(args: argparse.Namespace) -> None:
         return
     condition = str(cell["condition"])
     size = int(cell["size"])
-    starting_adapter = (
-        args.seed_adapter
-        if round_index == 1
-        else _cell_round_dir(args.run_root, cell, round_index - 1) / "adapter"
-    )
+    starting_adapter = _starting_adapter(args, cell, round_index)
     if not starting_adapter.exists():
         raise FileNotFoundError(f"Missing prerequisite adapter: {starting_adapter}")
     model: Optional[Any] = None
@@ -812,11 +853,8 @@ def train_evaluate(args: argparse.Namespace) -> None:
     if not materialized.exists():
         raise FileNotFoundError(f"Missing prerequisite materialization: {materialized}")
     examples = read_examples(output_dir / "training_materialized/train.jsonl")
-    starting_adapter = (
-        args.seed_adapter
-        if args.round == 1
-        else _cell_round_dir(args.run_root, cell, args.round - 1) / "adapter"
-    )
+    starting_adapter = _starting_adapter(args, cell, args.round)
+    learning_rate = float(cell.get("learning_rate", LEARNING_RATE))
     max_steps = args.max_steps or math.ceil(len(examples) / EFFECTIVE_BATCH_SIZE)
     micro_batch = args.micro_batch_size
     attempts: List[Dict[str, Any]] = []
@@ -834,7 +872,7 @@ def train_evaluate(args: argparse.Namespace) -> None:
                 output_dir=output_dir,
                 max_length=MAX_LENGTH,
                 max_steps=max_steps,
-                learning_rate=LEARNING_RATE,
+                learning_rate=learning_rate,
                 micro_batch_size=micro_batch,
                 effective_batch_size=EFFECTIVE_BATCH_SIZE,
                 seed=TRAINING_SEED,
@@ -855,7 +893,7 @@ def train_evaluate(args: argparse.Namespace) -> None:
                 "training_example_count": len(examples),
                 "max_steps": max_steps,
                 "one_epoch_steps": math.ceil(len(examples) / EFFECTIVE_BATCH_SIZE),
-                "learning_rate": LEARNING_RATE,
+                "learning_rate": learning_rate,
                 "max_length": MAX_LENGTH,
                 "training": training,
                 "evaluation": evaluation,
@@ -964,6 +1002,59 @@ def evaluate_checkpoints(args: argparse.Namespace) -> None:
         },
     )
     print(json.dumps({"cell": cell["cell_id"], "rows": len(rows)}, sort_keys=True))
+
+
+def select_checkpoint(args: argparse.Namespace) -> None:
+    """Record which checkpoint the next round should continue from.
+
+    Selection reads validation cells only: choosing on the test cells and then
+    reporting them inflates the reported number.  This is hyperparameter
+    selection, not a curriculum promotion gate -- it never decides whether a
+    round runs, only which weights it starts from.
+    """
+
+    cell = _cell(args)
+    round_dir = _cell_round_dir(args.run_root, cell, args.round)
+    available = dict(_checkpoint_adapters(round_dir))
+    if not available:
+        raise FileNotFoundError(f"No adapters to select from under {round_dir}")
+    if args.step is not None:
+        if args.step not in available:
+            raise ValueError(f"Step {args.step} not among saved checkpoints {sorted(available)}")
+        chosen, rule, scores = args.step, "manual", {}
+    else:
+        summary_path = round_dir / "checkpoint_evaluation/summary.json"
+        if not summary_path.exists():
+            raise FileNotFoundError(
+                f"Run evaluate-checkpoints first: {summary_path} is missing"
+            )
+        rows = [
+            row
+            for row in _read_json(summary_path)["rows"]
+            if str(row["dataset"]).startswith("validation_")
+            and (args.select_on is None or str(row["dataset"]) == args.select_on)
+        ]
+        if not rows:
+            raise ValueError(
+                "No validation rows to select on; selecting on test cells is not permitted"
+            )
+        scores: Dict[str, float] = {}
+        for step in sorted({int(row["step"]) for row in rows}):
+            values = [float(row["exact_accuracy"]) for row in rows if int(row["step"]) == step]
+            scores[str(step)] = sum(values) / len(values)
+        chosen = int(max(scores, key=lambda step: (scores[step], -int(step))))
+        rule = f"mean exact accuracy over {args.select_on or 'all validation cells'}"
+    payload = {
+        "cell": dict(cell),
+        "round": args.round,
+        "step": chosen,
+        "adapter": str(available[chosen]),
+        "rule": rule,
+        "candidates": {str(step): str(path) for step, path in sorted(available.items())},
+        "validation_scores": scores,
+    }
+    write_json(round_dir / SELECTION_FILE, payload)
+    print(json.dumps({k: payload[k] for k in ("cell", "round", "step", "rule")}, sort_keys=True))
 
 
 def evaluate_baselines(args: argparse.Namespace) -> None:
@@ -1436,6 +1527,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--repeat-pool", type=int, default=REPEAT_POOL, help="Repeat-family candidates per regime."
     )
     prepare_parser.add_argument(
+        "--learning-rates",
+        type=lambda value: tuple(float(item) for item in value.split(",")),
+        default=(LEARNING_RATE,),
+        help="Comma-separated learning rates; one grid cell per rate.",
+    )
+    prepare_parser.add_argument(
         "--sizes",
         type=lambda value: tuple(int(item) for item in value.split(",")),
         default=SIZES,
@@ -1483,6 +1580,17 @@ def build_parser() -> argparse.ArgumentParser:
             "Which cells to score.  Selecting a checkpoint on the test cells "
             "and then reporting those cells inflates the reported number."
         ),
+    )
+    select_parser = sub.add_parser("select-checkpoint")
+    _add_common(select_parser)
+    select_parser.add_argument("--round", type=int, choices=(1, 2, 3), required=True)
+    select_parser.add_argument("--cell-index", type=int)
+    select_parser.add_argument(
+        "--step", type=int, help="Select this step explicitly instead of scoring."
+    )
+    select_parser.add_argument(
+        "--select-on",
+        help="A single validation dataset name; default averages all of them.",
     )
     baselines_parser = sub.add_parser("evaluate-baselines")
     _add_common(baselines_parser)
@@ -1549,6 +1657,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         train_evaluate(args)
     elif args.command == "evaluate-checkpoints":
         evaluate_checkpoints(args)
+    elif args.command == "select-checkpoint":
+        select_checkpoint(args)
     elif args.command == "evaluate-baselines":
         evaluate_baselines(args)
     elif args.command == "collect":

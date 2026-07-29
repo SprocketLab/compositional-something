@@ -21,6 +21,7 @@ CONDITIONS="${CONDITIONS:-}"
 COMPONENT_CONTEXT="${COMPONENT_CONTEXT:-}"
 CANDIDATE_POOL="${CANDIDATE_POOL:-}"
 REPEAT_POOL="${REPEAT_POOL:-}"
+LEARNING_RATES="${LEARNING_RATES:-}"
 # Optimizer budget; empty MAX_STEPS keeps the one-epoch default.
 MAX_STEPS="${MAX_STEPS:-}"
 CHECKPOINT_STEPS="${CHECKPOINT_STEPS:-}"
@@ -36,6 +37,7 @@ self_print_context \
   "Conditions" "${CONDITIONS:-default}" \
   "Component context" "${COMPONENT_CONTEXT:-default}" \
   "Candidate pool" "${CANDIDATE_POOL:-default}" \
+  "Learning rates" "${LEARNING_RATES:-default}" \
   "Max steps" "${MAX_STEPS:-one epoch}" \
   "Checkpoint steps" "${CHECKPOINT_STEPS:-none}" \
   "Dry run" "${DRY_RUN}"
@@ -53,6 +55,7 @@ prepare_args=()
 [[ -n "${COMPONENT_CONTEXT}" ]] && prepare_args+=(--component-context "${COMPONENT_CONTEXT}")
 [[ -n "${CANDIDATE_POOL}" ]] && prepare_args+=(--candidate-pool "${CANDIDATE_POOL}")
 [[ -n "${REPEAT_POOL}" ]] && prepare_args+=(--repeat-pool "${REPEAT_POOL}")
+[[ -n "${LEARNING_RATES}" ]] && prepare_args+=(--learning-rates "${LEARNING_RATES}")
 
 training_args=()
 [[ -n "${MAX_STEPS}" ]] && training_args+=(--max-steps "${MAX_STEPS}")
