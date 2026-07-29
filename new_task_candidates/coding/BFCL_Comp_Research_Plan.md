@@ -1450,6 +1450,104 @@ atomic data and arguably re-selecting the seed adapter, so it is deferred.
 
 ---
 
+## 37. Phase B: the Oracle control on corrected data (2026-07-28)
+
+Run: `artifacts/runs/bfcl_phaseb_oracle_20260727_113729`. Canonical Oracle only,
+1,000 examples per regime, `candidate_union` component context, corrected
+construction, **50 optimizer updates per round** instead of one epoch (which
+would have been 125 / 188 / 250). Learning rate `2e-4`.
+
+### 37.1 Result
+
+| Arm | Steps | Atomic | Held-out 2 | Held-out 4 | Held-out 8 | Natural P | Natural PM |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Atomic seed | — | 91.7% | 81.0% | 58.5% | 42.5% | 67.5% | 67.5% |
+| Frozen composition (g1) | — | — | 83.0% | 61.5% | 39.0% | — | — |
+| Oracle round 1 | 50 | 90.0% | 86.0% | 64.0% | 42.5% | 68.0% | 71.5% |
+| Oracle round 2 | 50 | 85.0% | 70.5% | 52.0% | 26.5% | 80.5% | 72.5% |
+| **Oracle round 3** | 50 | **90.0%** | **80.0%** | **66.0%** | 38.5% | **80.5%** | **74.5%** |
+| Archived Oracle round 3 (20260721) | 250 | 83.3% | 75.5% | 44.0% | 19.0% | 66.5% | 61.5% |
+
+The same gold labels at the same data scale from the same seed adapter. The
+corrected construction plus a decoupled update budget moves four-call accuracy
+from 44.0% to 66.0% and eight-call from 19.0% to 38.5%. This is the strongest
+retroactive confirmation available that the permuted-target defect (Section 34)
+and the update-count confound (Section 36.1) caused most of the earlier
+collapse, rather than anything about the labels.
+
+Against the Section 33.2 criterion this is a **qualified pass**: atomic (−1.7)
+and two-call (−1.0) are preserved within the noise band, four-call improves by
+7.5 points (≈2.1 SE on 200-example cells), and both natural categories improve
+substantially. Per the Section 33.4 decision tree, Phase C is justified.
+
+### 37.2 Two findings that outlast this run
+
+**Eight calls degrade even under perfect labels.** Every arm measured so far —
+seed, frozen, and now a gold-label Oracle — leaves the eight-call frontier at or
+below the seed's 42.5%. Because the Oracle's labels are exact by construction,
+this cannot be attributed to pseudo-label noise. Whatever limits eight-call
+performance is a property of the regime, the context length, or the optimization,
+and it is now the sharpest open question in the study.
+
+**The trajectory is not monotonic.** Round 2 dips hard (26.5% at eight calls)
+and round 3 recovers (38.5%). Any promotion rule reading round-2 results would
+have stopped this curriculum one round before it recovered — a concrete argument
+for the fixed, ungated curriculum the design already specifies. It also means
+reporting only the final round hides a large mid-curriculum excursion, so
+per-round numbers should always be shown.
+
+### 37.3 Fewer updates is not uniformly better
+
+The round-1 checkpoint curve on validation cells:
+
+| Step | Val atomic | Val h2 | Val h4 |
+|---:|---:|---:|---:|
+| 10 | 85.0% | 67.0% | 41.0% |
+| 20 | 95.0% | 86.0% | 67.0% |
+| 50 | 92.5% | 86.0% | 62.0% |
+
+Within round 1, 20 updates beats 50. But at round 2 the ordering reverses: the
+50-step model scored 70.5%/52.0%/26.5% at held-out 2/4/8 while the superseded
+188-step model scored 78.0%/59.5%/38.0%. Because the schedule is constant with
+no warmup and the data seed is fixed, the 50-step model is a strict prefix of the
+188-step run — the same trajectory sampled earlier. Round 2 therefore dips while
+adapting to the newly introduced four-call regime and partially recovers with
+more updates.
+
+The lesson is that "low update budget" is not a universal setting; the optimum
+moves with the round and the mixture. Selecting per round on validation is the
+defensible procedure, which requires the curriculum to continue from the
+*selected* checkpoint rather than the final one — still unimplemented (rounds
+start from `<previous>/adapter`, lines 736 and 799).
+
+### 37.4 Coverage gaps in this run
+
+1. Only `2e-4`. Section 33.2 asks for `5e-5` as well, and Section 31.7's best
+   four-call Oracle was at `5e-5`. `LEARNING_RATE` is a module constant with no
+   grid dimension, so a second learning rate needs a second run root or an LR
+   axis in the grid.
+2. Round-2 and round-3 checkpoint curves were not collected; the adapters are
+   saved, so they can be produced later without retraining.
+3. One cell, one seed. No replication.
+
+### 37.5 Operational notes
+
+- A budget-propagation defect meant rounds 2 and 3 initially trained at one
+  epoch: `_command` attached `--max-steps`/`--checkpoint-steps` only to
+  `train-evaluate`, while the DAG builds later rounds through a `continue-submit`
+  job that never received them. Fixed in `c744432` with a launcher-level
+  regression test. The invalid round-2 outputs are archived under
+  `cells/n1000-oracle/superseded/one_epoch_budget/`.
+- An Oracle-only grid now skips shared seed generation entirely (11 seconds
+  instead of ~37 minutes), since nothing in such a grid reads those predictions.
+- Greedy decoding is not reproducible across nodes. The same seed adapter
+  evaluated on byte-identical cells scored 1–2 examples differently on
+  `della-i19g3` versus `della-i21g2` — a **±0.5–1.0 point floor** per
+  200-example cell, independent of sampling noise. Any claim resting on a
+  one-point difference needs same-node evaluation or repetition.
+
+---
+
 ## References
 
 - [Official BFCL repository and evaluator](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)
