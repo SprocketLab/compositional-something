@@ -1548,6 +1548,132 @@ start from `<previous>/adapter`, lines 736 and 799).
 
 ---
 
+## 38. Phase C: composition produces better labels and a worse model (2026-07-30)
+
+Run: `artifacts/runs/bfcl_phasec_20260729_*`. Six cells — `oracle`, `direct_g1`,
+`compose_g1` crossed with learning rates `5e-5` and `2e-4` — at 1,000 examples
+per regime, `candidate_union` context, corrected construction, 50 optimizer
+updates per round, three rounds. Seed and Frozen come from the baselines job.
+This is the first time the study's central comparison has run with clause-aligned
+targets, shuffled schema order, matched guards (`g1` on both sides), a decoupled
+update budget, and a gold control on the same data.
+
+### 38.1 H1 is supported, and the advantage grows with the frontier
+
+Pseudo-label precision, `5e-5` arms, measured against hidden references:
+
+| Round | Frontier | Compose | Direct | Gap |
+|---:|---:|---:|---:|---:|
+| 1 | 2 calls | 91.86% | 89.09% | **+2.65** — CI [+1.42, +3.96] |
+| 2 | 4 calls | 85.61% | 79.46% | +6.15 |
+| 3 | 8 calls | 69.92% | 56.34% | **+13.66** — CI [+12.17, +15.15] |
+
+Confidence intervals are source-clustered bootstraps over the 300 atomic
+clusters, paired on candidates both arms accepted, as Section 17.1 requires.
+
+The gap widens monotonically with the frontier, which is exactly the mechanism
+the method claims: decomposing into in-distribution subproblems buys more the
+further the target sits outside the seed's competence. Two details strengthen it.
+At round 2 composition's *labeling model* was the weaker of the two (held-out 4
+calls .635 vs .675) and its labels were still 6.15 points cleaner. And
+composition's precision is nearly invariant to the labeling model — .9220 versus
+.9223 at two calls across materially different checkpoints — as expected if the
+advantage comes from the decomposition rather than from model quality.
+
+### 38.2 H2 is not supported: the arm with better labels trains to a worse model
+
+Round-3 exact accuracy:
+
+| Arm | Atomic | Held-out 2 | Held-out 4 | Held-out 8 | Natural P |
+|---|---:|---:|---:|---:|---:|
+| Atomic seed | 91.7% | 80.5% | 58.5% | 41.0% | 67.5% |
+| Frozen composition | — | 83.0% | 61.5% | 39.5% | — |
+| **`direct_g1` 2e-4** | **91.7%** | **88.0%** | **76.0%** | **53.0%** | **86.0%** |
+| `oracle` 2e-4 | 93.3% | 84.0% | 64.0% | 41.0% | 77.5% |
+| `compose_g1` 2e-4 | 91.7% | 84.5% | 65.5% | 38.0% | 82.5% |
+| `oracle` 5e-5 | 93.3% | 85.0% | 64.0% | 37.5% | 82.5% |
+| `compose_g1` 5e-5 | 90.0% | 82.0% | 61.0% | 39.0% | 87.0% |
+| `direct_g1` 5e-5 | 88.3% | 81.5% | 59.5% | 38.5% | 86.0% |
+
+`direct_g1` at `2e-4` is the best model the study has produced: atomic retention
+exact, +7.5 at two calls, **+17.5 at four**, **+12.0 at eight**, +18.5 on natural
+Parallel. The four- and eight-call gains are far outside the ~7-point
+training-noise scale established in Section 38.4, and that cell exceeds *every*
+Oracle cell at four and eight calls.
+
+Across the twelve four-/eight-call comparisons (3 rounds × 2 learning rates × 2
+frontiers), direct leads 8 and compose 4. Composition's wins are all at `5e-5`
+and all within 1.7 points, so the defensible statement is that **composition
+never clearly wins**, not that direct always does.
+
+### 38.3 A hypothesis that fits: on-policy distance, not label accuracy
+
+Rank the arms by how far their targets sit from the model's own output
+distribution:
+
+| Arm | Target | Off-policy? | Round-3 4-call |
+|---|---|---|---:|
+| `direct_g1` | the model's own generation | on-policy | 76.0% |
+| `oracle` | hidden BFCL calls, fixed serialization | off-policy | 64.0% |
+| `compose_g1` | stitched from separate forward passes | off-policy | 65.5% |
+
+That ordering is *inverted* relative to label precision — composition's labels
+are 13.7 points more accurate at eight calls — and aligned with on-policy
+distance. It suggests what limits SFT here is not target correctness but distance
+from the current output distribution: direct pseudo-labeling is self-distillation
+on the model's own format, so the same 50 updates move it gently, while composed
+and gold targets pull it further and overshoot.
+
+This is a hypothesis consistent with the data, not an established mechanism. It
+is directly testable from the saved 10/20/50 checkpoints without retraining: it
+predicts `compose_g1` peaks at fewer updates than `direct_g1`. That test should
+run before the explanation is asserted anywhere.
+
+It also predicts a negative feedback loop unique to the compose arm — worse
+model composes worse labels — which the `2e-4` cells show: `compose_g1`
+round 2 collapsed to 27.0% at eight calls, and its round-3 eight-call label
+precision fell to 53.66%, *below* direct's 56.91%, erasing the mechanism
+advantage entirely.
+
+### 38.4 What limits confidence
+
+1. **Training-level nondeterminism is ~7 points at eight calls.** Two cells with
+   byte-identical training data, learning rate, step count, microbatch, seed, and
+   starting adapter — differing only in node — produced held-out eight-call
+   scores of 42.5% and 35.5% and final losses of 0.0096 versus 0.0069. bf16 with
+   gradient accumulation compounds over 50 LoRA steps. This is far larger than
+   the ~1.5-point *inference* floor, and it means single-seed arm comparisons
+   below roughly 7 points at eight calls are not interpretable.
+2. **One seed.** Section 33.3 item 8 made replication conditional on seed 7
+   showing a corrected-data benefit. It has, and given (1) replication is now
+   necessary rather than optional.
+3. **Learning rate interacts with the arm ordering.** At `5e-5` round 3 compose
+   edges direct on all four controlled cells by 0.5–1.7 points; at `2e-4` direct
+   leads by up to 15. The crossover is unexplained.
+4. **Sections 37.1–37.2 need amending.** Phase B ran only `2e-4`, which Phase C
+   shows is the worse rate for the Oracle at round 1 (`5e-5` was better on 7 of 8
+   cells). Its "+7.5 at four calls" also sits at the training-noise scale. And
+   its claim that eight calls degrade even under perfect labels is falsified:
+   `direct_g1` reaches 53.0% against the seed's 41.0%.
+
+### 38.5 Consequence for the workshop paper
+
+The coding instantiation reproduces the *mechanism* — composition demonstrably
+produces cleaner supervision, with the advantage widening from +2.7 points at two
+calls to +13.7 at eight — but does not reproduce the *benefit*: on BFCL, direct
+self-training yields a better model than compositional self-training at every
+learning rate tested, and better than gold labels at the best one.
+
+This should not be presented as a successful compositional self-improvement
+result on a coding task. The defensible claims are that the decomposition
+mechanism transfers to function calling and is measurable with tight confidence
+intervals, and that on this task pseudo-label accuracy is not the binding
+constraint on SFT. Whether the algorithmic tasks in the paper differ because
+their composed targets happen to be closer to on-policy is an open and
+interesting question that this run cannot answer.
+
+---
+
 ## References
 
 - [Official BFCL repository and evaluator](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)
