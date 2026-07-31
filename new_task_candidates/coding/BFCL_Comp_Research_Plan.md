@@ -1674,6 +1674,84 @@ interesting question that this run cannot answer.
 
 ---
 
+## 39. Decision: discontinue BFCL, and the screening criterion it produced (2026-07-31)
+
+**BFCL is discontinued as an instantiation of compositional self-improvement.**
+Not because the pipeline failed -- by the end it was correct and well
+instrumented -- but because the task cannot test the method.
+
+### 39.1 The finding
+
+Per-call errors on the controlled sets are statistically independent. Observed
+all-correct accuracy matches (per-call accuracy)^k to within a few percent for
+every model at every frontier:
+
+| Set | Model | Per-call | Observed | p^k | Ratio |
+|---|---|---:|---:|---:|---:|
+| held-out 2 | seed | .897 | .805 | .806 | 1.0x |
+| held-out 4 | seed | .863 | .585 | .553 | 1.1x |
+| held-out 8 | seed | .899 | .410 | .426 | 1.0x |
+| held-out 8 | `direct_g1` R3 | .927 | .530 | .545 | 1.0x |
+| held-out 8 | `compose_g1` R3 | .897 | .380 | .419 | 0.9x |
+
+Per-call accuracy is also flat across frontiers (seed .897/.863/.899; direct
+.938/.931/.927). The model is no worse at a call when there are eight than when
+there are two.
+
+So the "eight-call collapse" documented across Sections 31-38 was arithmetic,
+not a compositional failure: `.93^8 = .53`. There is no frontier to expand.
+
+### 39.2 Why the task cannot test the method
+
+Section 5 restricts BFCL to *independent* calls, so a k-call instance is k
+independent problems sharing a prompt. The composition operator is exact
+concatenation with no failure mode -- no analogue of addition's boundary carry,
+where `f*(x o x') != f*(x) <> f*(x')` for some inputs.
+
+When composition is exact, decomposition is lossless, the composite is not
+harder than its parts, and the only lever on accuracy is per-call reliability.
+Direct self-training raises that most (.927 vs .897), which is precisely what
+Section 38 measured. Composition's demonstrably cleaner labels (+13.7 points at
+eight calls) have nothing to teach because there is no compositional skill to
+acquire.
+
+Two secondary hypotheses were tested and rejected. Unseen evaluation functions
+are not the bottleneck: the seed scores identically on seen and unseen (.903 vs
+.898 per call), because BFCL supplies the schema in the prompt. For the trained
+model, *seen* functions are 10 points worse (.839 vs .936), suggesting
+memorisation of training-time argument values misfires on test instances of the
+same function.
+
+### 39.3 The screening criterion for future task candidates
+
+Before investing in any new instantiation, run this diagnostic on the seed
+model alone -- it costs one evaluation pass and no training:
+
+> Measure per-part accuracy `p` and observed composite accuracy `q` on
+> k-part instances. If `q ~ p^k`, the parts are independent and the task
+> cannot test compositional self-improvement. The method needs `q << p^k` --
+> a composite that is harder than the product of its parts.
+
+BFCL scores 1.0x. A suitable task should score well below 1. That gap is the
+room the method has to work in, and it is what addition's boundary carry
+creates.
+
+This criterion is the durable output of the BFCL effort and should gate task
+selection from here.
+
+### 39.4 What is worth keeping
+
+- The screening criterion above.
+- The measurement that composition produces cleaner supervision than direct
+  prediction (+2.7 / +6.2 / +13.7 points at 2/4/8 calls, source-clustered CIs)
+  even on a task where that advantage is useless. The mechanism transfers; the
+  benefit does not follow automatically.
+- The training-nondeterminism figure: ~7 points at eight calls on identical
+  inputs across nodes, which sets a floor for single-seed comparisons.
+- The corrected construction code, which is task-agnostic and reusable.
+
+---
+
 ## References
 
 - [Official BFCL repository and evaluator](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)
