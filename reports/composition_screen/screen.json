@@ -1,0 +1,69 @@
+{
+  "model": "/scratch/gpfs/BRENDEN/changho/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "per_k": 40,
+  "seed": 20260731,
+  "clutrr": {
+    "2": {
+      "n": 38,
+      "accuracy": 0.4473684210526316
+    },
+    "3": {
+      "n": 40,
+      "accuracy": 0.2
+    },
+    "4": {
+      "n": 40,
+      "accuracy": 0.15
+    },
+    "5": {
+      "n": 40,
+      "accuracy": 0.4
+    },
+    "6": {
+      "n": 40,
+      "accuracy": 0.3
+    },
+    "7": {
+      "n": 40,
+      "accuracy": 0.225
+    },
+    "8": {
+      "n": 40,
+      "accuracy": 0.35
+    },
+    "9": {
+      "n": 40,
+      "accuracy": 0.375
+    },
+    "10": {
+      "n": 40,
+      "accuracy": 0.4
+    }
+  },
+  "musique": {
+    "2": {
+      "n_composite": 40,
+      "n_parts": 80,
+      "composite_accuracy": 0.575,
+      "per_part_accuracy": 0.8375,
+      "independent_prediction": 0.70140625,
+      "ratio_observed_over_independent": 0.819781688572065
+    },
+    "3": {
+      "n_composite": 40,
+      "n_parts": 120,
+      "composite_accuracy": 0.5,
+      "per_part_accuracy": 0.7083333333333334,
+      "independent_prediction": 0.3553964120370371,
+      "ratio_observed_over_independent": 1.406879706900061
+    },
+    "4": {
+      "n_composite": 40,
+      "n_parts": 160,
+      "composite_accuracy": 0.425,
+      "per_part_accuracy": 0.65,
+      "independent_prediction": 0.17850625000000003,
+      "ratio_observed_over_independent": 2.3808690171912743
+    }
+  }
+}

@@ -1,0 +1,5722 @@
+{
+  "max_hop": 4,
+  "by_k": {
+    "5": {
+      "n": 100,
+      "n_splits": 2,
+      "direct_accuracy": 0.43,
+      "composed_accuracy": 0.15,
+      "delta": -0.28,
+      "unresolved": 0.55,
+      "detail": [
+        {
+          "id": "1fe4333a-ebac-4aa3-93be-4ae54f7f273d",
+          "k": 5,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "grandfather",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'sister')"
+        },
+        {
+          "id": "946553fc-9f44-4c38-bb6f-d82b0ca9fe2d",
+          "k": 5,
+          "gold": "mother-in-law",
+          "direct": null,
+          "sub_chain": [
+            "father-in-law",
+            "daughter-in-law"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'daughter-in-law')"
+        },
+        {
+          "id": "3d7f23c6-5b37-497e-bb57-5de5c8aa907d",
+          "k": 5,
+          "gold": "mother-in-law",
+          "direct": "mother-in-law",
+          "sub_chain": [
+            "father-in-law",
+            "mother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'mother')"
+        },
+        {
+          "id": "f211ba44-4711-497b-a81b-d6491a200474",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "0f014b7a-8f44-4079-9491-84d20bc16ac8",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "cab19f53-5e35-4060-be88-fa18284fc0ec",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "0fcc4f03-60d0-46e2-b1bd-d0424d12a2fc",
+          "k": 5,
+          "gold": "brother",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "0710b529-999d-4a27-81c6-2b1850a0bf21",
+          "k": 5,
+          "gold": "grandmother",
+          "direct": "mother",
+          "sub_chain": [
+            "brother",
+            "mother"
+          ],
+          "composed": "mother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "476491ec-932e-429b-bc51-5b09230728db",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "sister",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'aunt')"
+        },
+        {
+          "id": "e49092ca-ea74-4540-9b65-e9b773426a3d",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "son",
+          "sub_chain": [
+            "daughter-in-law",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'brother')"
+        },
+        {
+          "id": "e8158d9c-478c-4b57-ab36-5589533996be",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "5e9cb37a-66b0-42ca-9f9e-c64437c5d8b4",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "ea17c2b5-bd80-4c12-b0c5-2f3a7229cc3b",
+          "k": 5,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "brother",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "c944041e-4580-4629-b3d0-27ee6c7926ec",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f91cd2f6-f515-49c1-b1f3-c2c536561d68",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "uncle",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'daughter')"
+        },
+        {
+          "id": "b9809097-2143-4c09-a130-59adc3007ba9",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "brother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'niece')"
+        },
+        {
+          "id": "398f12bc-3ad3-4b9e-9f7c-d80241f9b065",
+          "k": 5,
+          "gold": "son",
+          "direct": "son",
+          "sub_chain": [
+            "son",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "b7307d1a-62fc-4e8d-b5ba-65a78f5c6474",
+          "k": 5,
+          "gold": "brother",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'uncle')"
+        },
+        {
+          "id": "039463bd-3ec9-4737-842d-595095a31fa6",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "ae58585a-761b-483d-96f3-7ceb7a6555fe",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'daughter')"
+        },
+        {
+          "id": "5a0fc011-fc18-4e8b-a5c0-cb9ad87fdffc",
+          "k": 5,
+          "gold": "brother",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "8850e7ee-3fc7-4a76-8279-2e28abfc203d",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "98d4fc5a-4a04-4176-adae-3d4ab7d59eac",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "1456ca47-4e93-43fb-9568-0c418b29caa9",
+          "k": 5,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "594053dc-ce7b-44fd-92d9-61c6cd734a26",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "grandfather",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'daughter')"
+        },
+        {
+          "id": "ca3fd20a-caa1-41b8-8857-8cfe0057c190",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            null,
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "unparseable sub-chain"
+        },
+        {
+          "id": "dfd941c3-aef4-4bfc-8f4f-5bbebdb015d2",
+          "k": 5,
+          "gold": "father",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": false,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "8e4581e8-ed71-4368-b01c-333f6effeb20",
+          "k": 5,
+          "gold": "mother",
+          "direct": "mother",
+          "sub_chain": [
+            "brother",
+            "mother"
+          ],
+          "composed": "mother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "815b202e-dbde-4c2f-a3bf-59342e32ad9d",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "niece",
+          "sub_chain": [
+            "brother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'aunt')"
+        },
+        {
+          "id": "ba872aa2-b68f-45a2-9f4a-92d52a58c0ce",
+          "k": 5,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "aunt",
+            "father"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'father')"
+        },
+        {
+          "id": "b23c5bea-acfa-443b-a788-045e02d4a95b",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "6302c99a-c3ea-47ee-8e4c-55928b590c01",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "8002f8cc-1c1d-4679-980b-9bffa24ca0c4",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "ea6ce4ad-97a3-4c6c-958c-932704b7ebfc",
+          "k": 5,
+          "gold": "granddaughter",
+          "direct": "daughter",
+          "sub_chain": [
+            "daughter-in-law",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'sister')"
+        },
+        {
+          "id": "839690c0-0e3e-4f44-b3a1-dafd265dd80b",
+          "k": 5,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "father",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'granddaughter')"
+        },
+        {
+          "id": "97d790d0-bb1c-4cce-8611-e48eff90e9bf",
+          "k": 5,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "dcf87e47-13be-4c23-b17c-e296b6e3cdf9",
+          "k": 5,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "uncle",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'uncle')"
+        },
+        {
+          "id": "c27a627c-514d-4591-a62f-30b7955362fa",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "son"
+          ],
+          "composed": "nephew",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "6611231a-7b66-40fc-96db-7a959dea0ff6",
+          "k": 5,
+          "gold": "brother",
+          "direct": "brother",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "fdcff6d6-c729-4c80-b7f7-8272546d2bc8",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "bdc81c14-8266-4e17-b2c9-cc0fdeda0071",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "aunt",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'daughter')"
+        },
+        {
+          "id": "4395279e-2d16-4da1-a77c-a0904376e9d3",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'nephew')"
+        },
+        {
+          "id": "e1ef7800-8594-4ce2-a39b-38c6f2ff1896",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "son",
+          "sub_chain": [
+            "father-in-law",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'son')"
+        },
+        {
+          "id": "78564013-ac41-4871-aa66-e19eca20fbb8",
+          "k": 5,
+          "gold": "brother",
+          "direct": "son",
+          "sub_chain": [
+            "daughter",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "19068a0b-8912-46bf-8409-16648308ee4f",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "aunt",
+            "grandson"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'grandson')"
+        },
+        {
+          "id": "73e94dc3-6273-471c-8c9b-36a6b9d4305c",
+          "k": 5,
+          "gold": "father",
+          "direct": "father",
+          "sub_chain": [
+            "sister",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "2af04164-5d3d-4555-9714-d905f2ad9bfc",
+          "k": 5,
+          "gold": "father",
+          "direct": "father",
+          "sub_chain": [
+            "sister",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "0dbda9d8-23ff-4ff2-8743-d2ac18a38307",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "adf18503-e7a5-49ef-9cdb-f80ef4167ab4",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "nephew",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "41dd68d5-b7bb-4392-9810-77a6e1ed0517",
+          "k": 5,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "8b391c26-d158-43e9-95de-2ff59e18d9e5",
+          "k": 5,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "sister",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "1215e571-845b-409e-b6a8-d1bd1fb255c0",
+          "k": 5,
+          "gold": "mother",
+          "direct": "mother",
+          "sub_chain": [
+            "sister",
+            "mother"
+          ],
+          "composed": "mother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "4b4dd132-8c63-4b00-bbcb-3ae7ff2c71dc",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "grandson",
+          "sub_chain": [
+            "grandson",
+            "brother"
+          ],
+          "composed": "grandson",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "a4852dc7-ba8d-471a-9a8d-4ce300aaba94",
+          "k": 5,
+          "gold": "grandmother",
+          "direct": "aunt",
+          "sub_chain": [
+            "brother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'aunt')"
+        },
+        {
+          "id": "475670ef-4daf-40be-a685-343206d9a426",
+          "k": 5,
+          "gold": "grandfather",
+          "direct": "father",
+          "sub_chain": [
+            "sister",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "73726472-5797-4c5b-a144-48846734ec02",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "208fb2bd-9e06-49e4-a57d-bb0460012fcb",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "26e4f26c-8fa3-41ad-8202-f0975476ed06",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "706d8852-72b7-4cb8-9723-250f1845ef93",
+          "k": 5,
+          "gold": "son-in-law",
+          "direct": "son-in-law",
+          "sub_chain": [
+            "son",
+            "son-in-law"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'son-in-law')"
+        },
+        {
+          "id": "169c9aa3-326a-4a10-ae50-e5be0694a67d",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "fe32b636-dd71-44f9-9067-d6cf20b57e1d",
+          "k": 5,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "75abec5f-daaa-4c0d-95e3-4100a9c536e6",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "b720add1-eb4a-4885-8ef0-7e591e5a90f3",
+          "k": 5,
+          "gold": "daughter-in-law",
+          "direct": "daughter-in-law",
+          "sub_chain": [
+            "daughter-in-law",
+            "daughter-in-law"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'daughter-in-law')"
+        },
+        {
+          "id": "dc0b42ee-b6fe-4746-86e6-b0fd8a10535a",
+          "k": 5,
+          "gold": "granddaughter",
+          "direct": "daughter",
+          "sub_chain": [
+            "daughter-in-law",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'daughter')"
+        },
+        {
+          "id": "189164ac-c52c-45eb-b000-e209e9c959f5",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "d2323979-ad9f-4357-8120-c67a34e860bc",
+          "k": 5,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "mother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('mother', 'niece')"
+        },
+        {
+          "id": "aa82359e-b14f-4c29-8cd7-0e408424ab09",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "5c1812f4-07cd-4133-968d-825dfd39a665",
+          "k": 5,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "0cf15fe6-0854-4666-aae5-ebe95bcb942e",
+          "k": 5,
+          "gold": "granddaughter",
+          "direct": "aunt",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "ec1c56e2-0e56-43fd-9921-9592b52f72be",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "uncle"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "483d1ebf-af0c-42d6-83e7-6f970ded2d67",
+          "k": 5,
+          "gold": "granddaughter",
+          "direct": "daughter",
+          "sub_chain": [
+            "daughter",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "7a919a37-b5a9-49a3-a141-43170d0f7443",
+          "k": 5,
+          "gold": "daughter",
+          "direct": "niece",
+          "sub_chain": [
+            "grandson",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "09e3f71a-418d-402b-87e3-0d67d751ef08",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "e79a3bca-4dfa-40f0-a3b3-61c0127d79f8",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "ab90afc6-f47c-47a8-a7d8-1cee5b505d72",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "67c93a7f-b3f2-4270-856d-5cdb5d436564",
+          "k": 5,
+          "gold": "grandmother",
+          "direct": "aunt",
+          "sub_chain": [
+            "sister",
+            "grandmother"
+          ],
+          "composed": "grandmother",
+          "direct_ok": false,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "4f28a723-d16c-4e36-a9da-75a145c69a9b",
+          "k": 5,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "mother",
+            "brother"
+          ],
+          "composed": "uncle",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "e0dff27e-7af8-495c-9a32-31df0fe29f37",
+          "k": 5,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "6c652ce8-b478-4c6f-90d4-d34eb3707b34",
+          "k": 5,
+          "gold": "daughter",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "ff872e38-942e-4a18-9f92-445038bd4003",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "09164876-026c-4a59-945a-6302ebce4af2",
+          "k": 5,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "brother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'aunt')"
+        },
+        {
+          "id": "63d8f6da-d52a-4e4b-9e62-24456607d824",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "grandmother",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandmother', 'sister')"
+        },
+        {
+          "id": "d1ab445f-4651-4767-b937-4a706b441fae",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'granddaughter')"
+        },
+        {
+          "id": "4dfd9cb0-8f77-4e18-905c-c82f7b2ed2f3",
+          "k": 5,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "daughter"
+          ],
+          "composed": "niece",
+          "direct_ok": false,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "f1b6cb09-b55c-47d5-a8c5-32e542d62346",
+          "k": 5,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "granddaughter",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "87ce695e-a0cf-4fc0-9e50-bfcba72394c9",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "aunt",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'son')"
+        },
+        {
+          "id": "80bcbf6b-61d8-4ec8-ae5a-9df4452890f1",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'uncle')"
+        },
+        {
+          "id": "b8c2b989-2093-46f5-8cff-9de97d0c5cac",
+          "k": 5,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'niece')"
+        },
+        {
+          "id": "c53778ed-0405-4448-aef1-4fcb8491a65c",
+          "k": 5,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "e4dd682f-acdd-4858-b7af-1f99f724a3b9",
+          "k": 5,
+          "gold": "granddaughter",
+          "direct": "daughter",
+          "sub_chain": [
+            "son",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "2893ef0d-b305-4ce6-a843-2814014e810b",
+          "k": 5,
+          "gold": "sister",
+          "direct": "grandmother",
+          "sub_chain": [
+            "sister",
+            "grandmother"
+          ],
+          "composed": "grandmother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "7d4d3933-1ee6-42e4-afd0-b912cd320362",
+          "k": 5,
+          "gold": "grandson",
+          "direct": "son",
+          "sub_chain": [
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "5131260d-b36f-4009-89f7-1c94e325d132",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "439e7098-657d-4fa0-b09a-77c4b27902ca",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "ffc387c1-ae5f-4f28-909b-45dd38dc30fc",
+          "k": 5,
+          "gold": "daughter-in-law",
+          "direct": "daughter-in-law",
+          "sub_chain": [
+            "son",
+            "daughter-in-law"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'daughter-in-law')"
+        },
+        {
+          "id": "7eed151a-50f5-434a-bd2c-f0a81a17e3c3",
+          "k": 5,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "38abb0a3-3ad0-418b-a1e0-f29b5aa761b0",
+          "k": 5,
+          "gold": "sister",
+          "direct": "aunt",
+          "sub_chain": [
+            "grandfather",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'sister')"
+        },
+        {
+          "id": "f3045438-5550-4ef5-90ab-20f859b8a3c2",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "father-in-law",
+          "sub_chain": [
+            "aunt",
+            "grandfather"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'grandfather')"
+        },
+        {
+          "id": "c610c69f-b018-4df6-a009-2a4eeb9756c4",
+          "k": 5,
+          "gold": "nephew",
+          "direct": "granddaughter",
+          "sub_chain": [
+            "grandson",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "cd0ef023-eaff-4cbf-a07a-71f777769a47",
+          "k": 5,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        }
+      ]
+    },
+    "6": {
+      "n": 62,
+      "n_splits": 2,
+      "direct_accuracy": 0.3709677419354839,
+      "composed_accuracy": 0.06451612903225806,
+      "delta": -0.3064516129032258,
+      "unresolved": 0.6612903225806451,
+      "detail": [
+        {
+          "id": "d884662e-75e2-48aa-b82e-01cf23683b1e",
+          "k": 6,
+          "gold": "granddaughter",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "b3385ece-720b-48b0-9e69-4561e0fd091e",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "son",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'nephew')"
+        },
+        {
+          "id": "281b1edc-f3be-4648-9e49-4406d048a8c9",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "grandson",
+          "sub_chain": [
+            "daughter",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'nephew')"
+        },
+        {
+          "id": "abd37269-e239-4c62-b67f-145fe41731e3",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "grandson",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'nephew')"
+        },
+        {
+          "id": "9a34abe4-36d2-4b18-9950-1857aa920af1",
+          "k": 6,
+          "gold": "daughter-in-law",
+          "direct": "daughter-in-law",
+          "sub_chain": [
+            "father",
+            "daughter-in-law"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'daughter-in-law')"
+        },
+        {
+          "id": "b51b2176-5f79-4cba-8992-f4b762a79ac3",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "son",
+          "sub_chain": [
+            "son",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "c93482af-0554-4139-a6ee-8b1651fdcfc9",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father",
+            "grandson"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'grandson')"
+        },
+        {
+          "id": "0c949c9e-1fc6-4757-b22f-b0e01eff3933",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "son",
+          "sub_chain": [
+            "daughter",
+            "son"
+          ],
+          "composed": "grandson",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "9cbe70aa-33d2-4fba-964f-fa6eb02bdf50",
+          "k": 6,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "father",
+            "daughter"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "2a91d1ee-9116-48ce-9ab7-9cc65045705f",
+          "k": 6,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "brother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'niece')"
+        },
+        {
+          "id": "044054de-0354-4164-98c8-c7c7362c668b",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "son",
+          "sub_chain": [
+            "daughter",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "8c7ba30b-593e-4a15-b676-e31424a70bcd",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "a3b2850d-1ca3-458e-ac37-7b04f6056702",
+          "k": 6,
+          "gold": "brother",
+          "direct": "son",
+          "sub_chain": [
+            "son",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "7b6d4183-d0f1-483e-8021-74a99159cc4a",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "acaaa4fa-d097-4b3e-a9c6-f042ef7b8b55",
+          "k": 6,
+          "gold": "son-in-law",
+          "direct": "father-in-law",
+          "sub_chain": [
+            "nephew",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "51a271b6-c59c-478d-9225-aafe69f354fc",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "afd734f7-894e-4a9a-8246-da3691b042f1",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "sister",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'aunt')"
+        },
+        {
+          "id": "60268597-b83f-4374-be11-ee0326900608",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "106bc167-77d3-4a30-81d7-4f253704d592",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'brother')"
+        },
+        {
+          "id": "a8a79d7a-df15-4aa3-aaf6-3f8b432c95dc",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "83423a25-8214-42bf-8539-e92c9b9a1848",
+          "k": 6,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "father",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'niece')"
+        },
+        {
+          "id": "08e8f9e5-7d90-4d72-8351-29cb1d259b52",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "deee3dd9-3c56-45a3-b571-91bb156e2097",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "4690a981-9a1b-4f57-94a4-705d6053d5aa",
+          "k": 6,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'uncle')"
+        },
+        {
+          "id": "011e2c64-ce9f-469d-bd21-0a887c5d705d",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "son",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'nephew')"
+        },
+        {
+          "id": "c9183a68-37d3-4e26-b935-52823c388d50",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "4c52c4ea-10bb-4205-9b29-6e943a95cfea",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "b525b64a-bb45-4be5-b24b-2f90a7969ea1",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "beef3a7f-837d-4ef6-87ce-15e8fe351b40",
+          "k": 6,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "mother",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('mother', 'granddaughter')"
+        },
+        {
+          "id": "d9dbbb8d-041a-41d0-b1c5-296e94ede58c",
+          "k": 6,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "57cd3435-5767-49f1-844d-025418ef6c6e",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "sister",
+          "sub_chain": [
+            "father",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'granddaughter')"
+        },
+        {
+          "id": "623a6527-845c-4398-9586-0d71e8e77fbf",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "7d47b4ab-4dee-436e-8306-5eb1d2093657",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "08430cd0-2995-4430-a3ef-b32131f1ffdf",
+          "k": 6,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "e0cdfd77-0592-471c-9af4-9d994fd3577c",
+          "k": 6,
+          "gold": "granddaughter",
+          "direct": "daughter",
+          "sub_chain": [
+            "mother",
+            "daughter"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "cf8ccbb5-d2b6-4ac5-b39d-774f0b932866",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "5ea4294f-64d0-42d8-b503-c0768c9ae505",
+          "k": 6,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "a7d6ae04-973b-4ef8-822d-f66a68b180a1",
+          "k": 6,
+          "gold": "mother",
+          "direct": "mother-in-law",
+          "sub_chain": [
+            "daughter-in-law",
+            "grandmother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'grandmother')"
+        },
+        {
+          "id": "5dd1bc53-36cb-410c-a53b-235a6d5b5fa0",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "c44fef6b-7867-4734-ba94-135ca59a3f92",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "d36b2be0-dff9-44a6-bdd7-916b546227d0",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "d01f9f0d-c960-4b89-9be8-c1aaa673a963",
+          "k": 6,
+          "gold": "niece",
+          "direct": "granddaughter",
+          "sub_chain": [
+            "daughter",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'niece')"
+        },
+        {
+          "id": "03e7aded-f98a-4d33-a3e9-1b3e8a8a3059",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "cca8929f-72e6-470b-9c85-cb31ce5d5310",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "f535479f-9c70-44e6-9b57-707f976a6c10",
+          "k": 6,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "mother",
+            "daughter"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "7a1564f1-6abf-4b52-ab75-952a5555c7b7",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "niece",
+          "sub_chain": [
+            "aunt",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'niece')"
+        },
+        {
+          "id": "5aa90258-e6d1-4272-92d8-f4c511177aa9",
+          "k": 6,
+          "gold": "sister",
+          "direct": "aunt",
+          "sub_chain": [
+            "brother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'aunt')"
+        },
+        {
+          "id": "01d727b0-1935-41ef-864f-f5d46881be04",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "father",
+            "sister"
+          ],
+          "composed": "aunt",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "c46b35ec-3768-4556-9786-8edd10b1050c",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father-in-law",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'son')"
+        },
+        {
+          "id": "2e170b28-a504-4d2f-ad3a-202e77c5d4f8",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "da2d8271-a579-4dbd-9bed-19d7343a676d",
+          "k": 6,
+          "gold": "niece",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter-in-law",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'nephew')"
+        },
+        {
+          "id": "5aac5e45-76e9-4aac-94eb-b5ccdb856c68",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f4311edd-6c79-4faa-97f5-41b5bc8fa973",
+          "k": 6,
+          "gold": "daughter",
+          "direct": "sister",
+          "sub_chain": [
+            "father",
+            "daughter"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "d686447a-9b78-48c7-8651-8f9cab0573e9",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "father",
+            "grandson"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'grandson')"
+        },
+        {
+          "id": "0fbf804e-15db-4a04-a57f-9d42273b711b",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "grandmother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandmother', 'niece')"
+        },
+        {
+          "id": "ca368886-22e3-44aa-b53d-1a8576db0281",
+          "k": 6,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter-in-law",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'nephew')"
+        },
+        {
+          "id": "a391d470-57f9-4798-b953-c1abea015888",
+          "k": 6,
+          "gold": "granddaughter",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "9a27c4fc-cec1-4085-9733-645feacb7d80",
+          "k": 6,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "father",
+            "sister"
+          ],
+          "composed": "aunt",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "63b591c3-ec7a-4cf1-ba8c-059c351b9b40",
+          "k": 6,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "76ff4690-db3d-44e9-af0b-752d39aa84d5",
+          "k": 6,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "cc8e2020-d011-48fa-80c5-cc37e968a2e1",
+          "k": 6,
+          "gold": "grandmother",
+          "direct": "grandmother",
+          "sub_chain": [
+            "brother",
+            "grandmother"
+          ],
+          "composed": "grandmother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "f0d8b4da-c8a7-41af-9b09-c6b6490429a4",
+          "k": 6,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        }
+      ]
+    },
+    "7": {
+      "n": 82,
+      "n_splits": 2,
+      "direct_accuracy": 0.47560975609756095,
+      "composed_accuracy": 0.08536585365853659,
+      "delta": -0.3902439024390244,
+      "unresolved": 0.6951219512195121,
+      "detail": [
+        {
+          "id": "959741cf-309b-4b7f-8f4a-87238db4c960",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "c2ac55a7-29f2-4b2e-ac9d-dbc6122ec465",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "daughter"
+          ],
+          "composed": "niece",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "5c92f43f-a1ef-43ad-afbb-f14bb02c4253",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "9effc7dd-8f29-4a1c-abf6-2d926d2abc9e",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "uncle",
+          "sub_chain": [
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'uncle')"
+        },
+        {
+          "id": "5eb4f7a0-1207-43d0-890a-724a9fa0f97b",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "bf049c7b-8c9f-4b0c-a0d3-d14d1feabac8",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "c1675f36-89ff-4ea7-9fda-14b6db14d03c",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'brother')"
+        },
+        {
+          "id": "00a4f439-f207-4ede-999f-f258b4f6bead",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "428134d2-7194-4ba7-8eb4-aa2dac07085f",
+          "k": 7,
+          "gold": "son",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "44553620-1cfe-4458-8957-bf67fe7313f2",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "8f331e51-f039-43f2-8a99-ad32f13c21ea",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "1e3afa89-da18-45d7-b817-bba266f16996",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "grandfather",
+          "sub_chain": [
+            "nephew",
+            "grandfather"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'grandfather')"
+        },
+        {
+          "id": "0a19eeb4-3b28-4eb4-b7c4-c0a753ee878a",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "son",
+          "sub_chain": [
+            "father",
+            "son"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "ac6dd9ea-855f-4797-9b4a-2085186b3f85",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "aunt",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'niece')"
+        },
+        {
+          "id": "f6b4c5ec-e48b-4687-aa28-20733d8541cd",
+          "k": 7,
+          "gold": "brother",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'son')"
+        },
+        {
+          "id": "0f2e93a4-cdb5-48a4-bf11-d2962e9ba6b3",
+          "k": 7,
+          "gold": "aunt",
+          "direct": "brother",
+          "sub_chain": [
+            "father",
+            "son"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "5c68514c-eb80-4a99-a891-313a6e9f3e28",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "father",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'nephew')"
+        },
+        {
+          "id": "829f4663-bdb3-48a9-8a19-29a8800df344",
+          "k": 7,
+          "gold": "brother",
+          "direct": "father",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "59d6886e-a0de-44ce-b419-541c9236de20",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'nephew')"
+        },
+        {
+          "id": "39740450-e920-447a-9a44-0ffe9e04882c",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "04f63b4e-bc42-4d9e-b1e3-b2024a91a405",
+          "k": 7,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "mother",
+            "sister"
+          ],
+          "composed": "aunt",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "d8580cf6-8654-4688-81bb-7df64a4cfad1",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "7b2a272c-8faf-4521-bf48-a42f1914e80a",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f0b472eb-37c0-4f26-ae1c-5e6ac0c5fbdc",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "grandson",
+          "sub_chain": [
+            "grandson",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'nephew')"
+        },
+        {
+          "id": "e5da6830-7d36-4ea6-8c2c-0d1ed6c9f026",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "453ce3aa-c46c-4eac-a32b-d708c67a4f07",
+          "k": 7,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "a6cd6163-345e-4aa1-84f4-ba8240eb84bc",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "grandson",
+          "sub_chain": [
+            "granddaughter",
+            "brother"
+          ],
+          "composed": "grandson",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "67fe8b49-52e0-4a06-aeca-da84f10a173d",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father-in-law",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'nephew')"
+        },
+        {
+          "id": "b4ade94d-9e72-44e4-8028-a44e56fd7891",
+          "k": 7,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "mother",
+            "father"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "54442326-ffd0-4d14-8989-97cebc4c8b49",
+          "k": 7,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "mother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('mother', 'aunt')"
+        },
+        {
+          "id": "28725e25-4e94-4882-95d5-443835d89828",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "aunt",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'sister')"
+        },
+        {
+          "id": "5ef1aa00-4a5a-4f3d-b37b-c9e0558d7ec4",
+          "k": 7,
+          "gold": "granddaughter",
+          "direct": "granddaughter",
+          "sub_chain": [
+            "grandson",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "9131dd65-8d89-43fd-b392-9decc55042f7",
+          "k": 7,
+          "gold": "grandfather",
+          "direct": "father",
+          "sub_chain": [
+            "sister",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f6e255d5-623d-4d0d-a759-6b8b89105b98",
+          "k": 7,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "64aa79ed-d010-4bbb-aebd-6a798640bb73",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "dad6777d-d07f-4dae-8077-261f25ef6b98",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "11985f06-2819-4372-92ef-0d1b974bc928",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "brother",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "8c08ab74-22dd-494d-912a-4dca89567830",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "7b1a84d3-470a-4b2e-8405-75d06dd43395",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "father",
+            "son"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "4887921e-c1b1-4a3f-a501-18fcb6e7e23c",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "grandson",
+          "sub_chain": [
+            "grandson",
+            "brother"
+          ],
+          "composed": "grandson",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "b28eeefe-283e-485f-b4fe-94f7d24bf7eb",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "mother",
+            "son"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "63799ecd-eb0b-45c1-bd3a-e540b1048534",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "86232cc9-1ba7-41e4-a7d2-368e8d9f8a4e",
+          "k": 7,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "8d74d3c9-7d27-4b12-8fed-dfbeb4b44ba0",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father-in-law",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'brother')"
+        },
+        {
+          "id": "5ee9593b-9094-4dc0-8647-3952b23ab72a",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "de7cab9c-008b-4603-bccf-3e9eecc4060a",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "grandfather",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'brother')"
+        },
+        {
+          "id": "47adc324-d3f0-435f-a326-06aaa42e8ff3",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "uncle",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'daughter')"
+        },
+        {
+          "id": "47c71a61-2305-4b14-a634-d0cab103087e",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "866c87f9-35d7-441f-b36f-1ed47bda460c",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "bd05de5d-b1c5-4867-aacc-1e050015d8ef",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "57e61f60-795c-42f8-8c36-3c2a40cc0f24",
+          "k": 7,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "mother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('mother', 'nephew')"
+        },
+        {
+          "id": "3fc979ba-c556-422b-a42e-924633695356",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "grandson",
+          "sub_chain": [
+            "grandson",
+            "brother"
+          ],
+          "composed": "grandson",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "17b8993c-7409-4200-9500-52f4d329c427",
+          "k": 7,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'uncle')"
+        },
+        {
+          "id": "eb3dcded-a18b-4134-b6a7-b34a12ff0824",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "1668a1d3-3701-440d-b753-d9062d489e8e",
+          "k": 7,
+          "gold": "father",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "edbddb8f-1b8d-4a55-b5dc-34a04b202561",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "son",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'nephew')"
+        },
+        {
+          "id": "eabb2708-d0eb-43e3-9852-d8b0f4c1895a",
+          "k": 7,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "f8a2073f-f4c2-40b4-a670-ddd695c182e1",
+          "k": 7,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "sister",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'aunt')"
+        },
+        {
+          "id": "5dcab9c6-eb0b-4771-9bc1-dbffd8061984",
+          "k": 7,
+          "gold": "father-in-law",
+          "direct": "grandfather",
+          "sub_chain": [
+            "sister",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "2c051fde-902e-45c4-8a55-e8cd30dfd6a9",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter-in-law",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter-in-law', 'nephew')"
+        },
+        {
+          "id": "d095bd53-7f1b-4353-91f0-d6092068ccff",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "5b8f4bbb-a389-45a4-ba26-dba86a6eb597",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "uncle",
+          "sub_chain": [
+            "mother-in-law",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('mother-in-law', 'brother')"
+        },
+        {
+          "id": "b656a63d-bfc9-40a9-93cb-3362eccd73d4",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "9b910184-ffba-49a5-9cad-17592f4f07b1",
+          "k": 7,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "5adf1607-fd65-47b7-b686-1937c14a0912",
+          "k": 7,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "415fdf22-0a35-4ba7-b03a-fbd2412a383d",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'aunt')"
+        },
+        {
+          "id": "063b6e54-8386-44cb-82b7-08474b9f3c2d",
+          "k": 7,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "4bbb59ce-749e-4dd8-be8d-19719a9e917f",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'nephew')"
+        },
+        {
+          "id": "60648297-6182-45a8-a3cd-d9f48fbfdca7",
+          "k": 7,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "1e36c721-dc6f-4a9a-b8cf-dfd19fc3a505",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "e12aa34c-4f2a-4a39-8908-b3b496f3b9be",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            null,
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "unparseable sub-chain"
+        },
+        {
+          "id": "b2885dde-0f7c-40e9-a4be-176041c89aeb",
+          "k": 7,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "ebefed69-b4f7-4041-9fa0-9ede3fc9bd6a",
+          "k": 7,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "brother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'niece')"
+        },
+        {
+          "id": "507a6a4a-9e9c-407e-bf54-bdc594a2875e",
+          "k": 7,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "37689dcc-a2e4-493f-afa7-d425aff40e54",
+          "k": 7,
+          "gold": "granddaughter",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "28fe7bef-bca5-4ab0-b7e6-b4f04c6426c1",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "9783106b-2f72-4319-86fb-d6b712a3fa53",
+          "k": 7,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "af3eafd9-8643-4624-80c5-066753b9be7d",
+          "k": 7,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "fd26af28-67fa-410c-9cfb-a4dfb3f3f03d",
+          "k": 7,
+          "gold": "daughter",
+          "direct": "sister",
+          "sub_chain": [
+            "granddaughter",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('granddaughter', 'aunt')"
+        },
+        {
+          "id": "a4db0302-9863-4938-991e-b57b5747f25c",
+          "k": 7,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "9d4604e7-2931-40f4-b5f5-f2aff1f5ad04",
+          "k": 7,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'daughter')"
+        },
+        {
+          "id": "1f629d32-2f9b-4dd7-a7c8-fe95c2a598af",
+          "k": 7,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        }
+      ]
+    },
+    "8": {
+      "n": 69,
+      "n_splits": 2,
+      "direct_accuracy": 0.5072463768115942,
+      "composed_accuracy": 0.10144927536231885,
+      "delta": -0.4057971014492754,
+      "unresolved": 0.7101449275362319,
+      "detail": [
+        {
+          "id": "987b81da-9fa9-4352-8c28-bc31460f3389",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "father",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'nephew')"
+        },
+        {
+          "id": "a6d8733a-9da7-4c8b-9f85-93e4b24707fd",
+          "k": 8,
+          "gold": "grandson",
+          "direct": "sister",
+          "sub_chain": [
+            "mother",
+            "sister"
+          ],
+          "composed": "aunt",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "fb5ed58c-ff12-499b-815d-7e9825f95270",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "2c3c1ae3-cb2e-49c7-813c-13dc9e3a5baf",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "e2d593a0-5d27-4bbe-ab68-8d0954aedd08",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "83ce2935-d560-4023-bd75-124601407d84",
+          "k": 8,
+          "gold": "niece",
+          "direct": "granddaughter",
+          "sub_chain": [
+            "grandson",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f2685ce0-b419-4fd0-8275-2946b6403f01",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "father"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'father')"
+        },
+        {
+          "id": "5ba1a514-78d3-4f1c-abe1-57ebeb442958",
+          "k": 8,
+          "gold": "grandson",
+          "direct": "grandson",
+          "sub_chain": [
+            "son",
+            "son"
+          ],
+          "composed": "grandson",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "19250e0d-78af-478f-a2a5-12c38cfa6ee6",
+          "k": 8,
+          "gold": "granddaughter",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "94ab8058-6039-48fe-ab5c-5fc87e819da0",
+          "k": 8,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "108d589b-e10d-4780-8f29-245424333489",
+          "k": 8,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "mother-in-law",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('mother-in-law', 'sister')"
+        },
+        {
+          "id": "f1051df9-826e-415f-9bae-91e32e2ed7c3",
+          "k": 8,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "son",
+            "aunt"
+          ],
+          "composed": "sister",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "9bd66914-b7c7-45d9-b4e9-3ae83233a20a",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "grandmother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandmother', 'niece')"
+        },
+        {
+          "id": "a5f12992-6006-4d04-8fc5-e0ee7b2d192d",
+          "k": 8,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "d9cabf36-f69f-4b14-96a4-c77916bd49db",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "grandfather",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'granddaughter')"
+        },
+        {
+          "id": "7cae6fb1-b100-4b2e-b352-4d2f22894b78",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "01e29b45-c794-45d2-9f93-1d210f399e62",
+          "k": 8,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "65d83b48-c5c2-46ac-9050-a7061b374b5a",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "042c7e38-c293-428b-b540-d5f823f63bf3",
+          "k": 8,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "5f5343ca-68fa-4390-973c-4ff5743cf331",
+          "k": 8,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "dbc4e4af-cdbb-4341-b05d-d3b96a832b73",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'granddaughter')"
+        },
+        {
+          "id": "93df6842-cbb3-4aa0-a54a-1ef89a56ac9a",
+          "k": 8,
+          "gold": "brother",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "bba81cfb-5c2b-4149-b1c5-5844a182282a",
+          "k": 8,
+          "gold": "son",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "62d1c4df-0c29-4973-8dff-b78402b9ff32",
+          "k": 8,
+          "gold": "niece",
+          "direct": "granddaughter",
+          "sub_chain": [
+            "granddaughter",
+            "sister"
+          ],
+          "composed": "granddaughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "ec522a81-ecc5-411f-b2b4-a09b1b047d57",
+          "k": 8,
+          "gold": "brother",
+          "direct": "son",
+          "sub_chain": [
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "20691b30-5e09-4f17-9676-6c3d0f12a09e",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'sister')"
+        },
+        {
+          "id": "6853a9e8-603d-4a43-8635-e6864a7b1582",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "b5b972c8-6e1a-4b6e-ba4a-04b6ee576a87",
+          "k": 8,
+          "gold": "granddaughter",
+          "direct": "sister",
+          "sub_chain": [
+            "son",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "32ea25f7-8189-49f6-a66b-d9cf85b3778f",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "04c1d371-f507-47ab-9d68-abdff287851c",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "ce66f737-29a7-41e6-b09e-e0377b779318",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "father"
+          ],
+          "composed": "father",
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "06d478a0-53ec-4de0-b4d0-b6373c5038c8",
+          "k": 8,
+          "gold": "grandmother",
+          "direct": "aunt",
+          "sub_chain": [
+            "grandfather",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'aunt')"
+        },
+        {
+          "id": "0f5d5d90-58d7-48ae-bf00-9d96f717dc7c",
+          "k": 8,
+          "gold": "grandmother",
+          "direct": "mother",
+          "sub_chain": [
+            "sister",
+            "mother"
+          ],
+          "composed": "mother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "1fe7092c-9a48-418a-80cd-873455e9face",
+          "k": 8,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'nephew')"
+        },
+        {
+          "id": "7fc5ee0e-a561-4c0f-adde-0ec409c3c22f",
+          "k": 8,
+          "gold": "son",
+          "direct": "son",
+          "sub_chain": [
+            "granddaughter",
+            "brother"
+          ],
+          "composed": "grandson",
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "5d3456d8-0016-4916-a97b-cbb59986c160",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "sister",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'aunt')"
+        },
+        {
+          "id": "21a2a18e-6f9f-4854-ba77-0d2aca5c7c50",
+          "k": 8,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "e51c8214-7a3a-4c50-8786-8b74fa700ce7",
+          "k": 8,
+          "gold": "brother",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "c48713ff-7781-4821-8919-903cf9acee22",
+          "k": 8,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "uncle",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'niece')"
+        },
+        {
+          "id": "8fc5bb92-5dc7-4833-9b56-278512557f07",
+          "k": 8,
+          "gold": "mother",
+          "direct": "mother",
+          "sub_chain": [
+            "niece",
+            "grandmother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'grandmother')"
+        },
+        {
+          "id": "7ea09299-fa40-4d99-8044-179aab29d6c2",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "4e2d4133-68c0-42e2-a967-d96664177856",
+          "k": 8,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "grandmother",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandmother', 'granddaughter')"
+        },
+        {
+          "id": "ceacb412-49fb-4ee0-91a4-1b239a2178cf",
+          "k": 8,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "brother",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "ab57cb09-78b5-4b74-ace4-9e1ec213fbd6",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'nephew')"
+        },
+        {
+          "id": "86330538-97a3-44a3-88b6-ccaf0840f915",
+          "k": 8,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "9739d1f7-e9ed-4d9a-98a4-f782f0f1ee13",
+          "k": 8,
+          "gold": "niece",
+          "direct": "grandmother",
+          "sub_chain": [
+            "aunt",
+            "grandmother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'grandmother')"
+        },
+        {
+          "id": "9a9f54c1-ab9d-4e52-a449-b7aca98dce3d",
+          "k": 8,
+          "gold": "grandmother",
+          "direct": "grandmother",
+          "sub_chain": [
+            "grandfather",
+            "mother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'mother')"
+        },
+        {
+          "id": "50a51456-f763-4832-82da-db04427fc7c2",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "sister",
+          "sub_chain": [
+            "son",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "e039685c-0358-44a6-9626-2cfecda53a7c",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "uncle",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'nephew')"
+        },
+        {
+          "id": "2defec5b-bbf2-431a-8a58-7ba9903c1f5a",
+          "k": 8,
+          "gold": "daughter",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "f22ca1c7-2544-4d27-87ec-4d83d58ddc9c",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'sister')"
+        },
+        {
+          "id": "c6a51e4b-403d-498f-b0e7-faaea81dd22a",
+          "k": 8,
+          "gold": "niece",
+          "direct": "daughter",
+          "sub_chain": [
+            "mother-in-law",
+            "daughter"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('mother-in-law', 'daughter')"
+        },
+        {
+          "id": "01c47175-e63f-4b44-8f8c-0a5691820a2d",
+          "k": 8,
+          "gold": "mother",
+          "direct": "grandmother",
+          "sub_chain": [
+            "aunt",
+            "mother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'mother')"
+        },
+        {
+          "id": "c604b43a-c5e5-42c0-9fd1-0a6f52d70ecd",
+          "k": 8,
+          "gold": "son",
+          "direct": "brother",
+          "sub_chain": [
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'uncle')"
+        },
+        {
+          "id": "e7552f1c-7def-4df6-b3d8-ea0f1f2deb44",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "grandson"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'grandson')"
+        },
+        {
+          "id": "6085ff26-7ba6-4c23-96b2-b0130b6639f3",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "2135fd04-bd6f-488f-8c9d-d55fe6c24ce2",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "son",
+          "sub_chain": [
+            "son-in-law",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('son-in-law', 'brother')"
+        },
+        {
+          "id": "1f201591-dc59-4288-924b-891484c378e2",
+          "k": 8,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "f15304ca-8564-4c61-b0b0-6520457ac6ce",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "8327adaa-421e-4e07-b502-c8bc6ab47b65",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "020ac677-b25c-4ca2-a072-5f86700148ce",
+          "k": 8,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "47feee6c-683d-4ed4-9b21-74579d8e79d1",
+          "k": 8,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'niece')"
+        },
+        {
+          "id": "b54c0406-cf5e-4ba6-ae5e-abc11d1d512d",
+          "k": 8,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'brother')"
+        },
+        {
+          "id": "3fd00bbb-a1bc-4646-8e4a-55ad47c1a9d4",
+          "k": 8,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "7f62c8a3-90e4-4400-81c2-1ca7ae8d7944",
+          "k": 8,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "f0e5d467-3a49-4f14-9b34-edd7abcc7d7f",
+          "k": 8,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "0f9a5af3-fee8-4ffe-86da-3e24fb8c558b",
+          "k": 8,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "e3784dc4-e100-4b42-8ee3-6defab058714",
+          "k": 8,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "29c23809-89da-4ac6-970e-80d837f95999",
+          "k": 8,
+          "gold": "sister",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        }
+      ]
+    },
+    "9": {
+      "n": 48,
+      "n_splits": 3,
+      "direct_accuracy": 0.3958333333333333,
+      "composed_accuracy": 0.041666666666666664,
+      "delta": -0.3541666666666667,
+      "unresolved": 0.7708333333333334,
+      "detail": [
+        {
+          "id": "3f734d22-155e-4cfc-b9a6-06e31c8f87ad",
+          "k": 9,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "grandson",
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'niece')"
+        },
+        {
+          "id": "219bcda4-ecd0-409e-b75a-c2096475f9f6",
+          "k": 9,
+          "gold": "niece",
+          "direct": "daughter",
+          "sub_chain": [
+            "daughter",
+            "sister",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "02dfac19-cf4b-4302-befd-835e83ab8456",
+          "k": 9,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "daughter",
+            "sister",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "b2f0f569-d8c5-4598-ba88-4e68dcd3bd75",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "aunt",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "ccdb0681-6979-4277-b360-c9c496aaff05",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father-in-law",
+            "granddaughter",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'granddaughter')"
+        },
+        {
+          "id": "fa9317f7-905a-4d05-bc3e-d0eb4daf6108",
+          "k": 9,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "grandmother",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandmother', 'nephew')"
+        },
+        {
+          "id": "cc810d8e-661b-4122-9ad1-0654b43e2257",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "father",
+          "sub_chain": [
+            "daughter",
+            "sister",
+            "grandfather"
+          ],
+          "composed": "father",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "083de612-d95f-4fc5-ab8b-fce02d784d79",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "son",
+          "sub_chain": [
+            "nephew",
+            "brother",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'brother')"
+        },
+        {
+          "id": "d4c811f6-f1bd-4962-80eb-050163ea17de",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "sister",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "b1322744-adfb-4b2d-a980-040bd6a71569",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "c2479da0-d6ad-498e-a97f-05eb9d099dc9",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "dac6984f-8316-469e-bf33-49bb3d1ebb48",
+          "k": 9,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "nephew",
+            "father-in-law",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'father-in-law')"
+        },
+        {
+          "id": "b5f2655d-e901-4e39-9bc6-8e50db2f21c1",
+          "k": 9,
+          "gold": "aunt",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "uncle",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "c8a633a4-735e-4230-94e1-2d74e0bbb9a8",
+          "k": 9,
+          "gold": "niece",
+          "direct": "aunt",
+          "sub_chain": [
+            "uncle",
+            "sister",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'sister')"
+        },
+        {
+          "id": "7b165392-f414-4590-b325-61a2ab539c85",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "son",
+          "sub_chain": [
+            "daughter",
+            "sister",
+            "brother"
+          ],
+          "composed": "son",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "011690ba-3f31-4c69-8eed-a3f84e9df5e1",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "5533eb81-d0f6-4d7a-894a-4bf22af798d4",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "8525bc39-6686-4484-9852-8beb3e1bc36e",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "mother",
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('mother', 'nephew')"
+        },
+        {
+          "id": "dfed1eb9-1142-44f4-998c-99474140f5e5",
+          "k": 9,
+          "gold": "uncle",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "uncle",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "4eb645b1-b2db-42aa-b545-01274e99814e",
+          "k": 9,
+          "gold": "niece",
+          "direct": "daughter",
+          "sub_chain": [
+            "son",
+            "sister",
+            "sister"
+          ],
+          "composed": "daughter",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "28147ae1-41d9-40e9-8c36-a8bf67e64dfc",
+          "k": 9,
+          "gold": "grandson",
+          "direct": "father",
+          "sub_chain": [
+            "son",
+            "sister",
+            "father"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'father')"
+        },
+        {
+          "id": "33c513b4-d438-4fb9-a07d-6e8f8fa553dc",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "father-in-law",
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father-in-law', 'niece')"
+        },
+        {
+          "id": "e4213a1a-08e4-43be-8dfe-d45db903de7b",
+          "k": 9,
+          "gold": "grandson",
+          "direct": "uncle",
+          "sub_chain": [
+            "aunt",
+            "uncle",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'uncle')"
+        },
+        {
+          "id": "97768138-d411-4411-922b-609605803ce7",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "son",
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('son', 'niece')"
+        },
+        {
+          "id": "50990b71-6040-4ad6-b024-59fcdae8ccdd",
+          "k": 9,
+          "gold": "grandfather",
+          "direct": "grandfather",
+          "sub_chain": [
+            "brother",
+            "sister",
+            "grandfather"
+          ],
+          "composed": "grandfather",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "73bab279-69a8-4bc4-82d8-caa7b9c63771",
+          "k": 9,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "uncle",
+            "brother",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'brother')"
+        },
+        {
+          "id": "6a7861c7-3903-4cf8-ad16-14b237b6d4ba",
+          "k": 9,
+          "gold": "niece",
+          "direct": "brother",
+          "sub_chain": [
+            "daughter",
+            "uncle",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "b2999f11-f352-490c-860f-b5dd05f3d619",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "father",
+            "son-in-law",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'son-in-law')"
+        },
+        {
+          "id": "2614acae-2f71-475d-9277-6d1386570f8c",
+          "k": 9,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "sister",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "8446beb5-d599-46af-be64-582744e42b63",
+          "k": 9,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "grandfather",
+            "granddaughter",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'granddaughter')"
+        },
+        {
+          "id": "419df3e6-dabc-4aea-a0b6-7020af4803d4",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "uncle",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'uncle')"
+        },
+        {
+          "id": "c534fa28-f829-4db9-a67c-4c954b2b5eab",
+          "k": 9,
+          "gold": "grandmother",
+          "direct": "mother",
+          "sub_chain": [
+            "sister",
+            "sister",
+            "mother"
+          ],
+          "composed": "mother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "4a0b3f61-b48d-4b25-bf82-0687beda603d",
+          "k": 9,
+          "gold": "aunt",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "sister",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "32d13b37-d443-44ef-aefb-eb36306635d1",
+          "k": 9,
+          "gold": "brother",
+          "direct": "brother",
+          "sub_chain": [
+            "son",
+            "brother",
+            "uncle"
+          ],
+          "composed": "brother",
+          "direct_ok": true,
+          "composed_ok": true,
+          "note": null
+        },
+        {
+          "id": "0cd0a0c3-9cf1-4b5a-aeb4-ec26e2f09a5a",
+          "k": 9,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "acebd77d-c007-4604-8411-df8389f6da0c",
+          "k": 9,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "brother",
+            "uncle",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "f985d5e6-abca-428d-b6d5-fec8cb39abac",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "34ef405e-496f-4632-ae7e-2b7957758d5d",
+          "k": 9,
+          "gold": "brother",
+          "direct": "uncle",
+          "sub_chain": [
+            "nephew",
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "8919d833-9664-4e88-befc-8271726028cf",
+          "k": 9,
+          "gold": "mother",
+          "direct": "sister",
+          "sub_chain": [
+            "sister",
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "e184a8be-c45b-441a-ad59-97b66aebadc4",
+          "k": 9,
+          "gold": "son",
+          "direct": "brother",
+          "sub_chain": [
+            "daughter",
+            "brother",
+            "uncle"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "a802a19d-9030-47f2-9c17-ac7e65611c96",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "brother",
+            "brother",
+            "brother"
+          ],
+          "composed": "brother",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "da9a6dc1-5b04-40d7-9d15-8386a65e3e72",
+          "k": 9,
+          "gold": "son",
+          "direct": "nephew",
+          "sub_chain": [
+            "granddaughter",
+            "uncle",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('granddaughter', 'uncle')"
+        },
+        {
+          "id": "b9d568ee-f24e-4c73-8e94-285eac305ac9",
+          "k": 9,
+          "gold": "mother",
+          "direct": "sister",
+          "sub_chain": [
+            "niece",
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "a35a6cc8-ad52-42e1-badb-ebb782d38f92",
+          "k": 9,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "nephew",
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'niece')"
+        },
+        {
+          "id": "6cea9e2b-36ef-4e4e-9795-4b790d614fb1",
+          "k": 9,
+          "gold": "father",
+          "direct": "father",
+          "sub_chain": [
+            "nephew",
+            "nephew",
+            "grandfather"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "fdffdd5a-0283-4673-b700-c2d0eab9ed0b",
+          "k": 9,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "08b250b8-ed36-4133-8a91-3c2c3f69a95b",
+          "k": 9,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "father",
+            "granddaughter",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'granddaughter')"
+        },
+        {
+          "id": "ac99bf23-4b61-4789-8404-dde3932965d3",
+          "k": 9,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "nephew",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        }
+      ]
+    },
+    "10": {
+      "n": 37,
+      "n_splits": 3,
+      "direct_accuracy": 0.5945945945945946,
+      "composed_accuracy": 0.0,
+      "delta": -0.5945945945945946,
+      "unresolved": 0.9459459459459459,
+      "detail": [
+        {
+          "id": "04aecf16-fbc8-4e73-ba36-9d80b5070804",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "grandfather",
+            "sister",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'sister')"
+        },
+        {
+          "id": "9b4967ac-ba5c-4412-95c5-f040667cc80f",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "d9e0c249-55e9-40c3-a371-11376049d9e7",
+          "k": 10,
+          "gold": "niece",
+          "direct": "sister",
+          "sub_chain": [
+            "brother",
+            "brother",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "7141dadc-0643-4d9a-b9e8-8cd56d2a388c",
+          "k": 10,
+          "gold": "sister",
+          "direct": "daughter",
+          "sub_chain": [
+            "grandson",
+            "brother",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'aunt')"
+        },
+        {
+          "id": "393f12cf-2abb-44cd-9c7d-22155c2be015",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "brother",
+            "uncle",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "4c59fabd-c306-422a-8374-e73945381216",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "3ffd48a5-3c44-4ead-aa98-7d24970da5b0",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "uncle",
+            "niece",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'niece')"
+        },
+        {
+          "id": "6d31aeee-472e-4b3b-87a4-0c45ede36f34",
+          "k": 10,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "uncle",
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'niece')"
+        },
+        {
+          "id": "187e40b8-2335-466e-94b3-55240d40c34c",
+          "k": 10,
+          "gold": "uncle",
+          "direct": "uncle",
+          "sub_chain": [
+            "sister",
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "1548b064-0450-4c20-80e3-4510773c3cb9",
+          "k": 10,
+          "gold": "uncle",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "2ea3b345-4617-4f54-92f6-7fcfd66fb332",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "nephew",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'nephew')"
+        },
+        {
+          "id": "568f38e3-0a7d-4eab-9974-888b09086022",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "daughter",
+            "father",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'father')"
+        },
+        {
+          "id": "2e08abf3-dd53-4bc7-bc86-0c5ca70ed391",
+          "k": 10,
+          "gold": "aunt",
+          "direct": "sister",
+          "sub_chain": [
+            "mother",
+            "son",
+            "sister"
+          ],
+          "composed": "sister",
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": null
+        },
+        {
+          "id": "43c0c9c9-675d-4a52-8509-323e416787bf",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "niece",
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "2bb13b03-8802-41f2-a407-9910897b6619",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "sister",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'sister')"
+        },
+        {
+          "id": "ba9fc6cb-d654-4cfb-95d3-deeae093b211",
+          "k": 10,
+          "gold": "sister",
+          "direct": "niece",
+          "sub_chain": [
+            "grandson",
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'niece')"
+        },
+        {
+          "id": "59e0a838-b049-4daa-ae0c-f63604ad0288",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "brother",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'brother')"
+        },
+        {
+          "id": "bf8cbce3-0de9-4c13-a59f-244dfa54fb4f",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "grandfather",
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'nephew')"
+        },
+        {
+          "id": "de407558-731d-4bf8-ae0d-a346f60ebb1a",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "niece",
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'nephew')"
+        },
+        {
+          "id": "29f3c32b-ab2f-4962-8f64-d5e2c8dba1bf",
+          "k": 10,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "brother",
+            "uncle",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'uncle')"
+        },
+        {
+          "id": "f76478dd-af2f-4925-b364-aace9e918106",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "aunt",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'aunt')"
+        },
+        {
+          "id": "6baa24c5-5b2e-4cfd-b5de-9761430fe658",
+          "k": 10,
+          "gold": "father",
+          "direct": "brother",
+          "sub_chain": [
+            "daughter",
+            "niece",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('daughter', 'niece')"
+        },
+        {
+          "id": "1755a908-b78c-468f-8cc8-77ed28029d38",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "uncle",
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'niece')"
+        },
+        {
+          "id": "cfa33ed3-1c0a-4900-8d22-25f1a1b9c0f6",
+          "k": 10,
+          "gold": "niece",
+          "direct": "grandmother",
+          "sub_chain": [
+            "nephew",
+            "sister",
+            "grandmother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'sister')"
+        },
+        {
+          "id": "758a521e-cbcf-4fd5-9c27-03a8b406c66c",
+          "k": 10,
+          "gold": "uncle",
+          "direct": "brother",
+          "sub_chain": [
+            "sister",
+            "sister",
+            "uncle"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'uncle')"
+        },
+        {
+          "id": "08fdfd53-9846-4b27-848a-57d7511baaec",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "aunt",
+            "granddaughter"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'aunt')"
+        },
+        {
+          "id": "6f28484d-51a0-4a36-b222-7ed95467f6e4",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "sister",
+            "niece",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "2eb40305-deb6-41c9-89e2-2d71c12e1fc6",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "niece",
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('niece', 'niece')"
+        },
+        {
+          "id": "5aa99261-c59f-4c3d-96fa-07d8037751da",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "brother",
+            "nephew",
+            "niece"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('brother', 'nephew')"
+        },
+        {
+          "id": "6d4c7b78-2c97-49d4-9d3e-4174ea9ebfce",
+          "k": 10,
+          "gold": "uncle",
+          "direct": "grandfather",
+          "sub_chain": [
+            "grandfather",
+            "granddaughter",
+            "grandfather"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandfather', 'granddaughter')"
+        },
+        {
+          "id": "9a27f18e-f08b-4d10-8bc0-f701d29f0e16",
+          "k": 10,
+          "gold": "grandson",
+          "direct": "nephew",
+          "sub_chain": [
+            "granddaughter",
+            "grandmother",
+            "son"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('granddaughter', 'grandmother')"
+        },
+        {
+          "id": "9d6e1147-738a-492c-8601-3bf0efd0d4f8",
+          "k": 10,
+          "gold": "father",
+          "direct": "grandfather",
+          "sub_chain": [
+            "aunt",
+            "niece",
+            "grandfather"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('aunt', 'niece')"
+        },
+        {
+          "id": "54f551fa-af91-4852-a9e8-e36551582d7a",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "grandson",
+          "sub_chain": [
+            "grandson",
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('grandson', 'nephew')"
+        },
+        {
+          "id": "b13170fc-06d0-4272-8de1-8aa84ced2ca6",
+          "k": 10,
+          "gold": "aunt",
+          "direct": "aunt",
+          "sub_chain": [
+            "father",
+            "niece",
+            "aunt"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('father', 'niece')"
+        },
+        {
+          "id": "a69511c8-dd5b-4d27-a204-84e6354e28a8",
+          "k": 10,
+          "gold": "niece",
+          "direct": "niece",
+          "sub_chain": [
+            "sister",
+            "niece",
+            "sister"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('sister', 'niece')"
+        },
+        {
+          "id": "d1abed9f-1f1d-4d38-b6b1-556fd072b0de",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "nephew",
+          "sub_chain": [
+            "nephew",
+            "nephew",
+            "brother"
+          ],
+          "composed": null,
+          "direct_ok": true,
+          "composed_ok": false,
+          "note": "rule missing for ('nephew', 'nephew')"
+        },
+        {
+          "id": "d40ab899-bd74-44ed-93db-c5970e5ffe75",
+          "k": 10,
+          "gold": "nephew",
+          "direct": "brother",
+          "sub_chain": [
+            "uncle",
+            "nephew",
+            "nephew"
+          ],
+          "composed": null,
+          "direct_ok": false,
+          "composed_ok": false,
+          "note": "rule missing for ('uncle', 'nephew')"
+        }
+      ]
+    }
+  }
+}
