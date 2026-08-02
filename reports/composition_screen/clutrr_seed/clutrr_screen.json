@@ -1,0 +1,203 @@
+{
+  "config": {
+    "model": "/scratch/gpfs/BRENDEN/changho/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "train_csv": "/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen/data/clutrr_train.csv",
+    "test_csv": "/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen/data/clutrr_test.csv",
+    "out_dir": "/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen/clutrr_seed",
+    "train_size": 4000,
+    "max_steps": 300,
+    "learning_rate": 0.0002,
+    "micro_batch_size": 4,
+    "per_k": 100,
+    "eval_batch_size": 16,
+    "seed": 7
+  },
+  "before": {
+    "holdout_k2to4": 0.4033333333333333
+  },
+  "training": {
+    "train_runtime": 674.7146,
+    "train_samples_per_second": 7.114,
+    "train_steps_per_second": 0.445,
+    "total_flos": 1.870233727335629e+16,
+    "train_loss": 0.14354069411754608,
+    "epoch": 1.2,
+    "micro_batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "effective_batch_size": 16,
+    "max_steps": 300,
+    "checkpoint_adapters": {}
+  },
+  "after": {
+    "holdout_k2to4": 0.95,
+    "by_k": {
+      "2": {
+        "n": 38,
+        "accuracy": 1.0,
+        "per_step_retention": 1.0,
+        "top_predictions": [
+          [
+            "grandson",
+            19
+          ],
+          [
+            "granddaughter",
+            19
+          ]
+        ]
+      },
+      "3": {
+        "n": 100,
+        "accuracy": 0.88,
+        "per_step_retention": 0.938083151964686,
+        "top_predictions": [
+          [
+            "granddaughter",
+            27
+          ],
+          [
+            "son",
+            15
+          ],
+          [
+            "brother",
+            13
+          ]
+        ]
+      },
+      "4": {
+        "n": 77,
+        "accuracy": 0.8311688311688312,
+        "per_step_retention": 0.9402205726417087,
+        "top_predictions": [
+          [
+            "son",
+            10
+          ],
+          [
+            "grandson",
+            8
+          ],
+          [
+            "mother",
+            8
+          ]
+        ]
+      },
+      "5": {
+        "n": 100,
+        "accuracy": 0.43,
+        "per_step_retention": 0.8097801259787746,
+        "top_predictions": [
+          [
+            "sister",
+            17
+          ],
+          [
+            "brother",
+            17
+          ],
+          [
+            "niece",
+            13
+          ]
+        ]
+      },
+      "6": {
+        "n": 100,
+        "accuracy": 0.49,
+        "per_step_retention": 0.8670401643811234,
+        "top_predictions": [
+          [
+            "nephew",
+            22
+          ],
+          [
+            "sister",
+            19
+          ],
+          [
+            "uncle",
+            10
+          ]
+        ]
+      },
+      "7": {
+        "n": 100,
+        "accuracy": 0.43,
+        "per_step_retention": 0.868783190116359,
+        "top_predictions": [
+          [
+            "sister",
+            20
+          ],
+          [
+            "brother",
+            16
+          ],
+          [
+            "nephew",
+            13
+          ]
+        ]
+      },
+      "8": {
+        "n": 100,
+        "accuracy": 0.54,
+        "per_step_retention": 0.915736525732526,
+        "top_predictions": [
+          [
+            "sister",
+            21
+          ],
+          [
+            "nephew",
+            16
+          ],
+          [
+            "niece",
+            13
+          ]
+        ]
+      },
+      "9": {
+        "n": 100,
+        "accuracy": 0.39,
+        "per_step_retention": 0.8889617524742759,
+        "top_predictions": [
+          [
+            "nephew",
+            21
+          ],
+          [
+            "sister",
+            18
+          ],
+          [
+            "brother",
+            17
+          ]
+        ]
+      },
+      "10": {
+        "n": 100,
+        "accuracy": 0.53,
+        "per_step_retention": 0.9318885711738034,
+        "top_predictions": [
+          [
+            "niece",
+            20
+          ],
+          [
+            "sister",
+            18
+          ],
+          [
+            "nephew",
+            16
+          ]
+        ]
+      }
+    }
+  }
+}

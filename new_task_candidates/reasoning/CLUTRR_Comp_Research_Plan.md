@@ -130,9 +130,75 @@ useful work -- it is a missing rule.
 
 ---
 
+## 5b. The algebra, fixed -- and a negative result that indicts the design again
+
+**The algebra.** `reports/composition_screen/kinship.py` represents each relation
+as a walk over parent/child/spouse steps (father `P`, son `C`, brother `PC`,
+uncle `PPC`, nephew `PCC`, father-in-law `SP`, son-in-law `CS`, ...) and composes
+by concatenation with three reductions: `CP` -> empty (a child's parent is
+oneself), `SS` -> empty, and `SC` -> `C` (CLUTRR has no step-children).
+Deliberately asymmetric: `SP` does *not* reduce, because a spouse's parent is an
+in-law. This reproduces **all 62** observed rules with zero errors, against the
+mined table's partial coverage.
+
+Known wart: the rewriting is **not confluent**. `SCP` reduces to either empty or
+`S` depending on rule order -- "my spouse's child's parent" is genuinely me or my
+spouse. That ambiguity is real kinship and a legitimate bottom case.
+
+**Adaptive splitting.** A fixed midpoint cut fails because 21.7% of sub-chains
+fold to relations outside the 18-name answer space (great-grandmother), which the
+model cannot express. Enumerating all contiguous cuts into <=4-hop chunks and
+taking the first whose composition resolves finds a working cut for **99.1%** of
+instances, and requires no gold -- an unusable cut announces itself when the rule
+returns bottom.
+
+**Result.** With the mechanics sound (unresolved <= .067), decomposition still
+does not beat direct prediction:
+
+| k | n | direct | composed | delta |
+|---:|---:|---:|---:|---:|
+| 5 | 60 | .467 | .433 | -.033 |
+| 6 | 60 | .383 | .367 | -.017 |
+| 7 | 60 | .517 | .467 | -.050 |
+| 8 | 60 | .483 | .433 | -.050 |
+| 9 | 48 | .396 | .396 | +.000 |
+| 10 | 37 | .595 | .459 | -.135 |
+| **all** | 325 | **.468** | **.425** | **-.043** |
+
+Paired: 43 direct-only-correct against 29 composed-only-correct, McNemar
+p ~ 0.13 -- a wash.
+
+**Why, and why the experiment was still the wrong one.** The prediction was
+`.83 x .88 x .88 = .64` at k=10, assuming a 4-hop sub-chain is as easy as a
+standalone 4-hop instance. Backing out from the observed .459 over three chunks
+gives implied per-chunk accuracy ~.77. Sub-chain questions were asked over the
+*entire* k-hop story, so the model still had to locate four relevant sentences
+among ten with every other entity as a distractor. That is not the analogue of
+addition, where `x o x'` gives each sub-problem only its own digits.
+
+Slicing the story per sub-chain is not available either: only **30%** of stories
+have one sentence per edge, because a single sentence can encode two relations.
+
+**The direction was backwards.** Compositional self-improvement *builds* hard
+instances from easy ones; it never needs to decompose an arbitrary hard instance.
+Addition concatenates two solved digit blocks; BFCL joined two atomic requests.
+Taking CLUTRR's existing k=8 stories and cutting them up is the inverse operation
+and demands machinery the method does not use.
+
+---
+
 ## 6. What has to happen next
 
-1. **Obtain the true kinship algebra.** Options, cheapest first: represent each
+0. **Compose, do not decompose.** Build synthetic k=6-10 instances by
+   concatenating two or three short-chain stories at a shared junction entity.
+   Each part is then a *standalone short story* -- the seed regime at .95, not
+   the ~.77 measured for sub-chains embedded in a long story. Predicted
+   composed accuracy is roughly `.95 x .95 = .90` against ~.48 direct. Check
+   first that the concatenated story reads coherently and that the junction
+   entity is unambiguous; then compare composed against direct on the
+   constructed set, and separately test transfer to CLUTRR's own k>=5 test
+   split, which is the claim that actually matters.
+1. ~~**Obtain the true kinship algebra.**~~ Done -- see Section 5b. Options, cheapest first: represent each
    relation as (generation delta, gender, lineage type) and compose analytically;
    infer the full 18x18 table by closure over the 62 known entries; or take the
    rule set from the original CLUTRR generator. Validate by checking that gold
