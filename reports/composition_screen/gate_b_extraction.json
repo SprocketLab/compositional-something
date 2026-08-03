@@ -1,0 +1,78 @@
+{
+  "by_k": {
+    "5": {
+      "n": 60,
+      "chunks": 2,
+      "scored_parts": 98,
+      "direct": 0.5,
+      "part_full_story": 0.5408163265306123,
+      "part_extracted": 0.5408163265306123,
+      "composed_full_story": 0.31666666666666665,
+      "composed_extracted": 0.3333333333333333,
+      "delta_vs_direct": -0.16666666666666666
+    },
+    "6": {
+      "n": 60,
+      "chunks": 2,
+      "scored_parts": 94,
+      "direct": 0.6,
+      "part_full_story": 0.5106382978723404,
+      "part_extracted": 0.5319148936170213,
+      "composed_full_story": 0.38333333333333336,
+      "composed_extracted": 0.35,
+      "delta_vs_direct": -0.25
+    },
+    "7": {
+      "n": 60,
+      "chunks": 2,
+      "scored_parts": 85,
+      "direct": 0.2833333333333333,
+      "part_full_story": 0.3176470588235294,
+      "part_extracted": 0.36470588235294116,
+      "composed_full_story": 0.2,
+      "composed_extracted": 0.15,
+      "delta_vs_direct": -0.13333333333333333
+    },
+    "8": {
+      "n": 60,
+      "chunks": 2,
+      "scored_parts": 82,
+      "direct": 0.38333333333333336,
+      "part_full_story": 0.3902439024390244,
+      "part_extracted": 0.4878048780487805,
+      "composed_full_story": 0.15,
+      "composed_extracted": 0.21666666666666667,
+      "delta_vs_direct": -0.16666666666666666
+    },
+    "9": {
+      "n": 45,
+      "chunks": 3,
+      "scored_parts": 107,
+      "direct": 0.4888888888888889,
+      "part_full_story": 0.5327102803738317,
+      "part_extracted": 0.5607476635514018,
+      "composed_full_story": 0.24444444444444444,
+      "composed_extracted": 0.2222222222222222,
+      "delta_vs_direct": -0.26666666666666666
+    },
+    "10": {
+      "n": 32,
+      "chunks": 3,
+      "scored_parts": 76,
+      "direct": 0.40625,
+      "part_full_story": 0.3157894736842105,
+      "part_extracted": 0.39473684210526316,
+      "composed_full_story": 0.09375,
+      "composed_extracted": 0.125,
+      "delta_vs_direct": -0.28125
+    }
+  },
+  "overall": {
+    "direct": 0.444794952681388,
+    "composed_full_story": 0.24290220820189273,
+    "composed_extracted": 0.24290220820189273,
+    "delta_vs_direct": -0.20189274447949526,
+    "part_extracted": 0.4870848708487085
+  },
+  "gate_b_pass": false
+}

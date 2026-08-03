@@ -2,10 +2,16 @@
 
 ## Compositional self-improvement on kinship relation chains
 
-**Status (2026-08-02):** candidate under evaluation. The seed regime and the
-frontier gap are established. The decomposition experiment is **blocked** on an
-implementation problem described in Section 5, and until it is fixed nothing
-here speaks to whether the method works.
+**Status (2026-08-03): discontinued.** The seed regime (.95 at k<=4) and the
+frontier gap (.44 at k>=5) are real, and the kinship algebra is exact. The task
+still fails, for a reason that took three routes to isolate: **CLUTRR's parts are
+never in the seed regime.** A sub-chain of a long story scores .487 even when its
+sentences are extracted, against .95 for a standalone short story, because the
+story's entities interleave -- only 2.2% of extracted spans are free of off-chain
+people. Composition consequently loses to direct prediction at every k (−.202
+overall), with errors compounding near-independently, the same signature that
+ended BFCL. Section 6b has the numbers and the pre-registered gate they failed.
+Sections 5-6 below are kept as the record of how this was narrowed down.
 
 ---
 
@@ -215,6 +221,82 @@ and demands machinery the method does not use.
    addition's boundary carry supports. If a guard is wanted, ambiguity would have
    to come from elsewhere -- for example gender-underdetermined chains.
 
+## 6b. Sentence extraction, and the measurement that ends the task
+
+Section 6's step 0 and the decomposition route failed in opposite ways: concatenated
+composites beat direct but were twice as hard as real CLUTRR chains at the same k
+(.260 vs .507), while decomposing a real story tied direct (.425 vs .468). The
+diagnosis offered for the latter was that sub-chain questions were asked over the
+*entire* long story, so the model still had to find the relevant sentences. The
+untried fix was to extract them -- the analogue of handing an addition sub-problem
+its own digit block.
+
+That fix has now been run end to end (`gate_b_extraction.py`, job 11954642) on 317
+real k>=5 stories from `gen_train23_test2to10/test.csv`, a config with **zero story
+overlap** with our evaluation split. Four arms, all paired on the same instances:
+
+| k | n | direct | part (full story) | part (extracted) | composed (ext) | delta |
+|---|---|---|---|---|---|---|
+| 5 | 60 | .500 | .541 | .541 | .333 | −.167 |
+| 6 | 60 | .600 | .511 | .532 | .350 | −.250 |
+| 7 | 60 | .283 | .318 | .365 | .150 | −.133 |
+| 8 | 60 | .383 | .390 | .488 | .217 | −.167 |
+| 9 | 45 | .489 | .533 | .561 | .222 | −.267 |
+| 10 | 32 | .406 | .316 | .395 | .125 | −.281 |
+| **all** | **317** | **.445** | **.446** | **.487** | **.243** | **−.202** |
+
+Extraction does what it was designed to do, and it is not enough. It helps parts by
+**+.041** and never flips the sign: composition loses to direct at every single k.
+
+**Why: the sub-problems are not in the seed regime.** This is the first *direct*
+measurement of per-part accuracy -- the earlier "~.77" was inferred from composed
+accuracy under a best-cut search, which selects the cuts that happen to resolve and
+so overstates it. Measured, a 2-4 hop segment of a long story scores **.487**, against
+**.95** for a standalone k=2-4 story. The method's load-bearing premise is that parts
+land inside the reliable regime; here they do not, so there is nothing to compose from.
+
+**Why extraction cannot fix that: CLUTRR stories are not separable.** Over 863
+sub-chain spans, extraction keeps a median of 62% of sentences and loses 0% of
+chains -- but only **2.2%** of spans are free of off-chain entities, with a mean of
+**1.46** distractors remaining. Adjacent chain entities are described in interleaved
+sentences, so the span that preserves a sub-chain's edges necessarily drags in people
+outside it. A sub-story is therefore never the standalone short story the seed was
+trained on. Unlike addition, where a digit block is genuinely independent, CLUTRR's
+*relation* is compositional while its *surface form* is not.
+
+**And the errors compound independently -- the BFCL signature.** With `p` the measured
+extracted-part accuracy and `c` chunks per instance:
+
+| k | chunks | p | p^c | composed | ratio |
+|---|---|---|---|---|---|
+| 5 | 2 | .541 | .292 | .333 | 1.14 |
+| 6 | 2 | .532 | .283 | .350 | 1.24 |
+| 7 | 2 | .365 | .133 | .150 | 1.13 |
+| 8 | 2 | .488 | .238 | .217 | 0.91 |
+| 9 | 3 | .561 | .176 | .222 | 1.26 |
+| 10 | 3 | .395 | .062 | .125 | 2.03 |
+
+Observed composed accuracy sits at 0.9-1.3x the independent-error prediction (2.03 at
+k=10 on 32 instances). BFCL was discontinued on a ratio of 1.0. CLUTRR reaches the
+same place by a different road: there the parts were already independent, here the
+parts are dependent in principle but the model cannot isolate them in practice.
+
+**Verdict: stop.** Gate B was specified in advance as extracted-part accuracy >=.80
+*and* composed beating direct by >=5 points. It returned .487 and −.202. Round 1
+(Gate C) was not run -- training on pseudo-labels that are correct .24 of the time
+cannot move a .44 frontier. The Gate C script exists (`clutrr_round1_pool.py`, with
+pseudo-replay and a pool/eval hash check) should the premise ever change.
+
+**What would have to be true for CLUTRR to work.** Some route that yields parts inside
+the seed regime *and* composites matching CLUTRR's own distribution. All three known
+routes fail one or the other: concatenation gives easy parts but off-distribution
+composites; decomposition and extraction give on-distribution composites but hard
+parts. A fourth route -- generating both parts and composites with CLUTRR's own
+generator -- would satisfy both, but that is supervised data construction, not
+self-improvement from an unlabeled pool.
+
+---
+
 ## 7. Practical notes
 
 - Only **635 of 1,048** test rows are a clean `0->k` path with one name per node
@@ -231,4 +313,5 @@ and demands machinery the method does not use.
 
 - [CLUTRR: A Diagnostic Benchmark for Inductive Reasoning from Text](https://arxiv.org/abs/1908.06177)
 - [CLUTRR/v1 dataset](https://huggingface.co/datasets/CLUTRR/v1)
-- Artifacts: `reports/composition_screen/` (screen, seed adapter, decomposition results)
+- Artifacts: `reports/composition_screen/` (screen, seed adapter, decomposition results,
+  `gate_b_extraction.json`)
