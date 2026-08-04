@@ -850,6 +850,51 @@ recomputed on the same instances in the same run, and prices the oracle
 explicitly. Cite `headroom_no_oracle` from `musique_retrieval_control.json`, not
 the +.133 above.
 
+### Retrieval control: the headroom was mostly the oracle
+
+| hops | direct | composed (gold retrieval) | composed (no oracle) | oracle worth |
+|---|---|---|---|---|
+| 2 | .590 | .730 (+.140) | .600 (**+.010**) | +.130 |
+| 3 | .530 | .690 (+.160) | .670 (**+.140**) | +.020 |
+| 4 | .420 | .520 (+.100) | .320 (**−.100**) | +.200 |
+| all | .513 | .647 (+.133) | .530 (**+.017**) | **+.117** |
+
+`direct` and `composed(gold retrieval)` reproduce the isolation screen exactly,
+confirming identical sampling. **+.133 falls to +.017.** Roughly 86% of the
+apparent advantage was the retrieval annotation. Once both arms search the same
+20 paragraphs there is no usable headroom at base-model part accuracy.
+
+The per-hop pattern (+.010, +.140, −.100) is non-monotonic and unexplained. At
+n=100 per cell a paired difference of proportions carries about ±.14 at 95%, so
+each cell is individually marginal and the flat overall figure is the honest
+reading. This run stored only aggregates, so no McNemar is possible on it --
+**future runs must log per-instance outcomes.**
+
+Two predictions made during this screen were wrong and are recorded so the
+reasoning is not reused: that the oracle would cost about .04 (it cost .117), and
+that independent compounding would make 3 hops lose (`.733^3 = .394`; observed
+.670). Errors do not compound independently on MuSiQue -- a wrong intermediate
+often still routes to the correct final answer because the next hop's paragraph
+constrains it, and substring scoring forgives more. This is the opposite of BFCL,
+where observed sat exactly at `p^k`. No model on hand explains both the 3-hop and
+4-hop results.
+
+### Verdict: not confirmed, not dead
+
+This removes the evidence that MuSiQue works; it does not show that it fails.
+The screen used the **base** model, with parts at .72-.78. The method's premise
+is a seed trained on atomic data first -- on CLUTRR that moved parts from .403 to
+.950. If a one-hop seed lifts MuSiQue parts to ~.90 the arithmetic changes
+entirely. That is the single experiment that resolves this benchmark, and it has
+not been run.
+
+What survives regardless:
+
+* composition is load-bearing (corruption costs .417);
+* parts are genuinely easier than composites (+.185 to +.260), unlike CLUTRR's +.001;
+* neither of those is sufficient -- the gap must also beat whatever the chain
+  loses to cascading, and at base-model accuracy it does not.
+
 **Standing rule for this benchmark: any arm that consumes `paragraph_support_idx`
 or `question_decomposition` is using released gold structure. Every such arm needs
 a matched no-oracle counterpart before its number is quotable.** §4.1 and §19

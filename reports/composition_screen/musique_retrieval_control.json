@@ -1,0 +1,39 @@
+{
+  "by_hops": {
+    "2": {
+      "n": 100,
+      "direct": 0.59,
+      "composed_gold_retrieval": 0.73,
+      "composed_no_oracle": 0.6,
+      "headroom_with_oracle": 0.14,
+      "headroom_no_oracle": 0.010000000000000009,
+      "oracle_worth": 0.13
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.53,
+      "composed_gold_retrieval": 0.69,
+      "composed_no_oracle": 0.67,
+      "headroom_with_oracle": 0.15999999999999992,
+      "headroom_no_oracle": 0.14,
+      "oracle_worth": 0.019999999999999907
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.42,
+      "composed_gold_retrieval": 0.52,
+      "composed_no_oracle": 0.32,
+      "headroom_with_oracle": 0.10000000000000003,
+      "headroom_no_oracle": -0.09999999999999998,
+      "oracle_worth": 0.2
+    }
+  },
+  "overall": {
+    "direct": 0.5133333333333333,
+    "composed_gold_retrieval": 0.6466666666666666,
+    "composed_no_oracle": 0.53,
+    "headroom_with_oracle": 0.13333333333333333,
+    "headroom_no_oracle": 0.01666666666666668,
+    "oracle_worth": 0.11666666666666664
+  }
+}
