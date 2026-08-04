@@ -746,3 +746,87 @@ The experiment does not by itself establish automatic decomposition or retrieval
 
 - Trivedi, H., Balasubramanian, N., Khot, T., and Sabharwal, A. (2022). [MuSiQue: Multihop Questions via Single-hop Question Composition](https://aclanthology.org/2022.tacl-1.31/).
 - Official repository and v1.0 download/evaluation scripts: [StonyBrookNLP/musique](https://github.com/StonyBrookNLP/musique).
+
+---
+
+## 25. Isolation screen, 2026-08-04 -- and a correction to the screening criterion
+
+Run before committing to this benchmark, after BFCL (§39 of the BFCL plan) and
+CLUTRR (§6b of the CLUTRR plan) were both discontinued. Base Qwen3.5-4B, no seed
+training, 100 dev instances per hop count, all arms paired on the same instances.
+Artifacts: `reports/composition_screen/musique_isolation.py`, `musique_isolation.json`.
+
+### The earlier screen measured the wrong quantity
+
+`screen_composition.py:run_musique` reported per-part accuracy of .84/.71/.65 at
+2/3/4 hops. Two defects, both the same mistakes that sank CLUTRR's first pass:
+
+* every sub-question was asked over the **full 20-paragraph context**
+  (`musique_context(r)`), so the figure was p(part *in situ*), not p(part alone);
+* `#N` references were filled with **gold** upstream answers, so there was no
+  error cascade.
+
+Those numbers should not be cited. The screen below replaces them.
+
+### Results
+
+| hops | n | direct | part, full ctx | part, own para | iso gain | part self-fed | composed | vs direct |
+|---|---|---|---|---|---|---|---|---|
+| 2 | 100 | .590 | .775 | .825 | +.050 | .805 | .730 | **+.140** |
+| 3 | 100 | .530 | .733 | .743 | +.010 | .697 | .690 | **+.160** |
+| 4 | 100 | .420 | .680 | .755 | +.075 | .698 | .520 | **+.100** |
+| all | 300 | .513 | .719 | .767 | +.048 | .721 | .647 | **+.133** |
+
+`composed` is the fully self-fed arm: each step sees only its own supporting
+paragraph and the model's own answer to the previous step. No gold anywhere.
+Composition beats direct prediction at every hop count -- the first candidate
+for which that is true.
+
+### The criterion was wrong, and this is where it gets fixed
+
+CLUTRR was diagnosed as "the input is not separable": its sentences interleave,
+so a sub-chain cannot be given its own text, and per-part accuracy in situ (.446)
+equalled direct (.445). The generalisation drawn from that -- *look for benchmarks
+whose inputs decompose syntactically* -- is too narrow, and this screen refutes it.
+
+Isolating a MuSiQue sub-question shrinks its context **42x** (11,858 -> 280 chars)
+and buys only **+.048**, and just **+.010** at 3 hops. What actually pays is that
+the sub-question is an easier *question*, with the context left untouched:
+
+| hops | part (full context) − direct |
+|---|---|
+| 2 | +.185 |
+| 3 | +.203 |
+| 4 | **+.260** |
+
+The gap widens with difficulty. So the screening test is the general one:
+
+> **Is the part easier than the whole?**  `p(part) − p(composite)`
+
+CLUTRR scored **+.001** on it. MuSiQue scores **+.185 to +.260**. Input
+separability is one mechanism by which that gap can arise, not the criterion
+itself. This is a one-run, paired, seed-free measurement and should be the first
+thing computed for any future candidate.
+
+### Open: is the composition load-bearing?
+
+`composed` = .647 against an independent-error prediction of ~.34 -- a ratio near
+2.0. That is either genuine positive dependence between steps, or the final
+paragraph pinning the answer regardless of which entity was substituted into
+`#N`, in which case the composed arm is a single-hop lookup and the +.133 is an
+artifact. MuSiQue has documented shortcut problems.
+
+Control in flight (`musique_shortcut.py`): re-run each final step with the
+upstream entity **gold**, **corrupted** (an answer sampled from a different
+instance), and **blank**. If corruption costs less than .15, the multi-hop
+structure is decorative. **This is a go/no-go gate additional to §20, and it
+outranks the others -- no amount of seed training repairs a benchmark that does
+not require the hops.**
+
+### Caveats
+
+* Base model, no one-hop seed. Absolute accuracies are pessimistic; the paired
+  contrasts are the informative part.
+* `score_em` is substring containment, inherited from the earlier screen so the
+  numbers remain comparable. It is lenient.
+* Gold supporting paragraphs throughout; distractor transfer (§4.3) untested.

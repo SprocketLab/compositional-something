@@ -1,0 +1,49 @@
+{
+  "by_hops": {
+    "2": {
+      "n": 100,
+      "n_parts": 200,
+      "direct": 0.59,
+      "part_situ_gold": 0.775,
+      "part_iso_gold": 0.825,
+      "part_iso_self": 0.805,
+      "composed_self": 0.73,
+      "isolation_gain": 0.04999999999999993,
+      "error_cascade": 0.019999999999999907,
+      "usable_headroom": 0.14
+    },
+    "3": {
+      "n": 100,
+      "n_parts": 300,
+      "direct": 0.53,
+      "part_situ_gold": 0.7333333333333333,
+      "part_iso_gold": 0.7433333333333333,
+      "part_iso_self": 0.6966666666666667,
+      "composed_self": 0.69,
+      "isolation_gain": 0.010000000000000009,
+      "error_cascade": 0.046666666666666634,
+      "usable_headroom": 0.15999999999999992
+    },
+    "4": {
+      "n": 100,
+      "n_parts": 400,
+      "direct": 0.42,
+      "part_situ_gold": 0.68,
+      "part_iso_gold": 0.755,
+      "part_iso_self": 0.6975,
+      "composed_self": 0.52,
+      "isolation_gain": 0.07499999999999996,
+      "error_cascade": 0.057499999999999996,
+      "usable_headroom": 0.10000000000000003
+    }
+  },
+  "overall": {
+    "direct": 0.5133333333333333,
+    "part_situ_gold": 0.7188888888888889,
+    "part_iso_gold": 0.7666666666666667,
+    "part_iso_self": 0.7211111111111111,
+    "composed_self": 0.6466666666666666,
+    "isolation_gain": 0.04777777777777781,
+    "usable_headroom": 0.1333333333333333
+  }
+}
