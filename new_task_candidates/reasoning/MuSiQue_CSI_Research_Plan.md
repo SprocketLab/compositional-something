@@ -816,12 +816,45 @@ paragraph pinning the answer regardless of which entity was substituted into
 `#N`, in which case the composed arm is a single-hop lookup and the +.133 is an
 artifact. MuSiQue has documented shortcut problems.
 
-Control in flight (`musique_shortcut.py`): re-run each final step with the
-upstream entity **gold**, **corrupted** (an answer sampled from a different
-instance), and **blank**. If corruption costs less than .15, the multi-hop
-structure is decorative. **This is a go/no-go gate additional to §20, and it
-outranks the others -- no amount of seed training repairs a benchmark that does
-not require the hops.**
+### Resolved: the composition IS load-bearing, but the arm had a retrieval oracle
+
+`musique_shortcut.py` re-ran each final step with the upstream entity **gold**,
+**corrupted** (an answer sampled from a different instance), and **blank**:
+
+| hops | n | gold | corrupt | blank | corrupt cost | blank cost |
+|---|---|---|---|---|---|---|
+| 2 | 100 | .750 | .310 | .650 | −.440 | −.100 |
+| 3 | 100 | .680 | .350 | .550 | −.330 | −.130 |
+| 4 | 100 | .750 | .270 | .620 | −.480 | −.130 |
+| all | 300 | .727 | .310 | .607 | **−.417** | −.130 |
+
+Corrupting the upstream answer costs **.417**. The model conditions on what the
+previous hop produced; this is not a single-hop lookup in disguise. The shortcut
+hypothesis is rejected.
+
+The `blank` column exposes a different problem, and it is one this screen
+introduced rather than found. Removing the upstream entity entirely costs only
+**.130** -- the gold supporting paragraph nearly determines the answer by itself.
+The isolated and composed arms select that paragraph with
+`paragraph_support_idx`, a **gold annotation**, while the direct arm searches all
+20 paragraphs. So `composed_self` enjoyed a per-step retrieval oracle that direct
+never had, and the +.133 headroom mixes decomposition with retrieval.
+
+What is unaffected: the part-vs-composite gap (+.185/+.203/+.260) is measured on
+`part_situ`, which uses the full 20-paragraph context. The corrected criterion
+and the CLUTRR contrast do not depend on the oracle.
+
+What is in question: the headroom figure alone. `musique_retrieval_control.py`
+re-runs the self-fed chain over the **full context** at every step, with direct
+recomputed on the same instances in the same run, and prices the oracle
+explicitly. Cite `headroom_no_oracle` from `musique_retrieval_control.json`, not
+the +.133 above.
+
+**Standing rule for this benchmark: any arm that consumes `paragraph_support_idx`
+or `question_decomposition` is using released gold structure. Every such arm needs
+a matched no-oracle counterpart before its number is quotable.** §4.1 and §19
+Risk 2 already anticipate this for the decomposition DAG; it applies to paragraph
+support just as strongly, and this screen is the demonstration of why.
 
 ### Caveats
 

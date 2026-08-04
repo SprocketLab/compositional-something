@@ -1,0 +1,36 @@
+{
+  "by_hops": {
+    "2": {
+      "gold": 0.75,
+      "corrupt": 0.31,
+      "blank": 0.65,
+      "n": 100,
+      "corrupt_drop": 0.44,
+      "blank_drop": 0.09999999999999998
+    },
+    "3": {
+      "gold": 0.68,
+      "corrupt": 0.35,
+      "blank": 0.55,
+      "n": 100,
+      "corrupt_drop": 0.33000000000000007,
+      "blank_drop": 0.13
+    },
+    "4": {
+      "gold": 0.75,
+      "corrupt": 0.27,
+      "blank": 0.62,
+      "n": 100,
+      "corrupt_drop": 0.48,
+      "blank_drop": 0.13
+    }
+  },
+  "overall": {
+    "gold": 0.7266666666666667,
+    "corrupt": 0.31,
+    "blank": 0.6066666666666667,
+    "corrupt_drop": 0.4166666666666667,
+    "blank_drop": 0.12
+  },
+  "shortcut_suspected": false
+}
