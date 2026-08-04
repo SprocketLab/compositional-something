@@ -908,3 +908,74 @@ support just as strongly, and this screen is the demonstration of why.
 * `score_em` is substring containment, inherited from the earlier screen so the
   numbers remain comparable. It is lenient.
 * Gold supporting paragraphs throughout; distractor transfer (§4.3) untested.
+
+---
+
+## 26. One-hop seed, 2026-08-04 -- the benchmark clears its screen
+
+The retrieval control left MuSiQue undecided: headroom +.017 on the base model,
+where single-hop accuracy is only .72-.78. The method assumes an atomic seed is
+trained first. This run supplies one. LoRA r16/a32 on Qwen3.5-4B, 4,000 one-hop
+examples, 300 steps, lr 2e-4, `max_length` 4096, final train loss .143.
+Artifacts: `musique_seed.py`, `musique_seed/musique_seed.json`,
+`musique_seed/per_instance.jsonl`.
+
+Seed examples are single-hop sub-questions posed over the **full 20-paragraph
+context** of their parent instance, not the gold supporting paragraph -- the
+composed arm must do its own retrieval at inference, and training on the gold
+paragraph would reintroduce the oracle §25 removed. Gold `#N` substitution is
+used for seed training only; every evaluation arm is self-fed.
+
+Leakage gate, enforced at run time and hard-exiting on any nonzero: instance ids
+**0**, multihop questions **0**, filled (sub-question, answer) pairs **0**.
+
+### Results
+
+| | | direct | part | composed | headroom | 95% CI | McNemar |
+|---|---|---|---|---|---|---|---|
+| **before** | 2 hops | .580 | .780 | .600 | +.020 | [−.090,+.140] | p=.86 |
+| | 3 hops | .510 | .730 | .660 | +.150 | [+.050,+.250] | p=.006 |
+| | 4 hops | .420 | .677 | .320 | −.100 | [−.200,+.000] | p=.087 |
+| | **all** | .503 | | .527 | **+.023** | **[−.040,+.083]** | **p=.53** |
+| **after** | 2 hops | .600 | .815 | .720 | +.120 | [+.040,+.210] | p=.012 |
+| | 3 hops | .630 | .770 | .720 | +.090 | [+.030,+.150] | p=.012 |
+| | 4 hops | .460 | .703 | .490 | +.030 | [−.060,+.120] | p=.65 |
+| | **all** | .563 | | .643 | **+.080** | **[+.037,+.123]** | **p=.0009** |
+
+**Composing a seeded model's one-hop answers beats asking it the whole question:
++.080, CI excluding zero, McNemar p=.0009.** The pre-registered verdict rule
+(headroom positive AND CI lower bound above zero) is met. MuSiQue is the first
+candidate to clear the screen, after BFCL and CLUTRR were discontinued.
+
+The seed also resolves §25's unexplained non-monotonicity. Before seeding the
+per-hop pattern was +.020/+.150/−.100 with two of three CIs spanning zero -- the
+flat-plus-noise reading was right. After seeding it is monotone
+(+.120/+.090/+.030) and the aggregate is significant.
+
+### Two observations that shape the next step
+
+**The seed helps direct prediction too, and unevenly.** Direct moved
++.020/+.120/+.040 at 2/3/4 hops against composed's +.120/+.060/+.170. Training
+on one-hop questions over the full context improves reading that context
+generally, not just executing a sub-question. Any future baseline must be the
+*seeded* direct model, never the base one, or the composition gain is overstated.
+
+**Headroom shrinks as hops grow** (+.120 -> +.090 -> +.030, and 4 hops is not
+individually significant). That is backwards for a frontier-expansion method,
+which wants its largest advantage where direct prediction is weakest. Part
+accuracy at 4 hops is .703, well below the ~.95 CLUTRR seed regime, so the
+chain still loses too much per step. More seed data or steps is the obvious
+lever and is untested.
+
+### What this does NOT yet show
+
+This measures an **inference-time** composition advantage. It is not yet
+compositional self-improvement: no pseudo-labels have been generated, no model
+retrained on them, and no frontier has moved. Round 1 (§11) is the actual claim.
+
+**The composed arm still uses `question_decomposition`** -- the released gold
+sub-questions -- at inference. §4.1 declares the DAG-visible setting primary, so
+this is a stated design choice rather than a hidden confound, but it is a larger
+oracle than the paragraph one removed in §25, and the standing rule from §25
+applies: a matched arm where the model proposes its own decomposition is needed
+before any headline claim. §4.2 (End2End) is that arm.
