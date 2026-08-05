@@ -89,6 +89,17 @@ it is *handed* how to decompose. Plan §4.2 (End2End) is the matched arm. Until
 this exists, the headline is "composition helps when someone tells you the
 decomposition," which is a much weaker claim. Cheaper than Round 1.
 
+> **RAN 2026-08-05 on neuronic (`musique_selfdecomp.py`) — negative.** Pooled
+> self-composed − direct = +.017, CI [−.023, +.057], p=.51, vs +.070 (p=.0086)
+> for the gold arm on the same 300 instances and adapter; self is significantly
+> below gold (−.053, p=.036). Not an execution failure (2/300 parse fails, 0
+> unfilled `#N` refs, 0 direct-arm drift): the proposals themselves fail, by
+> anaphora ("this city") instead of `#N` so the filled step never names the
+> entity, and by omitting the sink sub-question so the last answer is not the
+> final answer. Both look prompt-fixable (format exemplar + "last step must
+> answer the original question") and that iteration has NOT been run. Until it
+> succeeds, the weaker headline stands.
+
 **(b) Round 1.** Pseudo-label unlabeled multi-hop questions by composing seed
 sub-answers, retrain, test whether *direct* multi-hop accuracy improves.
 Prerequisite: partition the train split at full-example level per plan §6
@@ -136,6 +147,15 @@ accuracy.
 ---
 
 ## 7. Cluster notes
+
+> **Migration landed 2026-08-05.** Site values live in
+> `reports/composition_screen/cluster_env.sh`; submit any `*_portable.slurm`
+> with `sbatch $(bash reports/composition_screen/sbatch_flags.sh) <script>`.
+> The headline reproduced on an L40 (+.070 pooled, p=.0086, vs +.080 on Della;
+> ~2.7× slower, 6h38m). Cross-cluster noise floor with identical weights:
+> ~1.5% of per-instance outcomes flip. Neuronic artifacts are in
+> `musique_seed_neuronic/`; the Della originals in `musique_seed/` are
+> untouched and remain the reference.
 
 * **48 GB is enough** for everything, including 8B, **with gradient
   checkpointing**. `train_lora(..., gradient_checkpointing=True)` — added in
