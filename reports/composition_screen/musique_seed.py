@@ -168,6 +168,8 @@ def main() -> None:
     ap.add_argument("--learning-rate", type=float, default=2e-4)
     ap.add_argument("--max-length", type=int, default=4096)
     ap.add_argument("--micro-batch-size", type=int, default=1)
+    ap.add_argument("--gradient-checkpointing", action="store_true",
+                    help="required on 48 GB cards; see GPU_MEMORY_NOTES.md")
     ap.add_argument("--per-k", type=int, default=100)
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--seed", type=int, default=7)
@@ -252,7 +254,8 @@ def main() -> None:
     tr = train_lora(model=model, tokenizer=tok, examples=seed_items, output_dir=args.out_dir,
                     max_length=args.max_length, max_steps=args.max_steps,
                     learning_rate=args.learning_rate, micro_batch_size=args.micro_batch_size,
-                    effective_batch_size=16, seed=args.seed)
+                    effective_batch_size=16, seed=args.seed,
+                    gradient_checkpointing=args.gradient_checkpointing)
     report["training"] = {k: v for k, v in tr.items() if k != "log_history"}
 
     print("== AFTER ==", flush=True)
