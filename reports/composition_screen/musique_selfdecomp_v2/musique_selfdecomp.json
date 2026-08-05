@@ -1,0 +1,98 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "adapter": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_neuronic/adapter",
+    "dev_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_dev.jsonl",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_selfdecomp_v2",
+    "seed_per_instance": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_neuronic/per_instance.jsonl",
+    "decompose_with": "base",
+    "prompt_style": "v2",
+    "per_k": "100",
+    "batch_size": "8",
+    "decompose_batch_size": "8",
+    "seed": "7"
+  },
+  "2": {
+    "n": 100,
+    "direct": 0.64,
+    "self_composed": 0.69,
+    "headroom": 0.05,
+    "decompose_failures": 0,
+    "proposed_k_matches_gold": 85,
+    "mcnemar_vs_direct": {
+      "b": 12,
+      "c": 7,
+      "p_value": 0.359283447265625
+    },
+    "gold_composed": 0.78,
+    "mcnemar_vs_gold_composed": {
+      "b": 3,
+      "c": 12,
+      "p_value": 0.03515625
+    },
+    "direct_drift_vs_seedrun": 0
+  },
+  "3": {
+    "n": 100,
+    "direct": 0.67,
+    "self_composed": 0.66,
+    "headroom": -0.01,
+    "decompose_failures": 0,
+    "proposed_k_matches_gold": 63,
+    "mcnemar_vs_direct": {
+      "b": 8,
+      "c": 9,
+      "p_value": 1.0
+    },
+    "gold_composed": 0.71,
+    "mcnemar_vs_gold_composed": {
+      "b": 4,
+      "c": 9,
+      "p_value": 0.266845703125
+    },
+    "direct_drift_vs_seedrun": 0
+  },
+  "4": {
+    "n": 100,
+    "direct": 0.53,
+    "self_composed": 0.51,
+    "headroom": -0.02,
+    "decompose_failures": 1,
+    "proposed_k_matches_gold": 62,
+    "mcnemar_vs_direct": {
+      "b": 9,
+      "c": 11,
+      "p_value": 0.8238029479980469
+    },
+    "gold_composed": 0.56,
+    "mcnemar_vs_gold_composed": {
+      "b": 8,
+      "c": 13,
+      "p_value": 0.38331031799316406
+    },
+    "direct_drift_vs_seedrun": 0
+  },
+  "pooled": {
+    "n": 300,
+    "self_composed_minus_direct": 0.006666666666666667,
+    "mcnemar": {
+      "b": 29,
+      "c": 27,
+      "p_value": 0.8938530948350217
+    },
+    "bootstrap_ci95": [
+      -0.043333333333333335,
+      0.053333333333333344
+    ],
+    "self_composed_minus_gold_composed": -0.06333333333333334,
+    "mcnemar_vs_gold": {
+      "b": 15,
+      "c": 34,
+      "p_value": 0.009399241523873059
+    },
+    "bootstrap_ci95_vs_gold": [
+      -0.10999999999999999,
+      -0.01666666666666672
+    ]
+  }
+}

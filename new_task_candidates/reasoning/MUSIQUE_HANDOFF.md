@@ -96,9 +96,19 @@ decomposition," which is a much weaker claim. Cheaper than Round 1.
 > unfilled `#N` refs, 0 direct-arm drift): the proposals themselves fail, by
 > anaphora ("this city") instead of `#N` so the filled step never names the
 > entity, and by omitting the sink sub-question so the last answer is not the
-> final answer. Both look prompt-fixable (format exemplar + "last step must
-> answer the original question") and that iteration has NOT been run. Until it
-> succeeds, the weaker headline stands.
+> final answer.
+>
+> **The prompt-fix iteration (v2) also ran 2026-08-05 — still negative, and
+> the negative is now robust.** v2 (explicit #N rule, sink-step rule, one
+> synthetic exemplar) changed 299/300 proposals and raised #N usage from
+> 112/300 to 289/300 — the format defects were real and fixable — and fixed
+> 19 of v1's 34 losses against gold, but introduced 26 new failures where
+> v1's anaphoric decompositions had worked over the full context: pooled
+> +.007, CI [−.043, +.053], p=.89. Format compliance shuffles which
+> instances fail; choosing sub-questions whose wording survives literal
+> substitution is the binding constraint, across two prompts. The weaker
+> headline stands, and dropping the structure oracle likely requires
+> *training* decomposition, not prompting it.
 
 **(b) Round 1.** Pseudo-label unlabeled multi-hop questions by composing seed
 sub-answers, retrain, test whether *direct* multi-hop accuracy improves.
