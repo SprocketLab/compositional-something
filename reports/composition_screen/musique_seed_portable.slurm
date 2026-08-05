@@ -18,11 +18,14 @@ R=$PWD/reports/composition_screen
 MODEL=$(ls -d "$HF_HOME"/hub/models--Qwen--Qwen3.5-4B/snapshots/*/ | head -1)
 GC_FLAG=""
 [ "${GRAD_CKPT:-0}" = "1" ] && GC_FLAG="--gradient-checkpointing"
-OUT="$R"/musique_seed_${SITE_TAG:-neuronic}
+# Overridable for variant seeds, e.g. Round 1's partition seed:
+#   TRAIN_DATA=.../musique_train_seed30.jsonl OUT_TAG=r1seed sbatch ...
+TRAIN=${TRAIN_DATA:-"$R"/data/musique_train.jsonl}
+OUT="$R"/musique_seed_${OUT_TAG:-${SITE_TAG:-neuronic}}
 
 "$PY" "$R"/musique_seed.py \
   --model "$MODEL" \
-  --train-data "$R"/data/musique_train.jsonl \
+  --train-data "$TRAIN" \
   --dev-data "$R"/data/musique_dev.jsonl \
   --out-dir "$OUT" \
   --train-size 4000 --max-steps 300 --learning-rate 2e-4 \

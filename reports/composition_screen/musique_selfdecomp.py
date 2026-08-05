@@ -53,22 +53,50 @@ from musique_seed import boot_ci, ex, mcnemar, usable
 from self.coding.atomic_data import AtomicExample
 from self.coding.training import generate_predictions, load_adapter_for_evaluation
 
-DECOMPOSE_INSTRUCTION = (
-    "Break the following question into a numbered list of simpler single-hop "
-    "sub-questions that answer it step by step. Later sub-questions may refer "
-    "to the answer of an earlier one as #1, #2, and so on. Reply with the "
-    "numbered list only, one sub-question per line.\n\n"
-    "Question: {question}\nSub-questions:"
-)
+DECOMPOSE_INSTRUCTIONS = {
+    # v1 produced the 2026-08-05 negative: proposals used natural-language
+    # anaphora instead of #N and often omitted the sink sub-question.
+    "v1": (
+        "Break the following question into a numbered list of simpler single-hop "
+        "sub-questions that answer it step by step. Later sub-questions may refer "
+        "to the answer of an earlier one as #1, #2, and so on. Reply with the "
+        "numbered list only, one sub-question per line.\n\n"
+        "Question: {question}\nSub-questions:"
+    ),
+    # v2 targets exactly those two defects: an explicit no-anaphora rule, a
+    # sink-step rule, and ONE synthetic format exemplar.  The exemplar is
+    # invented (not drawn from MuSiQue or any release structure) and shows
+    # format only -- no answer content -- so it hands the model no oracle
+    # beyond how to write a decomposition down.
+    "v2": (
+        "Break the following question into a numbered list of simpler single-hop "
+        "sub-questions that answer it step by step.\n"
+        "Rules:\n"
+        "- When a sub-question needs the answer to an earlier one, write the "
+        "reference as #1, #2, and so on. Never write \"this person\" or \"that "
+        "city\" -- always use #N.\n"
+        "- The final sub-question must directly produce the answer to the "
+        "original question.\n"
+        "- Use as many steps as needed, usually 2 to 4.\n"
+        "Reply with the numbered list only, one sub-question per line.\n\n"
+        "Example:\n"
+        "Question: What is the capital of the country where the Amazon River "
+        "begins?\n"
+        "Sub-questions:\n"
+        "1. In which country does the Amazon River begin?\n"
+        "2. What is the capital of #1?\n\n"
+        "Question: {question}\nSub-questions:"
+    ),
+}
 
 STEP_RE = re.compile(r"^\s*(\d+)[.):]\s*(.+?)\s*$")
 
 
-def decompose_ex(question: str, sid: str) -> AtomicExample:
+def decompose_ex(question: str, sid: str, style: str) -> AtomicExample:
     return AtomicExample(
         task="musique-decompose", source_id=sid, source_group_id=sid, split="x",
         messages=({"role": "user",
-                   "content": DECOMPOSE_INSTRUCTION.format(question=question)},),
+                   "content": DECOMPOSE_INSTRUCTIONS[style].format(question=question)},),
         target="", evaluator={}, metadata={},
     )
 
@@ -149,6 +177,8 @@ def main() -> None:
                     help="per_instance.jsonl from the seed run; adds the gold-"
                          "decomposition composed arm and asserts sample identity")
     ap.add_argument("--decompose-with", choices=("base", "adapter"), default="base")
+    ap.add_argument("--prompt-style", choices=sorted(DECOMPOSE_INSTRUCTIONS),
+                    default="v1")
     ap.add_argument("--per-k", type=int, default=100)
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--decompose-batch-size", type=int, default=8)
@@ -190,7 +220,8 @@ def main() -> None:
                 for p, r in zip(d_pred, sample)]
 
         # -- propose decompositions --
-        p_items = [decompose_ex(r["question"], r["id"]) for r in sample]
+        p_items = [decompose_ex(r["question"], r["id"], args.prompt_style)
+                   for r in sample]
         if args.decompose_with == "base":
             with model.disable_adapter():
                 raw = generate_predictions(model=model, tokenizer=tok,
