@@ -149,7 +149,16 @@ def train_lora(
     effective_batch_size: int,
     seed: int,
     checkpoint_steps: Sequence[int] = (),
+    gradient_checkpointing: bool = False,
 ) -> Dict[str, Any]:
+    """Train a LoRA adapter.
+
+    `gradient_checkpointing` trades compute for activation memory and defaults
+    to off so existing runs stay comparable.  It is what makes long-context
+    training fit on a 48 GB card: measured on Qwen3.5-4B at seq 4096, peak falls
+    from 86.6 GiB to 20.4 GiB (see reports/composition_screen/GPU_MEMORY_NOTES.md).
+    Budget 20-40% slower steps.
+    """
     from transformers import Trainer, TrainerCallback, TrainingArguments
 
     if effective_batch_size % micro_batch_size != 0:
@@ -200,6 +209,13 @@ def train_lora(
         remove_unused_columns=False,
         dataloader_num_workers=0,
         optim="adamw_torch",
+        gradient_checkpointing=bool(gradient_checkpointing),
+        # Non-reentrant checkpointing propagates grads to LoRA adapters without
+        # the enable_input_require_grads() workaround the reentrant path needs
+        # when every base weight is frozen.
+        gradient_checkpointing_kwargs=(
+            {"use_reentrant": False} if gradient_checkpointing else None
+        ),
     )
     trainer = Trainer(
         model=model,

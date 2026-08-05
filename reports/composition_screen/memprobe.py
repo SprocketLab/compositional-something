@@ -1,69 +1,114 @@
 """Peak GPU memory for the configurations this project actually runs.
 
-Answers whether the work fits on a 48 GB card, and what has to change.
-Each case is measured in a fresh allocator state via reset_peak_memory_stats.
-"""
-import json, sys, torch
-sys.path.insert(0, "/scratch/gpfs/BRENDEN/changho/compositional-something")
-sys.path.insert(0, "/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen")
+Answers whether the work fits on a 48 GB card, and what has to change.  Each
+case is measured from a fresh allocator state via reset_peak_memory_stats.
 
-from self.coding.atomic_data import AtomicExample
-from self.coding.training import load_qwen_lora_model, load_qwen_tokenizer, train_lora, generate_predictions
+Gradient checkpointing is driven through `train_lora`'s own parameter rather
+than by toggling the model directly, so this doubles as a regression test that
+the parameter is wired up and that LoRA gradients still flow under it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
 from pathlib import Path
 
-MODEL = "/scratch/gpfs/BRENDEN/changho/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
-OUT = Path("/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen/logs/probe")
+import torch
+
+sys.path.insert(0, "/scratch/gpfs/BRENDEN/changho/compositional-something")
+
+from self.coding.atomic_data import AtomicExample
+from self.coding.training import (
+    generate_predictions,
+    load_qwen_lora_model,
+    load_qwen_tokenizer,
+    train_lora,
+)
+
 GB = 2 ** 30
-results = {}
-
-tok = load_qwen_tokenizer(MODEL)
-model = load_qwen_lora_model(MODEL)
-results["weights_only"] = torch.cuda.memory_allocated() / GB
-print(f"weights+LoRA resident: {results['weights_only']:.1f} GiB", flush=True)
-
-filler = "The quick brown fox jumps over the lazy dog. " * 400
+OUT = Path("/scratch/gpfs/BRENDEN/changho/compositional-something/reports/composition_screen/logs/probe")
+FILLER = "The quick brown fox jumps over the lazy dog. " * 400
 
 
-def make(n_tokens, count):
-    text = tok.decode(tok(filler * 12)["input_ids"][: n_tokens - 40])
-    return [AtomicExample(task="probe", source_id=str(i), source_group_id=str(i), split="x",
-                          messages=({"role": "user", "content": text},), target="answer",
-                          evaluator={}, metadata={}) for i in range(count)]
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", required=True)
+    ap.add_argument("--label", required=True)
+    ap.add_argument("--budget", type=float, default=44.0,
+                    help="usable GiB on the target card (48 minus context/fragmentation)")
+    args = ap.parse_args()
 
+    tok = load_qwen_tokenizer(args.model)
+    model = load_qwen_lora_model(args.model)
+    results = {"weights_only": round(torch.cuda.memory_allocated() / GB, 1)}
+    print(f"[{args.label}] weights+LoRA resident: {results['weights_only']:.1f} GiB", flush=True)
 
-def probe(name, fn):
-    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
-    try:
-        fn()
-        peak = torch.cuda.max_memory_allocated() / GB
-        results[name] = round(peak, 1)
-        print(f"{name}: peak {peak:.1f} GiB", flush=True)
-    except torch.OutOfMemoryError:
-        results[name] = "OOM"
-        print(f"{name}: OOM", flush=True)
-    torch.cuda.empty_cache()
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    print(f"[{args.label}] params {total/1e9:.2f}B, trainable (LoRA) {trainable/1e6:.1f}M", flush=True)
+    results["params_B"] = round(total / 1e9, 2)
 
+    def make(n_tokens: int, count: int):
+        text = tok.decode(tok(FILLER * 12)["input_ids"][: n_tokens - 40])
+        return [AtomicExample(task="probe", source_id=str(i), source_group_id=str(i),
+                              split="x", messages=({"role": "user", "content": text},),
+                              target="answer", evaluator={}, metadata={})
+                for i in range(count)]
 
-for seq in (1024, 2048, 4096):
-    for gc in (False, True):
-        tag = f"train_seq{seq}_mb1_gradckpt{'ON' if gc else 'OFF'}"
-        if gc:
-            model.gradient_checkpointing_enable()
-            model.enable_input_require_grads()
+    def probe(name, fn, want_checkpointing):
+        # TrainingArguments(gradient_checkpointing=False) does not TURN OFF
+        # checkpointing on a model that already has it enabled, and this probe
+        # reuses one model across cases.  Without an explicit disable, every
+        # "OFF" case after the first "ON" one silently reports the checkpointed
+        # figure -- which is how an earlier version of this script reported
+        # seq4096-OFF as 20.4 GiB instead of 86.6 GiB.
+        if want_checkpointing:
+            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
         else:
             model.gradient_checkpointing_disable()
-        probe(tag, lambda s=seq: train_lora(
-            model=model, tokenizer=tok, examples=make(s, 8), output_dir=OUT,
-            max_length=s, max_steps=2, learning_rate=1e-5,
-            micro_batch_size=1, effective_batch_size=2, seed=0))
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        try:
+            fn()
+            peak = torch.cuda.max_memory_allocated() / GB
+            results[name] = round(peak, 1)
+            print(f"[{args.label}] {name}: peak {peak:.1f} GiB", flush=True)
+        except torch.OutOfMemoryError:
+            results[name] = "OOM"
+            print(f"[{args.label}] {name}: OOM", flush=True)
+        except Exception as exc:                      # a wiring bug must not read as OOM
+            results[name] = f"ERROR: {type(exc).__name__}: {exc}"
+            print(f"[{args.label}] {name}: ERROR {type(exc).__name__}: {exc}", flush=True)
+        torch.cuda.empty_cache()
 
-model.gradient_checkpointing_disable()
-for bs in (8, 16):
-    probe(f"generate_bs{bs}_seq3000", lambda b=bs: generate_predictions(
-        model=model, tokenizer=tok, examples=make(3000, b), batch_size=b, max_new_tokens=32))
+    for seq in (1024, 2048, 4096):
+        for gc in (False, True):
+            for mb in ((1, 2) if gc else (1,)):       # unchecked mb=2 is hopeless at 4096
+                probe(f"train_seq{seq}_mb{mb}_gradckpt{'ON' if gc else 'OFF'}",
+                      lambda s=seq, g=gc, m=mb: train_lora(
+                          model=model, tokenizer=tok, examples=make(s, 4 * m),
+                          output_dir=OUT, max_length=s, max_steps=2, learning_rate=1e-5,
+                          micro_batch_size=m, effective_batch_size=2 * m, seed=0,
+                          gradient_checkpointing=g),
+                      want_checkpointing=gc)
 
-print(json.dumps(results, indent=2))
-print("\n--- fits on 48 GiB (leaving ~4 GiB headroom for fragmentation)? ---")
-for k, v in results.items():
-    if isinstance(v, float) or isinstance(v, int):
-        print(f"  {k:42s} {v:6.1f} GiB  {'YES' if v < 44 else 'NO'}")
+    for bs in (8, 16):
+        probe(f"generate_bs{bs}_seq3000", lambda b=bs: generate_predictions(
+            model=model, tokenizer=tok, examples=make(3000, b),
+            batch_size=b, max_new_tokens=32), want_checkpointing=False)
+
+    print(json.dumps(results, indent=2))
+    print(f"\n--- [{args.label}] fits in {args.budget:.0f} GiB usable? ---")
+    for k, v in results.items():
+        if k == "params_B":
+            continue
+        if isinstance(v, (int, float)):
+            print(f"  {k:44s} {v:6.1f} GiB  {'YES' if v < args.budget else 'NO'}")
+        else:
+            print(f"  {k:44s} {v}")
+
+
+if __name__ == "__main__":
+    main()
