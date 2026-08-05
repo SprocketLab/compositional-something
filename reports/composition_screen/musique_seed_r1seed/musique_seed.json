@@ -1,0 +1,195 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "train_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_train_seed30.jsonl",
+    "dev_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_dev.jsonl",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed",
+    "train_size": 4000,
+    "max_steps": 300,
+    "learning_rate": 0.0002,
+    "max_length": 4096,
+    "micro_batch_size": 1,
+    "per_k": 100,
+    "batch_size": 8,
+    "seed": 7,
+    "gradient_checkpointing": true
+  },
+  "leakage": {
+    "instance_ids": 0,
+    "multihop_questions": 0,
+    "filled_single_hop_pairs": 0
+  },
+  "before": {
+    "2": {
+      "n": 100,
+      "direct": 0.61,
+      "part_full_ctx": 0.77,
+      "composed_no_oracle": 0.6,
+      "headroom": -0.01
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.51,
+      "part_full_ctx": 0.73,
+      "composed_no_oracle": 0.66,
+      "headroom": 0.15
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.42,
+      "part_full_ctx": 0.68,
+      "composed_no_oracle": 0.32,
+      "headroom": -0.1
+    }
+  },
+  "training": {
+    "train_runtime": 20346.3768,
+    "train_samples_per_second": 0.236,
+    "train_steps_per_second": 0.015,
+    "total_flos": 2.610986729646981e+17,
+    "train_loss": 0.14909014483292898,
+    "epoch": 1.2,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "effective_batch_size": 16,
+    "max_steps": 300,
+    "checkpoint_adapters": {}
+  },
+  "after": {
+    "2": {
+      "n": 100,
+      "direct": 0.61,
+      "part_full_ctx": 0.885,
+      "composed_no_oracle": 0.84,
+      "headroom": 0.23
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.65,
+      "part_full_ctx": 0.8,
+      "composed_no_oracle": 0.74,
+      "headroom": 0.09
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.43,
+      "part_full_ctx": 0.75,
+      "composed_no_oracle": 0.56,
+      "headroom": 0.13
+    }
+  },
+  "stats": {
+    "before": {
+      "n": 300,
+      "composed": 0.5266666666666666,
+      "direct": 0.5133333333333333,
+      "headroom": 0.013333333333333334,
+      "ci95": [
+        -0.04999999999999993,
+        0.07333333333333336
+      ],
+      "mcnemar": {
+        "b": 46,
+        "c": 42,
+        "p_value": 0.7493290032022806
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "headroom": -0.01,
+          "ci95": [
+            -0.12,
+            0.10000000000000009
+          ],
+          "mcnemar": {
+            "b": 16,
+            "c": 17,
+            "p_value": 1.0
+          }
+        },
+        "3": {
+          "n": 100,
+          "headroom": 0.15,
+          "ci95": [
+            0.050000000000000044,
+            0.24999999999999994
+          ],
+          "mcnemar": {
+            "b": 21,
+            "c": 6,
+            "p_value": 0.005924612283706665
+          }
+        },
+        "4": {
+          "n": 100,
+          "headroom": -0.1,
+          "ci95": [
+            -0.2,
+            0.0
+          ],
+          "mcnemar": {
+            "b": 9,
+            "c": 19,
+            "p_value": 0.08715855330228806
+          }
+        }
+      }
+    },
+    "after": {
+      "n": 300,
+      "composed": 0.7133333333333334,
+      "direct": 0.5633333333333334,
+      "headroom": 0.15,
+      "ci95": [
+        0.10000000000000009,
+        0.19999999999999996
+      ],
+      "mcnemar": {
+        "b": 55,
+        "c": 10,
+        "p_value": 1.1753602809018611e-08
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "headroom": 0.23,
+          "ci95": [
+            0.14,
+            0.31999999999999995
+          ],
+          "mcnemar": {
+            "b": 25,
+            "c": 2,
+            "p_value": 5.647540092468262e-06
+          }
+        },
+        "3": {
+          "n": 100,
+          "headroom": 0.09,
+          "ci95": [
+            0.020000000000000018,
+            0.16000000000000003
+          ],
+          "mcnemar": {
+            "b": 11,
+            "c": 2,
+            "p_value": 0.0224609375
+          }
+        },
+        "4": {
+          "n": 100,
+          "headroom": 0.13,
+          "ci95": [
+            0.03999999999999998,
+            0.22999999999999998
+          ],
+          "mcnemar": {
+            "b": 19,
+            "c": 6,
+            "p_value": 0.01463329792022705
+          }
+        }
+      }
+    }
+  }
+}
