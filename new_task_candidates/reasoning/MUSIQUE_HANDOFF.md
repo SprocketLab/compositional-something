@@ -117,6 +117,23 @@ Prerequisite: partition the train split at full-example level per plan §6
 partly memorized. The current seed used all of train, so **a fresh seed on a
 30% partition is needed before Round 1**, not the adapter above.
 
+> **RAN 2026-08-06 on neuronic — POSITIVE. The frontier moved.** Pipeline:
+> 30% partition seed (`musique_seed_r1seed/`, headroom +.150 after seeding),
+> then 5,000 2-hop composition-source questions pseudo-labeled by the seed's
+> own chain at .924 accuracy (guard L2: 4,848 accepted, precision .928), then
+> three train arms continuing from the seed on the SAME 4,792 questions.
+> Pooled direct accuracy, paired before/after on the standard 300:
+> **composed +.117** (CI [+.073, +.160], p≈1e-6; per hop +.150/+.070/+.130 —
+> gains at UNTRAINED 3- and 4-hop too), direct-label control +.030 (p=.08),
+> gold-label ceiling +.080 (p=.008, all at the trained hop, −.040 at 3-hop).
+> Cross-arm McNemar: composed beats the control +.087 (p=.0003) and is
+> indistinguishable from gold (+.037, p=.15). Training on the model's own
+> composed answers transfers across hop counts better than gold answers do.
+> Caveats: part accuracy erodes under multi-hop training (.885→.825 at 2-hop)
+> — Round 2 likely needs seed rehearsal; and the composed arm's own chain
+> headroom collapses to ~0, so the frontier claim is direct-only. Results in
+> `musique_round1_{composed,direct,gold}/`.
+
 **(c) More seed capacity.** Part accuracy after seeding is .815/.770/.703 at
 2/3/4 hops, well below CLUTRR's .95 seed regime, and headroom shrinks with hops
 (+.120/+.090/+.030 — 4 hops is not individually significant). More seed data or

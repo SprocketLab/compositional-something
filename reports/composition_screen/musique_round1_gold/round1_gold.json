@@ -1,0 +1,191 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "adapter": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/adapter",
+    "labels": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_round1/round1_labels.jsonl",
+    "label_key": "gold",
+    "train_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_train.jsonl",
+    "dev_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_dev.jsonl",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_round1_gold",
+    "before_per_instance": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/per_instance.jsonl",
+    "eval_before": "False",
+    "max_steps": "300",
+    "learning_rate": "0.0001",
+    "max_length": "4096",
+    "micro_batch_size": "1",
+    "gradient_checkpointing": "True",
+    "per_k": "100",
+    "batch_size": "8",
+    "seed": "7"
+  },
+  "n_train": 4792,
+  "before": {
+    "source": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/per_instance.jsonl"
+  },
+  "training": {
+    "train_runtime": 19860.9188,
+    "train_samples_per_second": 0.242,
+    "train_steps_per_second": 0.015,
+    "total_flos": 2.5498456038124954e+17,
+    "train_loss": 0.060207058787345884,
+    "epoch": 1.0,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "effective_batch_size": 16,
+    "max_steps": 300,
+    "checkpoint_adapters": {}
+  },
+  "after": {
+    "2": {
+      "n": 100,
+      "direct": 0.83,
+      "part_full_ctx": 0.78,
+      "composed_no_oracle": 0.77,
+      "headroom": -0.06
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.61,
+      "part_full_ctx": 0.6866666666666666,
+      "composed_no_oracle": 0.62,
+      "headroom": 0.01
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.49,
+      "part_full_ctx": 0.5175,
+      "composed_no_oracle": 0.4,
+      "headroom": -0.09
+    }
+  },
+  "stats": {
+    "direct_ok": {
+      "pooled": {
+        "n": 300,
+        "after": 0.6433333333333333,
+        "before": 0.5633333333333334,
+        "delta": 0.08,
+        "mcnemar": {
+          "b": 50,
+          "c": 26,
+          "p_value": 0.007905180027859778
+        },
+        "bootstrap_ci95": [
+          0.023333333333333317,
+          0.13666666666666671
+        ]
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "after": 0.83,
+          "before": 0.61,
+          "delta": 0.22,
+          "mcnemar": {
+            "b": 25,
+            "c": 3,
+            "p_value": 2.744048833847046e-05
+          },
+          "bootstrap_ci95": [
+            0.13,
+            0.31000000000000005
+          ]
+        },
+        "3": {
+          "n": 100,
+          "after": 0.61,
+          "before": 0.65,
+          "delta": -0.04,
+          "mcnemar": {
+            "b": 8,
+            "c": 12,
+            "p_value": 0.5034446716308594
+          },
+          "bootstrap_ci95": [
+            -0.13,
+            0.050000000000000044
+          ]
+        },
+        "4": {
+          "n": 100,
+          "after": 0.49,
+          "before": 0.43,
+          "delta": 0.06,
+          "mcnemar": {
+            "b": 17,
+            "c": 11,
+            "p_value": 0.34492845088243484
+          },
+          "bootstrap_ci95": [
+            -0.040000000000000036,
+            0.16000000000000003
+          ]
+        }
+      }
+    },
+    "composed_ok": {
+      "pooled": {
+        "n": 300,
+        "after": 0.5966666666666667,
+        "before": 0.7133333333333334,
+        "delta": -0.11666666666666667,
+        "mcnemar": {
+          "b": 16,
+          "c": 51,
+          "p_value": 2.1689238760717064e-05
+        },
+        "bootstrap_ci95": [
+          -0.16999999999999993,
+          -0.06333333333333335
+        ]
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "after": 0.77,
+          "before": 0.84,
+          "delta": -0.07,
+          "mcnemar": {
+            "b": 6,
+            "c": 13,
+            "p_value": 0.1670684814453125
+          },
+          "bootstrap_ci95": [
+            -0.15000000000000002,
+            0.010000000000000009
+          ]
+        },
+        "3": {
+          "n": 100,
+          "after": 0.62,
+          "before": 0.74,
+          "delta": -0.12,
+          "mcnemar": {
+            "b": 3,
+            "c": 15,
+            "p_value": 0.007537841796875
+          },
+          "bootstrap_ci95": [
+            -0.20000000000000007,
+            -0.040000000000000036
+          ]
+        },
+        "4": {
+          "n": 100,
+          "after": 0.4,
+          "before": 0.56,
+          "delta": -0.16,
+          "mcnemar": {
+            "b": 7,
+            "c": 23,
+            "p_value": 0.005222879350185394
+          },
+          "bootstrap_ci95": [
+            -0.26999999999999996,
+            -0.06
+          ]
+        }
+      }
+    }
+  }
+}
