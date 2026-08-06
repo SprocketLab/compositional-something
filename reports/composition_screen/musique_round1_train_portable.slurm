@@ -17,6 +17,11 @@ MODEL=$(ls -d "$HF_HOME"/hub/models--Qwen--Qwen3.5-4B/snapshots/*/ | head -1)
 ARM=${LABEL_KEY:-composed}
 GC_FLAG=""
 [ "${GRAD_CKPT:-0}" = "1" ] && GC_FLAG="--gradient-checkpointing"
+# REHEARSAL_FRAC=0.25 mixes step-pair rehearsal and suffixes the out-dir.
+RH=${REHEARSAL_FRAC:-0}
+OUT="$R"/musique_round1_"$ARM"
+RH_FLAG=""
+if [ "$RH" != 0 ]; then RH_FLAG="--rehearsal-frac $RH"; OUT="${OUT}_rehearsal"; fi
 
 "$PY" "$R"/musique_round1_train.py \
   --model "$MODEL" \
@@ -26,7 +31,7 @@ GC_FLAG=""
   --train-data "$R"/data/musique_train.jsonl \
   --dev-data "$R"/data/musique_dev.jsonl \
   --before-per-instance "$R"/musique_seed_r1seed/per_instance.jsonl \
-  --out-dir "$R"/musique_round1_"$ARM" \
+  --out-dir "$OUT" \
   --max-steps 300 --learning-rate 1e-4 \
   --max-length 4096 --micro-batch-size 1 --per-k 100 --batch-size 8 --seed 7 \
-  $GC_FLAG
+  $GC_FLAG $RH_FLAG

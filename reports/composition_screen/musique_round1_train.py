@@ -13,6 +13,16 @@ question set so differences are attributable to the labels alone:
   gold      ceiling: gold answers on the same questions, bounding what label
             noise costs.
 
+`--rehearsal-frac F` mixes in step-level (sub-question -> model bridge answer)
+pairs from the SAME label file -- the chain's intermediate outputs, .975
+accurate against gold sub-answers, measured 2026-08-06.  They are added on top
+of the label set so that rehearsal makes up fraction F of the mix in
+expectation, in the seed's own training format (single-hop question over the
+full parent context).  Self-generated, so the pipeline stays gold-free after
+Round 0; only bridge answers passing all local guard checks are used.  This
+targets the part-accuracy erosion the no-rehearsal arms showed
+(.885 -> .825 at 2-hop).
+
 The "before" state is the r1seed adapter itself; its after-phase per-instance
 records are reused as the paired baseline (`--before-per-instance`) because
 evaluation on this cluster is deterministic -- verified when the r1seed job's
@@ -68,6 +78,7 @@ def main() -> None:
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--before-per-instance", type=Path, default=None)
     ap.add_argument("--eval-before", action="store_true")
+    ap.add_argument("--rehearsal-frac", type=float, default=0.0)
     ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--learning-rate", type=float, default=1e-4)
     ap.add_argument("--max-length", type=int, default=4096)
@@ -109,6 +120,30 @@ def main() -> None:
         items.append(item)
     print(f"training examples: {len(items)} (dropped {dropped} over length)",
           flush=True)
+
+    if args.rehearsal_frac > 0:
+        pool = []
+        for l in map(json.loads, open(args.labels)):
+            if not all(l["bridge_checks"].values()):
+                continue
+            r = by_id[l["id"]]
+            q1 = r["question_decomposition"][0]["question"]
+            pool.append(ex(full_context(r), q1, l["bridge"], f"{l['id']}|reh", 1))
+        rng.shuffle(pool)
+        want = round(args.rehearsal_frac / (1 - args.rehearsal_frac) * len(items))
+        reh, r_dropped = [], 0
+        for item in pool:
+            if len(reh) >= want:
+                break
+            n_tok = len(tok(item.messages[0]["content"] + str(item.target))["input_ids"])
+            if n_tok + 32 > args.max_length:
+                r_dropped += 1
+                continue
+            reh.append(item)
+        items = items + reh
+        rng.shuffle(items)
+        print(f"rehearsal step-pairs mixed in: {len(reh)} "
+              f"({len(reh)/len(items):.2f} of mix; dropped {r_dropped})", flush=True)
 
     model, tok = load_adapter_for_training(args.model, args.adapter)
     records: list[dict] = []
