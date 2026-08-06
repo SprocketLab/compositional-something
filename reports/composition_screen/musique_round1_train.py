@@ -79,6 +79,10 @@ def main() -> None:
     ap.add_argument("--before-per-instance", type=Path, default=None)
     ap.add_argument("--eval-before", action="store_true")
     ap.add_argument("--rehearsal-frac", type=float, default=0.0)
+    ap.add_argument("--replay-labels", type=Path, default=None,
+                    help="a previous round's label file; its accepted composed "
+                         "labels replay at --replay-frac of the mix")
+    ap.add_argument("--replay-frac", type=float, default=0.0)
     ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--learning-rate", type=float, default=1e-4)
     ap.add_argument("--max-length", type=int, default=4096)
@@ -106,44 +110,82 @@ def main() -> None:
         raise SystemExit(f"{overlap} accepted labels overlap dev questions")
 
     tok = load_qwen_tokenizer(args.model)
+
+    def fits(item):
+        n_tok = len(tok(item.messages[0]["content"] + str(item.target))["input_ids"])
+        return n_tok + 32 <= args.max_length
+
+    def take(pool, want):
+        kept, dropped_ = [], 0
+        for item in pool:
+            if len(kept) >= want:
+                break
+            if fits(item):
+                kept.append(item)
+            else:
+                dropped_ += 1
+        return kept, dropped_
+
+    def step_pairs(path):
+        """Non-sink (filled sub-question -> model answer) pairs, both schemas."""
+        for l in map(json.loads, open(path)):
+            r = by_id[l["id"]]
+            if "step_questions" in l:
+                for q, a, c in zip(l["step_questions"][:-1],
+                                   l["step_answers"][:-1], l["bridges_checks"]):
+                    if q and a and all(c.values()):
+                        yield ex(full_context(r), q, a, f"{l['id']}|reh", 1)
+            elif all(l["bridge_checks"].values()):
+                q1 = r["question_decomposition"][0]["question"]
+                yield ex(full_context(r), q1, l["bridge"], f"{l['id']}|reh", 1)
+
     items, dropped = [], 0
     rng = random.Random(args.seed)
     rng.shuffle(labels)
     for l in labels:
         r = by_id[l["id"]]
         target = r["answer"] if args.label_key == "gold" else l[args.label_key]
-        item = ex(full_context(r), r["question"], str(target), l["id"], 2)
-        n_tok = len(tok(item.messages[0]["content"] + str(item.target))["input_ids"])
-        if n_tok + 32 > args.max_length:
+        item = ex(full_context(r), r["question"], str(target), l["id"],
+                  l.get("k", 2))
+        if fits(item):
+            items.append(item)
+        else:
             dropped += 1
-            continue
-        items.append(item)
     print(f"training examples: {len(items)} (dropped {dropped} over length)",
           flush=True)
 
+    new_frac = 1.0 - args.rehearsal_frac - args.replay_frac
+    if new_frac <= 0:
+        raise SystemExit("rehearsal + replay fractions must leave room for new labels")
+    if args.replay_frac > 0 and not args.replay_labels:
+        raise SystemExit("--replay-frac needs --replay-labels")
+    n_new = len(items)
+
+    if args.replay_frac > 0:
+        rep_pool = []
+        for l in map(json.loads, open(args.replay_labels)):
+            if l["accept"]:
+                r = by_id[l["id"]]
+                rep_pool.append(ex(full_context(r), r["question"],
+                                   str(l["composed"]), l["id"], l.get("k", 2)))
+        rng.shuffle(rep_pool)
+        rep, rep_dropped = take(rep_pool, round(args.replay_frac / new_frac * n_new))
+        items += rep
+        print(f"replay composites mixed in: {len(rep)} (dropped {rep_dropped})",
+              flush=True)
+
     if args.rehearsal_frac > 0:
-        pool = []
-        for l in map(json.loads, open(args.labels)):
-            if not all(l["bridge_checks"].values()):
-                continue
-            r = by_id[l["id"]]
-            q1 = r["question_decomposition"][0]["question"]
-            pool.append(ex(full_context(r), q1, l["bridge"], f"{l['id']}|reh", 1))
+        pool = list(step_pairs(args.labels))
+        if args.replay_labels:
+            pool += list(step_pairs(args.replay_labels))
         rng.shuffle(pool)
-        want = round(args.rehearsal_frac / (1 - args.rehearsal_frac) * len(items))
-        reh, r_dropped = [], 0
-        for item in pool:
-            if len(reh) >= want:
-                break
-            n_tok = len(tok(item.messages[0]["content"] + str(item.target))["input_ids"])
-            if n_tok + 32 > args.max_length:
-                r_dropped += 1
-                continue
-            reh.append(item)
-        items = items + reh
-        rng.shuffle(items)
-        print(f"rehearsal step-pairs mixed in: {len(reh)} "
-              f"({len(reh)/len(items):.2f} of mix; dropped {r_dropped})", flush=True)
+        reh, r_dropped = take(pool, round(args.rehearsal_frac / new_frac * n_new))
+        items += reh
+        print(f"rehearsal step-pairs mixed in: {len(reh)} (dropped {r_dropped})",
+              flush=True)
+
+    rng.shuffle(items)
+    print(f"total mix: {len(items)}", flush=True)
 
     model, tok = load_adapter_for_training(args.model, args.adapter)
     records: list[dict] = []

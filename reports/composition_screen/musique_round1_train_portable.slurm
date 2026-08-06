@@ -18,20 +18,28 @@ ARM=${LABEL_KEY:-composed}
 GC_FLAG=""
 [ "${GRAD_CKPT:-0}" = "1" ] && GC_FLAG="--gradient-checkpointing"
 # REHEARSAL_FRAC=0.25 mixes step-pair rehearsal and suffixes the out-dir.
+# Later rounds override ROUND / ADAPTER_DIR / BEFORE_PI / REPLAY_* via env.
 RH=${REHEARSAL_FRAC:-0}
-OUT="$R"/musique_round1_"$ARM"
+ROUND=${ROUND:-1}
+ADAPTER_DIR=${ADAPTER_DIR:-"$R"/musique_seed_r1seed/adapter}
+BEFORE_PI=${BEFORE_PI:-"$R"/musique_seed_r1seed/per_instance.jsonl}
+OUT="$R"/musique_round"$ROUND"_"$ARM"
 RH_FLAG=""
 if [ "$RH" != 0 ]; then RH_FLAG="--rehearsal-frac $RH"; OUT="${OUT}_rehearsal"; fi
+REPLAY_FLAG=""
+if [ -n "${REPLAY_LABELS:-}" ]; then
+  REPLAY_FLAG="--replay-labels $REPLAY_LABELS --replay-frac ${REPLAY_FRAC:-0.25}"
+fi
 
 "$PY" "$R"/musique_round1_train.py \
   --model "$MODEL" \
-  --adapter "$R"/musique_seed_r1seed/adapter \
-  --labels "$R"/musique_round1/round1_labels.jsonl \
+  --adapter "$ADAPTER_DIR" \
+  --labels "${LABELS:-"$R"/musique_round1/round1_labels.jsonl}" \
   --label-key "$ARM" \
   --train-data "$R"/data/musique_train.jsonl \
   --dev-data "$R"/data/musique_dev.jsonl \
-  --before-per-instance "$R"/musique_seed_r1seed/per_instance.jsonl \
+  --before-per-instance "$BEFORE_PI" \
   --out-dir "$OUT" \
   --max-steps 300 --learning-rate 1e-4 \
   --max-length 4096 --micro-batch-size 1 --per-k 100 --batch-size 8 --seed 7 \
-  $GC_FLAG $RH_FLAG
+  $GC_FLAG $RH_FLAG $REPLAY_FLAG

@@ -74,16 +74,18 @@ def main() -> None:
     ap.add_argument("--pool-size", type=int, default=5000)
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--chunk", type=int, default=512)
+    ap.add_argument("--hops", type=int, default=2)
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    K = args.hops
 
     seed_ids = set(json.load(open(args.partition))["seed_ids"])
     pool = [r for l in open(args.train_data)
             for r in [json.loads(l)]
-            if r["id"] not in seed_ids and r["id"].startswith("2hop")
-            and usable(r) and len(r["question_decomposition"]) == 2]
-    print(f"composition-source 2-hop usable pool: {len(pool)}", flush=True)
+            if r["id"] not in seed_ids and r["id"].startswith(f"{K}hop")
+            and usable(r) and len(r["question_decomposition"]) == K]
+    print(f"composition-source {K}-hop usable pool: {len(pool)}", flush=True)
     rng = random.Random(args.seed)
     if len(pool) > args.pool_size:
         pool = rng.sample(pool, args.pool_size)
@@ -91,41 +93,47 @@ def main() -> None:
 
     model, tok = load_adapter_for_evaluation(args.model, args.adapter)
 
-    # step 1 of every chain has no #refs by construction
-    s1_items = [ex(full_context(r), r["question_decomposition"][0]["question"],
-                   "", f"{r['id']}|1", 2) for r in pool]
-    s1 = chunked_generate(model, tok, s1_items, args.batch_size, args.chunk, "step1")
-    bridges = [p.split("\n")[0].strip() for p in s1]
+    # k-step chain, same semantics as the screen's evaluate(): fill #refs from
+    # the model's own earlier answers, skip a step whose refs cannot resolve.
+    # Rows also record each FILLED step question so step-level (question,
+    # answer) pairs can be reused as rehearsal data downstream.
+    state = [dict() for _ in pool]
+    step_qs = [[None] * K for _ in pool]
+    answers = [[None] * K for _ in pool]
+    for i in range(1, K + 1):
+        idx, items = [], []
+        for j, r in enumerate(pool):
+            q = fill(r["question_decomposition"][i - 1]["question"], state[j])
+            if "#" in q:
+                continue
+            step_qs[j][i - 1] = q
+            idx.append(j)
+            items.append(ex(full_context(r), q, "", f"{r['id']}|{i}", K))
+        preds = chunked_generate(model, tok, items, args.batch_size, args.chunk,
+                                 f"step{i}")
+        for j, p in zip(idx, preds):
+            a = p.split("\n")[0].strip()
+            answers[j][i - 1] = a
+            state[j][str(i)] = a
+    finals = [a[K - 1] for a in answers]
 
-    # step 2: substitute the model's own bridge answer
-    idx, s2_items = [], []
-    for j, (r, b) in enumerate(zip(pool, bridges)):
-        q = fill(r["question_decomposition"][1]["question"], {"1": b})
-        if "#" in q:
-            continue
-        idx.append(j)
-        s2_items.append(ex(full_context(r), q, "", f"{r['id']}|2", 2))
-    s2 = chunked_generate(model, tok, s2_items, args.batch_size, args.chunk, "step2")
-    finals = [None] * len(pool)
-    for j, p in zip(idx, s2):
-        finals[j] = p.split("\n")[0].strip()
-
-    d_items = [ex(full_context(r), r["question"], "", r["id"], 2) for r in pool]
+    d_items = [ex(full_context(r), r["question"], "", r["id"], K) for r in pool]
     d_pred = chunked_generate(model, tok, d_items, args.batch_size, args.chunk,
                               "direct")
     directs = [p.split("\n")[0].strip() for p in d_pred]
 
     rows, counts = [], {"L0": [0, 0], "L1": [0, 0], "L2": [0, 0]}
     n_composed_ok = n_direct_ok = 0
-    for r, b, f, d in zip(pool, bridges, finals, directs):
+    for r, ans, sq, f, d in zip(pool, answers, step_qs, finals, directs):
         ctx_norm = normalize(full_context(r))
         golds = [r["answer"], *r.get("answer_aliases", [])]
         fc = answer_checks(f or "", ctx_norm)
-        bc = answer_checks(b, ctx_norm)
+        bcs = [answer_checks(b or "", ctx_norm) for b in ans[:K - 1]]
         levels = {
             "L0": f is not None,
             "L1": f is not None and fc["span"],
-            "L2": (f is not None and all(fc.values()) and all(bc.values())),
+            "L2": (f is not None and all(fc.values())
+                   and all(all(bc.values()) for bc in bcs)),
         }
         composed_ok = f is not None and score_em(f, golds)
         direct_ok = score_em(d, golds)
@@ -135,13 +143,17 @@ def main() -> None:
             if ok:
                 counts[lv][0] += 1
                 counts[lv][1] += composed_ok
-        rows.append({"id": r["id"], "question": r["question"],
-                     "composed": f, "bridge": b, "direct": d,
-                     "final_checks": fc, "bridge_checks": bc,
-                     "levels": levels, "accept": levels["L2"],
-                     "composed_correct": bool(composed_ok),
-                     "direct_correct": bool(direct_ok),
-                     "gold": r["answer"]})
+        row = {"id": r["id"], "k": K, "question": r["question"],
+               "composed": f, "bridges": ans[:K - 1], "direct": d,
+               "step_questions": sq, "step_answers": ans,
+               "final_checks": fc, "bridges_checks": bcs,
+               "levels": levels, "accept": levels["L2"],
+               "composed_correct": bool(composed_ok),
+               "direct_correct": bool(direct_ok),
+               "gold": r["answer"]}
+        if K == 2:   # backward-compatible keys for the 2-hop schema
+            row["bridge"], row["bridge_checks"] = ans[0], bcs[0]
+        rows.append(row)
 
     n = len(pool)
     guard_table = {}
