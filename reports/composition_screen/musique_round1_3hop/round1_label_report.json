@@ -1,0 +1,37 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "adapter": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/adapter",
+    "train_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_train.jsonl",
+    "partition": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_round1_partition.json",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_round1_3hop",
+    "pool_size": "5000",
+    "batch_size": "16",
+    "chunk": "512",
+    "hops": "3",
+    "seed": "7"
+  },
+  "pool": 3049,
+  "mechanism": {
+    "composed_acc": 0.8648737290915054,
+    "direct_acc": 0.7074450639553952,
+    "headroom": 0.1574286651361102
+  },
+  "guards": {
+    "L0": {
+      "accepted": 3049,
+      "precision": 0.8648737290915054,
+      "recall": 1.0
+    },
+    "L1": {
+      "accepted": 3024,
+      "precision": 0.8664021164021164,
+      "recall": 0.9935532802427001
+    },
+    "L2": {
+      "accepted": 2944,
+      "precision": 0.8668478260869565,
+      "recall": 0.9677664012135002
+    }
+  }
+}
