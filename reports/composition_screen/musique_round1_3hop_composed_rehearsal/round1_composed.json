@@ -1,0 +1,194 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "adapter": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/adapter",
+    "labels": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_round1_3hop/round1_labels.jsonl",
+    "label_key": "composed",
+    "train_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_train.jsonl",
+    "dev_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/musique_dev.jsonl",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_round1_3hop_composed_rehearsal",
+    "before_per_instance": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/per_instance.jsonl",
+    "eval_before": "False",
+    "rehearsal_frac": "0.25",
+    "replay_labels": "None",
+    "replay_frac": "0.0",
+    "max_steps": "300",
+    "learning_rate": "0.0001",
+    "max_length": "4096",
+    "micro_batch_size": "1",
+    "gradient_checkpointing": "True",
+    "per_k": "100",
+    "batch_size": "8",
+    "seed": "7"
+  },
+  "n_train": 3892,
+  "before": {
+    "source": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/musique_seed_r1seed/per_instance.jsonl"
+  },
+  "training": {
+    "train_runtime": 20916.2673,
+    "train_samples_per_second": 0.229,
+    "train_steps_per_second": 0.014,
+    "total_flos": 2.6762165681667072e+17,
+    "train_loss": 0.09358284761508306,
+    "epoch": 1.2302158273381294,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "effective_batch_size": 16,
+    "max_steps": 300,
+    "checkpoint_adapters": {}
+  },
+  "after": {
+    "2": {
+      "n": 100,
+      "direct": 0.75,
+      "part_full_ctx": 0.87,
+      "composed_no_oracle": 0.83,
+      "headroom": 0.08
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.72,
+      "part_full_ctx": 0.8033333333333333,
+      "composed_no_oracle": 0.73,
+      "headroom": 0.01
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.55,
+      "part_full_ctx": 0.7425,
+      "composed_no_oracle": 0.5,
+      "headroom": -0.05
+    }
+  },
+  "stats": {
+    "direct_ok": {
+      "pooled": {
+        "n": 300,
+        "after": 0.6733333333333333,
+        "before": 0.5633333333333334,
+        "delta": 0.11,
+        "mcnemar": {
+          "b": 43,
+          "c": 10,
+          "p_value": 5.550520889130439e-06
+        },
+        "bootstrap_ci95": [
+          0.06666666666666665,
+          0.15666666666666662
+        ]
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "after": 0.75,
+          "before": 0.61,
+          "delta": 0.14,
+          "mcnemar": {
+            "b": 17,
+            "c": 3,
+            "p_value": 0.0025768280029296875
+          },
+          "bootstrap_ci95": [
+            0.05999999999999994,
+            0.21999999999999997
+          ]
+        },
+        "3": {
+          "n": 100,
+          "after": 0.72,
+          "before": 0.65,
+          "delta": 0.07,
+          "mcnemar": {
+            "b": 11,
+            "c": 4,
+            "p_value": 0.11846923828125
+          },
+          "bootstrap_ci95": [
+            0.0,
+            0.15000000000000002
+          ]
+        },
+        "4": {
+          "n": 100,
+          "after": 0.55,
+          "before": 0.43,
+          "delta": 0.12,
+          "mcnemar": {
+            "b": 15,
+            "c": 3,
+            "p_value": 0.007537841796875
+          },
+          "bootstrap_ci95": [
+            0.03999999999999998,
+            0.2
+          ]
+        }
+      }
+    },
+    "composed_ok": {
+      "pooled": {
+        "n": 300,
+        "after": 0.6866666666666666,
+        "before": 0.7133333333333334,
+        "delta": -0.02666666666666667,
+        "mcnemar": {
+          "b": 12,
+          "c": 20,
+          "p_value": 0.21532714972272515
+        },
+        "bootstrap_ci95": [
+          -0.06333333333333335,
+          0.010000000000000009
+        ]
+      },
+      "by_hop": {
+        "2": {
+          "n": 100,
+          "after": 0.83,
+          "before": 0.84,
+          "delta": -0.01,
+          "mcnemar": {
+            "b": 3,
+            "c": 4,
+            "p_value": 1.0
+          },
+          "bootstrap_ci95": [
+            -0.06000000000000005,
+            0.040000000000000036
+          ]
+        },
+        "3": {
+          "n": 100,
+          "after": 0.73,
+          "before": 0.74,
+          "delta": -0.01,
+          "mcnemar": {
+            "b": 4,
+            "c": 5,
+            "p_value": 1.0
+          },
+          "bootstrap_ci95": [
+            -0.07000000000000006,
+            0.04999999999999993
+          ]
+        },
+        "4": {
+          "n": 100,
+          "after": 0.5,
+          "before": 0.56,
+          "delta": -0.06,
+          "mcnemar": {
+            "b": 5,
+            "c": 11,
+            "p_value": 0.210113525390625
+          },
+          "bootstrap_ci95": [
+            -0.14,
+            0.010000000000000009
+          ]
+        }
+      }
+    }
+  }
+}
