@@ -53,3 +53,20 @@ self_improvement_*_addmodel/
 
 # Downloaded local model caches
 meta/models/
+
+# KQA Pro release (181 MB) and the pickled KB index. Re-fetchable with
+# reports/composition_screen/kqapro_fetch.py; MANIFEST.json pins the hashes.
+reports/composition_screen/data/kqapro/*.json
+!reports/composition_screen/data/kqapro/MANIFEST.json
+reports/composition_screen/data/kqapro/*.pkl
+
+# Spider/SParC release and test-suite databases (5.6 GB). Re-fetchable with
+# reports/composition_screen/sparc_fetch.py; sparc_pins.json and
+# sparc_manifest.json pin the sha256 hashes and content counts.
+reports/composition_screen/data/sparc_raw/
+# Adapters and smoke-run outputs from the discontinued SParC screen (§27).
+reports/composition_screen/sparc_seed*/adapter/
+reports/composition_screen/sparc_seed*/trainer/
+reports/composition_screen/sparc_seed_smoke/
+reports/composition_screen/sparc_roundsmoke/
+reports/composition_screen/sparc_round*_*/trainer/

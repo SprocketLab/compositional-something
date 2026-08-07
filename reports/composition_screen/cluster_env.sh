@@ -9,3 +9,4 @@ export HF_HOME=/n/fs/cogai/cs1095/hf_cache
 export PARTITION=all
 export GRES=gpu:1            # every node is gpu:l40:8
 export GRAD_CKPT=1           # required on 48 GB: seq-4096 training is 86.6 GiB without it
+export NLTK_DATA=/n/fs/cogai/cs1095/nltk_data  # punkt/punkt_tab for the vendored Spider hardness classifier

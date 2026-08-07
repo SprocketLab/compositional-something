@@ -1,0 +1,128 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "sequences": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_sequences.jsonl",
+    "gold": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_gold.jsonl",
+    "spider_singles": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_spider_singles.jsonl",
+    "spider_gold": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_gold_spider.jsonl",
+    "schemas": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_schemas.json",
+    "partition": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_partition.json",
+    "db_root": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_raw/spider/database",
+    "testsuite_root": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_raw/testsuite",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/sparc_seed",
+    "train_size": "3000",
+    "max_steps": "300",
+    "learning_rate": "0.0002",
+    "max_length": "4096",
+    "micro_batch_size": "1",
+    "per_cell": "100",
+    "batch_size": "8",
+    "max_new_tokens": "128",
+    "timeout_s": "15.0",
+    "seed": "7",
+    "limit": "0",
+    "gradient_checkpointing": "True"
+  },
+  "n_train": 1341,
+  "before": {
+    "turn1": {
+      "n": 174,
+      "acc": 0.7471264367816092
+    },
+    "2": {
+      "n": 31,
+      "direct": 0.8387096774193549,
+      "part": 0.7903225806451613,
+      "composed": 0.6451612903225806,
+      "headroom": -0.1935483870967742
+    },
+    "3": {
+      "n": 92,
+      "direct": 0.7391304347826086,
+      "part": 0.7065217391304348,
+      "composed": 0.5869565217391305,
+      "headroom": -0.15217391304347827
+    },
+    "4+": {
+      "n": 51,
+      "direct": 0.6470588235294118,
+      "part": 0.6585365853658537,
+      "composed": 0.3333333333333333,
+      "headroom": -0.3137254901960784
+    }
+  },
+  "training": {
+    "train_runtime": 8347.3555,
+    "train_samples_per_second": 0.575,
+    "train_steps_per_second": 0.036,
+    "total_flos": 4.328205853358285e+16,
+    "train_loss": 0.16178970098495482,
+    "epoch": 3.5727069351230423,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "effective_batch_size": 16,
+    "max_steps": 300,
+    "checkpoint_adapters": {}
+  },
+  "after": {
+    "turn1": {
+      "n": 174,
+      "acc": 0.7931034482758621
+    },
+    "2": {
+      "n": 31,
+      "direct": 0.7096774193548387,
+      "part": 0.7419354838709677,
+      "composed": 0.5483870967741935,
+      "headroom": -0.16129032258064516
+    },
+    "3": {
+      "n": 92,
+      "direct": 0.6847826086956522,
+      "part": 0.7318840579710145,
+      "composed": 0.5869565217391305,
+      "headroom": -0.09782608695652174
+    },
+    "4+": {
+      "n": 51,
+      "direct": 0.6666666666666666,
+      "part": 0.6341463414634146,
+      "composed": 0.43137254901960786,
+      "headroom": -0.23529411764705882
+    }
+  },
+  "stats": {
+    "before": {
+      "n": 174,
+      "composed": 0.5229885057471264,
+      "direct": 0.7298850574712644,
+      "headroom": -0.20689655172413793,
+      "ci95": [
+        -0.2816091954022989,
+        -0.13218390804597696
+      ],
+      "mcnemar": {
+        "b": 9,
+        "c": 45,
+        "p_value": 7.288430776686283e-07
+      },
+      "turn1": 0.7471264367816092
+    },
+    "after": {
+      "n": 174,
+      "composed": 0.5344827586206896,
+      "direct": 0.6839080459770115,
+      "headroom": -0.14942528735632185,
+      "ci95": [
+        -0.23563218390804597,
+        -0.06321839080459768
+      ],
+      "mcnemar": {
+        "b": 18,
+        "c": 44,
+        "p_value": 0.0012990027709550095
+      },
+      "turn1": 0.7931034482758621
+    }
+  }
+}

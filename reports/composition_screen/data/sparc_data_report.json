@@ -1,0 +1,90 @@
+{
+  "config": {
+    "raw_root": "reports/composition_screen/data/sparc_raw",
+    "out_dir": "reports/composition_screen/data",
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "max_length": "4096",
+    "value_samples": "2",
+    "audit_scorer": "True",
+    "audit_sample": "300"
+  },
+  "n_sequences": 3448,
+  "skipped_short": 8,
+  "duplicates": 33,
+  "monotone_fraction": {
+    "dev/k2": {
+      "monotone": 129,
+      "total": 152,
+      "fraction": 0.8486842105263158
+    },
+    "dev/k3": {
+      "monotone": 123,
+      "total": 182,
+      "fraction": 0.6758241758241759
+    },
+    "dev/k4+": {
+      "monotone": 50,
+      "total": 88,
+      "fraction": 0.5681818181818182
+    },
+    "train/k2": {
+      "monotone": 667,
+      "total": 793,
+      "fraction": 0.8411097099621689
+    },
+    "train/k3": {
+      "monotone": 1036,
+      "total": 1551,
+      "fraction": 0.6679561573178594
+    },
+    "train/k4+": {
+      "monotone": 393,
+      "total": 682,
+      "fraction": 0.5762463343108505
+    }
+  },
+  "nonmonotone_reasons": {
+    "structure_change": 1001,
+    "multi_clause_change": 498,
+    "parse_error": 15,
+    "prev_unparseable": 3,
+    "schema_error": 1
+  },
+  "schema_lengths": {
+    "min": 58,
+    "median": 222,
+    "max": 2433,
+    "excluded_dbs": [],
+    "exclusion_rate": 0.0
+  },
+  "suite_coverage": {
+    "train_dbs_with_distilled_suite": 5,
+    "dev_dbs_with_distilled_suite": 20
+  },
+  "composition_source_monotone_by_k": {
+    "2": 431,
+    "3": 625,
+    "4+": 191
+  },
+  "dev_monotone_by_k": {
+    "3": 123,
+    "2": 129,
+    "4+": 50
+  },
+  "partition_sequences": {
+    "composition": 1806,
+    "seed": 949,
+    "audit": 271,
+    "dev": 422
+  },
+  "tripwires": [
+    "RISK 2 TRIPWIRE: only 431 monotone 2-turn composition-source sequences (< 1500). The Spider-SS fallback decision (plan \u00a75.4) must be made before GPU jobs are submitted."
+  ],
+  "scorer_audit": {
+    "n": 300,
+    "gold_vs_gold_failures": [],
+    "mutated_accepted": 61,
+    "mutated_total": 300,
+    "mutation_discrimination": 0.7966666666666666
+  }
+}

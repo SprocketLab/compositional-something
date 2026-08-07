@@ -1,0 +1,7 @@
+# SParC/Spider task additions. Install into the project venv:
+#   /n/fs/cogai/cs1095/venvs/compositional/bin/pip install -r reports/composition_screen/requirements-sparc.txt
+sqlglot==30.15.0
+gdown==6.1.0
+nltk==3.10.2   # vendored spider_eval/process_sql.py needs word_tokenize;
+               # punkt + punkt_tab data live at $NLTK_DATA (see cluster_env.sh)
+pytest==9.1.1

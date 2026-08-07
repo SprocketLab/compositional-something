@@ -1,0 +1,34 @@
+{
+  "spider": {
+    "sha256": "00636695dabed6b5f4b8328a16b13e069a2f16591d5efcce57660669c85b121b",
+    "bytes": 205800266,
+    "counts": {
+      "train_spider": 7000,
+      "train_others": 1659,
+      "dev": 1034,
+      "database_dirs": 166,
+      "tables": 166
+    },
+    "gdrive_id": "1403EGqzIDoHMdQF4c9Bkyl7dZLZ5Wt6J"
+  },
+  "sparc": {
+    "sha256": "016f56bf64848301b32265f7c40fe1051dc7c70135f28e31cd9c5f544dbd995b",
+    "bytes": 99440484,
+    "counts": {
+      "train": 3034,
+      "dev": 422,
+      "tables": 166,
+      "database_dirs": 166
+    },
+    "gdrive_id": "1Uu7NMHTR1tdQw1t7bAuM7OPU4LElVKfg"
+  },
+  "testsuite": {
+    "sha256": "9ec24ea8debc6bd04abfe137b5f1a739b5a8836f32c0464e4dfc94eb7f41da96",
+    "bytes": 1269456098,
+    "counts": {
+      "sqlite_files": 3194,
+      "db_dirs": 28
+    },
+    "gdrive_id": "1mkCx2GOFIqNesD4y8TDAO1yX1QZORP5w"
+  }
+}

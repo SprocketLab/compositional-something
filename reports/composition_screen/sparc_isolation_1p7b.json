@@ -1,0 +1,79 @@
+{
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3-1.7B/snapshots/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e/",
+    "adapter": "None",
+    "sequences": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_sequences.jsonl",
+    "gold": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_gold.jsonl",
+    "schemas": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_schemas.json",
+    "db_root": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_raw/spider/database",
+    "testsuite_root": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/sparc_raw/testsuite",
+    "out": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/sparc_isolation_1p7b.json",
+    "per_cell": "100",
+    "batch_size": "16",
+    "max_new_tokens": "128",
+    "timeout_s": "15.0",
+    "seed": "7",
+    "limit": "0"
+  },
+  "by_cell": {
+    "2": {
+      "n": 100,
+      "n_parts": 200,
+      "n_corrupt": 100,
+      "direct": 0.59,
+      "part": 0.545,
+      "composed": 0.42,
+      "corrupt": 0.15,
+      "chain_completed": 1.0,
+      "headroom": -0.16999999999999998
+    },
+    "3": {
+      "n": 100,
+      "n_parts": 300,
+      "n_corrupt": 100,
+      "direct": 0.46,
+      "part": 0.5333333333333333,
+      "composed": 0.26,
+      "corrupt": 0.17,
+      "chain_completed": 1.0,
+      "headroom": -0.2
+    },
+    "4+": {
+      "n": 50,
+      "n_parts": 200,
+      "n_corrupt": 50,
+      "direct": 0.34,
+      "part": 0.555,
+      "composed": 0.16,
+      "corrupt": 0.06,
+      "chain_completed": 1.0,
+      "headroom": -0.18000000000000002
+    }
+  },
+  "pooled": {
+    "n": 250,
+    "direct": 0.488,
+    "composed": 0.304,
+    "headroom": -0.184,
+    "ci95": [
+      -0.252,
+      -0.11599999999999999
+    ],
+    "mcnemar": {
+      "b": 19,
+      "c": 65,
+      "p_value": 4.748492975346606e-07
+    },
+    "part": 0.5428571428571428,
+    "corrupt": 0.14,
+    "corrupt_drop": 0.16399999999999998
+  },
+  "verdict": {
+    "headroom_ci_low_gt0": false,
+    "mcnemar_p": 4.748492975346606e-07,
+    "mcnemar_sig": true,
+    "part_ge_060": false,
+    "corrupt_below_composed": true,
+    "pass": false
+  }
+}

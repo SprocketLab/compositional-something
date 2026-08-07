@@ -1,0 +1,696 @@
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00868", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00872", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00876", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00877", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00878", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00882", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00887", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00888", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00890", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00892", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00897", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-00899", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01046", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01048", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01052", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01053", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01361", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01363", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01365", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01367", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-01372", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02179", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02183", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02199", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02202", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02213", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02486", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02496", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02498", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02499", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 2, "id": "sparc-train-02506", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00866", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00869", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00870", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00874", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00875", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00880", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00883", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00885", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00886", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00891", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00893", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00896", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00898", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00900", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-00901", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01047", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01049", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01050", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01051", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01054", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01072", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01073", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01074", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01241", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01248", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01253", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01256", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01258", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01259", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01260", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01262", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01269", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01270", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01362", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01364", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01368", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01371", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01375", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01376", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01377", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01378", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01413", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01414", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01421", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01424", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01670", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01677", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01810", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01877", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01913", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01916", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01917", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01918", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01919", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01927", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01928", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01930", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-01933", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02174", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02175", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02176", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02177", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02187", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02188", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02189", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02194", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02200", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02201", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02205", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02206", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02207", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02208", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02210", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02211", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02214", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02216", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02475", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02478", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02479", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02481", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02482", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02483", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02485", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02487", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02488", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02489", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02490", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02491", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02500", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02501", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02502", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 3, "id": "sparc-train-02505", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00867", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00873", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00879", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00884", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00889", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-00894", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01069", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01070", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 5, "id": "sparc-train-01239", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01242", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01243", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01244", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01245", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01247", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01249", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01250", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01252", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01255", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01257", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01263", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01264", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01265", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01266", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01271", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01366", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01373", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01416", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01417", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01418", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01423", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01671", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01672", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01676", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01679", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01684", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-01685", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02178", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02180", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02184", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02185", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02196", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02197", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02198", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02476", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02477", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02492", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02494", "turn1_ok": false}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02497", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02663", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02664", "turn1_ok": true}
+{"phase": "before", "slice": "turn1", "k": 4, "id": "sparc-train-02665", "turn1_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00868", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00872", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00876", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00877", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00878", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00882", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00887", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00888", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00890", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00892", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00897", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00899", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01046", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01048", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01052", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01053", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01361", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01363", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01365", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01367", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01372", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02179", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02183", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02199", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02202", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02213", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02486", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02496", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02498", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02499", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02506", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00866", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00869", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00870", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00874", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00875", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00880", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00883", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00885", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00886", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00891", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00893", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00896", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00898", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00900", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00901", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01047", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01049", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01050", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01051", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01054", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01072", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01073", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01074", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01241", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01248", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01253", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01256", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01258", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01259", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01260", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01262", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01269", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01270", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01362", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01364", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01368", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01371", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01375", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01376", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01377", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01378", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01413", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01414", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01421", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01424", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01670", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01677", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01810", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01877", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01913", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01916", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01917", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01918", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01919", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01927", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01928", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01930", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01933", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02174", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02175", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02176", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02177", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02187", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02188", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02189", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02194", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02200", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02201", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02205", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02206", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02207", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02208", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02210", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02211", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02214", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02216", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02475", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02478", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02479", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02481", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02482", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02483", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02485", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02487", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02488", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02489", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02490", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02491", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02500", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02501", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02502", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02505", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00867", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00873", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00879", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00884", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00889", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00894", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01069", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01070", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 5, "cell": "4+", "id": "sparc-train-01239", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01242", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01243", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01244", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01245", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01247", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01249", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01250", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01252", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01255", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01257", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01263", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01264", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01265", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01266", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01271", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01366", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01373", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01416", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01417", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01418", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01423", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01671", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01672", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01676", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01679", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01684", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01685", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02178", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02180", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02184", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02185", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02196", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02197", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02198", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02476", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02477", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02492", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02494", "direct_ok": true, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02497", "direct_ok": false, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02663", "direct_ok": true, "composed_ok": false}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02664", "direct_ok": false, "composed_ok": true}
+{"phase": "before", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02665", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00868", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00872", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00876", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00877", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00878", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00882", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00887", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00888", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00890", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00892", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00897", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-00899", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01046", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01048", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01052", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01053", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01361", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01363", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01365", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01367", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-01372", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02179", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02183", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02199", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02202", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02213", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02486", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02496", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02498", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02499", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 2, "id": "sparc-train-02506", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00866", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00869", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00870", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00874", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00875", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00880", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00883", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00885", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00886", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00891", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00893", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00896", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00898", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00900", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-00901", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01047", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01049", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01050", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01051", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01054", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01072", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01073", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01074", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01241", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01248", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01253", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01256", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01258", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01259", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01260", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01262", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01269", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01270", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01362", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01364", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01368", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01371", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01375", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01376", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01377", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01378", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01413", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01414", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01421", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01424", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01670", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01677", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01810", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01877", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01913", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01916", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01917", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01918", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01919", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01927", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01928", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01930", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-01933", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02174", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02175", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02176", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02177", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02187", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02188", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02189", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02194", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02200", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02201", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02205", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02206", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02207", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02208", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02210", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02211", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02214", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02216", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02475", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02478", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02479", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02481", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02482", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02483", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02485", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02487", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02488", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02489", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02490", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02491", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02500", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02501", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02502", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 3, "id": "sparc-train-02505", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00867", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00873", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00879", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00884", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00889", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-00894", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01069", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01070", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 5, "id": "sparc-train-01239", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01242", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01243", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01244", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01245", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01247", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01249", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01250", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01252", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01255", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01257", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01263", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01264", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01265", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01266", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01271", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01366", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01373", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01416", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01417", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01418", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01423", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01671", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01672", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01676", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01679", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01684", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-01685", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02178", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02180", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02184", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02185", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02196", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02197", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02198", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02476", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02477", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02492", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02494", "turn1_ok": false}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02497", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02663", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02664", "turn1_ok": true}
+{"phase": "after", "slice": "turn1", "k": 4, "id": "sparc-train-02665", "turn1_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00868", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00872", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00876", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00877", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00878", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00882", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00887", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00888", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00890", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00892", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00897", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-00899", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01046", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01048", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01052", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01053", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01361", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01363", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01365", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01367", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-01372", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02179", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02183", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02199", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02202", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02213", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02486", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02496", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02498", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02499", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 2, "cell": "2", "id": "sparc-train-02506", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00866", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00869", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00870", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00874", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00875", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00880", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00883", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00885", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00886", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00891", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00893", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00896", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00898", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00900", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-00901", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01047", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01049", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01050", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01051", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01054", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01072", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01073", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01074", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01241", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01248", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01253", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01256", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01258", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01259", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01260", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01262", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01269", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01270", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01362", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01364", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01368", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01371", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01375", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01376", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01377", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01378", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01413", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01414", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01421", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01424", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01670", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01677", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01810", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01877", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01913", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01916", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01917", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01918", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01919", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01927", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01928", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01930", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-01933", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02174", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02175", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02176", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02177", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02187", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02188", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02189", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02194", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02200", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02201", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02205", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02206", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02207", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02208", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02210", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02211", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02214", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02216", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02475", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02478", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02479", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02481", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02482", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02483", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02485", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02487", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02488", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02489", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02490", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02491", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02500", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02501", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02502", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 3, "cell": "3", "id": "sparc-train-02505", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00867", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00873", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00879", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00884", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00889", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-00894", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01069", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01070", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 5, "cell": "4+", "id": "sparc-train-01239", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01242", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01243", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01244", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01245", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01247", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01249", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01250", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01252", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01255", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01257", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01263", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01264", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01265", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01266", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01271", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01366", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01373", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01416", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01417", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01418", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01423", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01671", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01672", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01676", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01679", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01684", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-01685", "direct_ok": false, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02178", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02180", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02184", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02185", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02196", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02197", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02198", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02476", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02477", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02492", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02494", "direct_ok": true, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02497", "direct_ok": false, "composed_ok": false}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02663", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02664", "direct_ok": true, "composed_ok": true}
+{"phase": "after", "slice": "trio", "k": 4, "cell": "4+", "id": "sparc-train-02665", "direct_ok": true, "composed_ok": true}
