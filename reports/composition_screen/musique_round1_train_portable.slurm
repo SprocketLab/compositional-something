@@ -23,7 +23,9 @@ RH=${REHEARSAL_FRAC:-0}
 ROUND=${ROUND:-1}
 ADAPTER_DIR=${ADAPTER_DIR:-"$R"/musique_seed_r1seed/adapter}
 BEFORE_PI=${BEFORE_PI:-"$R"/musique_seed_r1seed/per_instance.jsonl}
-OUT="$R"/musique_round"$ROUND"_"$ARM"
+# OUT_NAME overrides the arm name in the out-dir (e.g. a replay-only control
+# reuses LABEL_KEY=composed on the previous round's labels).
+OUT="$R"/musique_round"$ROUND"_"${OUT_NAME:-$ARM}"
 RH_FLAG=""
 if [ "$RH" != 0 ]; then RH_FLAG="--rehearsal-frac $RH"; OUT="${OUT}_rehearsal"; fi
 REPLAY_FLAG=""
