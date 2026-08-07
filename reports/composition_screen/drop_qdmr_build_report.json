@@ -1,0 +1,196 @@
+{
+  "hashes": {
+    "drop_train": "6b057fc18cc969e2c548aa6e3b891d1d9ff5930cb3beee90f0e30610fd53724b",
+    "drop_dev": "f25f09a9e939e946dbb37799b3b3e2c2a9f7416e524017cc4a79780f2ba6edca",
+    "break_train": "103d84c74224e355960952e4994ecb0ff8305ed9a8594dd6b2952c20aa0bb5d8",
+    "break_dev": "464df87a5b737c1ddb4a490b31c3c40b7c3f3c5b63c75f40977d9f60000fd000"
+  },
+  "train": {
+    "drop_passages": 5565,
+    "drop_questions": 77409,
+    "break_rows": 7672,
+    "break_passages": 3624,
+    "joined": 7672,
+    "join_failures": 0,
+    "excluded_operator": {
+      "BOOLEAN": 73,
+      "COMPARATIVE": 473,
+      "COMPARISON": 1267,
+      "DISCARD": 136,
+      "GROUP": 231,
+      "INTERSECTION": 19,
+      "SUPERLATIVE": 41,
+      "UNION": 23
+    },
+    "excluded_parse": 0,
+    "sink_type": {
+      "AGGREGATE": 1952,
+      "ARITHMETIC": 1912,
+      "FILTER": 303,
+      "PROJECT": 1219,
+      "SELECT": 23
+    },
+    "aggregate_sink_fn": {
+      "avg": 22,
+      "count": 1394,
+      "max": 75,
+      "min": 62,
+      "sum": 399
+    },
+    "numeric_sink": 3864,
+    "k_all": {
+      "1": 78,
+      "10": 1,
+      "2": 1893,
+      "3": 1680,
+      "4": 1259,
+      "5": 214,
+      "6": 223,
+      "7": 34,
+      "8": 19,
+      "9": 8
+    },
+    "k_numeric": {
+      "1": 55,
+      "10": 1,
+      "2": 1234,
+      "3": 1051,
+      "4": 1078,
+      "5": 175,
+      "6": 214,
+      "7": 30,
+      "8": 18,
+      "9": 8
+    },
+    "executor_depth": {
+      "1": 3081,
+      "2": 775,
+      "3": 8
+    },
+    "questions_per_passage": {
+      "1": 1582,
+      "10": 2,
+      "11": 2,
+      "12": 2,
+      "15": 1,
+      "2": 999,
+      "3": 519,
+      "4": 285,
+      "5": 133,
+      "6": 60,
+      "7": 26,
+      "8": 10,
+      "9": 3
+    },
+    "expected_counts_match": true,
+    "count_mismatches": {}
+  },
+  "dev": {
+    "drop_passages": 582,
+    "drop_questions": 9536,
+    "break_rows": 1265,
+    "break_passages": 247,
+    "joined": 1265,
+    "join_failures": 0,
+    "excluded_operator": {
+      "BOOLEAN": 11,
+      "COMPARATIVE": 98,
+      "COMPARISON": 230,
+      "DISCARD": 14,
+      "GROUP": 46,
+      "INTERSECTION": 4,
+      "SUPERLATIVE": 14,
+      "UNION": 7
+    },
+    "excluded_parse": 0,
+    "sink_type": {
+      "AGGREGATE": 268,
+      "ARITHMETIC": 331,
+      "FILTER": 49,
+      "PROJECT": 190,
+      "SELECT": 3
+    },
+    "aggregate_sink_fn": {
+      "avg": 1,
+      "count": 185,
+      "max": 12,
+      "min": 9,
+      "sum": 61
+    },
+    "numeric_sink": 599,
+    "k_all": {
+      "1": 15,
+      "2": 268,
+      "3": 250,
+      "4": 212,
+      "5": 45,
+      "6": 43,
+      "7": 4,
+      "8": 4
+    },
+    "k_numeric": {
+      "1": 12,
+      "2": 181,
+      "3": 149,
+      "4": 176,
+      "5": 34,
+      "6": 39,
+      "7": 4,
+      "8": 4
+    },
+    "executor_depth": {
+      "1": 433,
+      "2": 164,
+      "3": 2
+    },
+    "questions_per_passage": {
+      "1": 28,
+      "10": 4,
+      "11": 2,
+      "12": 3,
+      "13": 8,
+      "14": 4,
+      "16": 1,
+      "2": 34,
+      "21": 1,
+      "3": 32,
+      "4": 38,
+      "5": 16,
+      "6": 29,
+      "7": 18,
+      "8": 15,
+      "9": 14
+    },
+    "expected_counts_match": true,
+    "count_mismatches": {}
+  },
+  "seed_pool": {
+    "covered_passages": 3624,
+    "uncovered_passages": 1941,
+    "questions_on_uncovered": 15669,
+    "answer_types": {
+      "date": 186,
+      "empty": 2,
+      "multispan": 835,
+      "number": 9581,
+      "span": 5065
+    },
+    "atoms": 5900
+  },
+  "atom_pool_dev": {
+    "passages": 214,
+    "questions_on_those_passages": 4269,
+    "answer_types": {
+      "date": 51,
+      "multispan": 231,
+      "number": 2599,
+      "span": 1388
+    },
+    "atoms": 1619,
+    "passage_words": {
+      "median": 181,
+      "p99": 377,
+      "max": 918
+    }
+  }
+}

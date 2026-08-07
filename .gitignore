@@ -70,3 +70,16 @@ reports/composition_screen/sparc_seed*/trainer/
 reports/composition_screen/sparc_seed_smoke/
 reports/composition_screen/sparc_roundsmoke/
 reports/composition_screen/sparc_round*_*/trainer/
+
+# DROP release (18 MB) and BREAK logical forms (8 MB), plus the jsonl the build
+# derives from them in ~4 s. Re-fetchable per DROP_HANDOFF.md §4;
+# drop_qdmr_build_report.json pins the sha256 of all four sources.
+reports/composition_screen/data/drop_dataset/
+reports/composition_screen/data/break_logical_forms_*.csv
+reports/composition_screen/data/drop_qdmr_*.jsonl
+reports/composition_screen/data/drop_gold_*.jsonl
+reports/composition_screen/data/drop_seed_pool_*.jsonl
+reports/composition_screen/data/drop_atom_pool_*.jsonl
+# Adapter and trainer state from the discontinued DROP-QDMR gate (§25).
+reports/composition_screen/drop_seed/adapter/
+reports/composition_screen/drop_seed/trainer/

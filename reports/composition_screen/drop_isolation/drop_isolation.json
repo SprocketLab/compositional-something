@@ -1,0 +1,110 @@
+{
+  "by_k": {
+    "2": {
+      "n": 100,
+      "direct": 0.64,
+      "composed": 0.22,
+      "corrupt": 0.08,
+      "headroom": -0.42,
+      "corruption_drop": 0.14,
+      "corrupt_sinks_changed": 60,
+      "chain_rejected": 37,
+      "rejection_causes": {
+        "ambiguous_count": 35,
+        "operand_not_scalar": 1,
+        "operand_parse": 1
+      },
+      "mcnemar": {
+        "b": 7,
+        "c": 49,
+        "p_value": 7.455210310203242e-09
+      },
+      "ci95": [
+        -0.54,
+        -0.3
+      ]
+    },
+    "3": {
+      "n": 100,
+      "direct": 0.56,
+      "composed": 0.2,
+      "corrupt": 0.13,
+      "headroom": -0.36,
+      "corruption_drop": 0.07,
+      "corrupt_sinks_changed": 67,
+      "chain_rejected": 36,
+      "rejection_causes": {
+        "ambiguous_count": 27,
+        "operand_not_scalar": 3,
+        "operand_parse": 6
+      },
+      "mcnemar": {
+        "b": 3,
+        "c": 39,
+        "p_value": 5.631591193377972e-09
+      },
+      "ci95": [
+        -0.4600000000000001,
+        -0.26
+      ]
+    },
+    "4": {
+      "n": 100,
+      "direct": 0.63,
+      "composed": 0.28,
+      "corrupt": 0.04,
+      "headroom": -0.35,
+      "corruption_drop": 0.24,
+      "corrupt_sinks_changed": 53,
+      "chain_rejected": 50,
+      "rejection_causes": {
+        "ambiguous_count": 22,
+        "operand_not_scalar": 3,
+        "operand_parse": 25
+      },
+      "mcnemar": {
+        "b": 10,
+        "c": 45,
+        "p_value": 2.0572645155203517e-06
+      },
+      "ci95": [
+        -0.48,
+        -0.21999999999999997
+      ]
+    }
+  },
+  "atom_proxy": {
+    "n": 300,
+    "accuracy": 0.47333333333333333
+  },
+  "pooled": {
+    "n": 300,
+    "direct": 0.61,
+    "composed": 0.23333333333333334,
+    "corrupt": 0.08333333333333333,
+    "headroom": -0.37666666666666665,
+    "ci95": [
+      -0.44333333333333336,
+      -0.31
+    ],
+    "mcnemar": {
+      "b": 20,
+      "c": 133,
+      "p_value": 1.139694655994353e-21
+    },
+    "atom_minus_direct": -0.13666666666666666,
+    "corruption_drop": 0.15000000000000002
+  },
+  "config": {
+    "model": "/n/fs/cogai/cs1095/hf_cache/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/",
+    "adapter": "None",
+    "dev_data": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/drop_qdmr_dev.jsonl",
+    "dev_gold": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/drop_gold_dev.jsonl",
+    "atom_pool": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/data/drop_atom_pool_dev.jsonl",
+    "out_dir": "/n/fs/cogai/cs1095/compositional-something/reports/composition_screen/drop_isolation",
+    "cells": "[2, 3, 4]",
+    "per_k": "100",
+    "batch_size": "16",
+    "seed": "7"
+  }
+}
